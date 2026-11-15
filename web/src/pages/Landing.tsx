@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api.ts";
-import { BRAND } from "../lib/brand.tsx";
+import { BRAND, PLATFORM_TOKEN } from "../lib/brand.tsx";
 import { Reveal } from "../lib/motion.tsx";
 import { Copy, Link, navigate, short } from "../lib/ui.tsx";
 import { AsciiSlabs } from "./AsciiSlabs.tsx";
@@ -8,6 +8,7 @@ import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { PixelPipeline } from "./PixelPipeline.tsx";
 import { ZeroSlippage } from "./PixelStat.tsx";
 import { HeroTicket } from "./HeroTicket.tsx";
+import { TokenUtility } from "./TokenUtility.tsx";
 import { MarketBoard } from "./Markets.tsx";
 import { TokenAvatar } from "./Terminal.tsx";
 import { MARKETS, market } from "../lib/tokens.ts";
@@ -207,7 +208,7 @@ function AgentChat() {
 // ───────────────────────── section meta row ─────────────────────────
 
 /** "NO. 1 · TRADE ────────── 01 / 05" */
-function SectMeta({ label, idx, total = 5, tone = "green" }: { label: string; idx: number; total?: number; tone?: "green" | "copper" }) {
+function SectMeta({ label, idx, total = 6, tone = "green" }: { label: string; idx: number; total?: number; tone?: "green" | "copper" }) {
   return (
     <div className={`sect-meta mono ${tone}`}>
       <span>{label}</span>
@@ -492,6 +493,23 @@ export function Landing() {
           <Link to="/security" className="text-link">
             Security details →
           </Link>
+        </Reveal>
+      </section>
+
+      {/* NO. 6 token utility */}
+      <section className="l3-sect">
+        <Reveal className="no">
+          <SectMeta label={`NO. 6 · THE TOKEN`} idx={6} />
+          <h2>
+            Every deal buys ${PLATFORM_TOKEN.symbol}. <span className="tone">Then burns it.</span>
+          </h2>
+          <p className="muted">
+            Utility first: the desk runs today without a token. When ${PLATFORM_TOKEN.symbol} launches on Pons, two rules already
+            written into the contracts switch on.
+          </p>
+        </Reveal>
+        <Reveal>
+          <TokenUtility />
         </Reveal>
       </section>
 

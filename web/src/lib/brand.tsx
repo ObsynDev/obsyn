@@ -5,6 +5,19 @@ export const BRAND = {
   description: "Private OTC block trades and a privacy layer on Robinhood Chain",
 };
 
+/**
+ * The platform token. Fill these in at launch and the site updates everywhere:
+ *  - address: the token's contract address on Robinhood Chain (from Pons)
+ *  - ponsUrl: its page on Pons
+ *  - discountMin: the holding (whole tokens) set in BuyBurnVault.setPlatformToken
+ */
+export const PLATFORM_TOKEN = {
+  symbol: "SLAB",
+  address: null as `0x${string}` | null,
+  ponsUrl: null as string | null,
+  discountMin: null as string | null,
+};
+
 /** Logo mark: three offset slabs on a dark tile. Neon green is the brand accent. */
 export function LogoMark({ size = 28 }: { size?: number }) {
   return (
