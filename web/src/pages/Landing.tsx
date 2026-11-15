@@ -4,6 +4,9 @@ import { BRAND } from "../lib/brand.tsx";
 import { Reveal } from "../lib/motion.tsx";
 import { Copy, Link, navigate, short } from "../lib/ui.tsx";
 import { AsciiSlabs } from "./AsciiSlabs.tsx";
+import { KeyButton, SlotButton } from "../lib/buttons.tsx";
+import { PixelPipeline } from "./PixelPipeline.tsx";
+import { ZeroSlippage } from "./PixelStat.tsx";
 import { DotWave } from "./DotWave.tsx";
 import { TokenAvatar } from "./Terminal.tsx";
 
@@ -135,49 +138,31 @@ function WhoSees() {
 
 // ───────────────────────── glint-style live simulation ─────────────────────────
 
-const STAGES = [
-  ["POSTING", "Buyer posts 250,000 TSLAx · pay in USDG · reply window 1h", "Bid to buy or list to sell. A private link, no account."],
-  ["SEALED_BOX", "3 offers arrive as ciphertext · server can't read them", "Answers are encrypted to the poster's key in the sender's browser."],
-  ["SIGNATURE_CHECK", "2 signed by their wallet · 1 unverified, ranked last", "Every answer is signed by the wallet it names. Fakes are flagged."],
-  ["ACCEPT", "Best offer accepted · terms fixed · deal id 0xa91f…", "The poster picks one. The terms can't change after this."],
-  ["ESCROW", "Payment locked first · seller deposits gasless", "No owner, no admin key. Funds only move to settle or refund."],
-  ["ROBINHOOD_CHAIN", "Swapped in one transaction · receipt on chain", "Tokens to the buyer, payment to the seller. Or everyone is refunded."],
-] as const;
-
-function Pipeline() {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => setI((x) => (x + 1) % STAGES.length), 1800);
-    return () => clearInterval(id);
-  }, []);
-  return (
-    <div className="pipe">
-      <div className="pipe-nodes">
-        {STAGES.map(([k, , d], n) => (
-          <div key={k} className={`pipe-node ${n === i ? "on" : n < i ? "done" : ""}`}>
-            <span className="mono">{k}</span>
-            <p>{d}</p>
-          </div>
-        ))}
-      </div>
-      <div className="pipe-log mono">
-        <span className="dim">&gt;</span> {STAGES[i][1]}
-        <span className="cursor" aria-hidden="true">
-          _
-        </span>
-      </div>
-    </div>
-  );
-}
-
-const CHAT: [string, string][] = [
+const CHAT: [string, string, number?][] = [
   ["you", "sell 50,000 PONS privately, paid in USDG, open for 1 hour"],
-  ["sys", "listing posted · private link saved locally"],
+  ["prog", "posting listing", 1],
+  ["sys", "private link saved locally · reply window 1h"],
+  ["prog", "collecting sealed bids", 0.72],
   ["sys", "3 sealed bids · 2 signed by their wallet · best 2,450 USDG"],
   ["you", "accept the best one, ghost mode on"],
-  ["sys", "one-time wallet funded · buyer paid in · deposited gasless"],
-  ["ok", "settled in 1 transaction ✓"],
+  ["prog", "settling on robinhood chain", 1],
+  ["ok", "settled in 1 transaction"],
 ];
+
+function Bar({ frac, label }: { frac: number; label: string }) {
+  const W = 18;
+  const on = Math.round(frac * W);
+  return (
+    <>
+      <span className="tbar-label">{label}</span>
+      <span className="tbar">
+        <span className="tbar-on">{"█".repeat(on)}</span>
+        <span className="tbar-off">{"█".repeat(W - on)}</span>
+      </span>
+      <span className="tbar-pct">{Math.round(frac * 100)}%</span>
+    </>
+  );
+}
 
 function AgentChat() {
   const [n, setN] = useState(0);
@@ -186,18 +171,24 @@ function AgentChat() {
     return () => clearInterval(id);
   }, []);
   return (
-    <div className="chat mono" aria-label="Example agent session">
+    <div className="chat term mono" aria-label="Example agent session">
       <div className="chat-bar">
         <span className="dots">
           <i />
           <i />
           <i />
         </span>
-        <span className="dim small">agent · slab mcp</span>
+        <span className="dim small">~/desk · agent + slab mcp</span>
       </div>
-      {CHAT.slice(0, Math.min(n, CHAT.length)).map(([who, line], k) => (
+      {CHAT.slice(0, Math.min(n, CHAT.length)).map(([who, line, frac], k) => (
         <div key={k} className={`chat-line ${who}`}>
-          <span className="who">{who === "you" ? ">" : who === "ok" ? "✓" : "·"}</span> {line}
+          {who === "prog" ? (
+            <Bar frac={frac ?? 1} label={line} />
+          ) : (
+            <>
+              <span className="who">{who === "you" ? ">" : who === "ok" ? "✓" : "·"}</span> {line}
+            </>
+          )}
         </div>
       ))}
       {n < CHAT.length && (
@@ -284,12 +275,8 @@ export function Landing() {
               <span />
             </div>
             <div className="btn-group">
-              <Link to="/how" className="sq ghost">
-                HOW IT WORKS <span aria-hidden="true">→</span>
-              </Link>
-              <Link to="/otc" className="sq go">
-                OPEN THE DESK <span className="key">ENTER ↵</span>
-              </Link>
+              <SlotButton to="/how">HOW IT WORKS</SlotButton>
+              <KeyButton to="/otc">OPEN THE DESK</KeyButton>
             </div>
           </div>
           <div className="ca-row mono">
@@ -315,24 +302,30 @@ export function Landing() {
 
       {/* token strip (meridian) */}
       <section className="tok-strip" aria-label="Example tokens">
-        <span className="tok-label mono">ANY ERC-20 ON ROBINHOOD CHAIN · FOR EXAMPLE</span>
-        <div className="tok-viewport">
-          <div className="tok-track">
-            {[0, 1].map((k) => (
-              <div key={k} className="tok-set" aria-hidden={k === 1}>
-                {EXAMPLE_TOKENS.map(([sym, name, addr]) => (
-                  <div key={sym} className="tok">
-                    <TokenAvatar address={addr as `0x${string}`} symbol={sym} size={30} />
-                    <span>
-                      <b>{sym}</b>
-                      <i>{name}</i>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
+        <div className="tok-labels mono">
+          <span>ANY ERC-20 ON ROBINHOOD CHAIN</span>
+          <span>FOR EXAMPLE · PAY IN ETH OR USDG</span>
         </div>
+        {[false, true].map((rev) => (
+          <div key={String(rev)} className="tok-viewport">
+            <div className={`tok-track ${rev ? "rev" : ""}`}>
+              {[0, 1].map((k) => (
+                <div key={k} className="tok-set" aria-hidden={k === 1}>
+                  {(rev ? [...EXAMPLE_TOKENS].reverse() : EXAMPLE_TOKENS).map(([sym, name, addr]) => (
+                    <div key={sym} className="tok">
+                      <TokenAvatar address={addr as `0x${string}`} symbol={sym} size={30} />
+                      <span>
+                        <b>{sym}</b>
+                        <i>{name}</i>
+                      </span>
+                      <em className="mono">OTC</em>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </section>
 
       {/* product preview */}
@@ -341,6 +334,11 @@ export function Landing() {
           <AppPreview />
         </Reveal>
       </section>
+
+      {/* glint-style pixel stat + fanned cards */}
+      <Reveal>
+        <ZeroSlippage />
+      </Reveal>
 
       {/* NO. 1 trade */}
       <section className="l3-sect">
@@ -415,35 +413,38 @@ export function Landing() {
           <p className="muted">One block, from the post to a settlement on chain. A live simulation.</p>
         </Reveal>
         <Reveal>
-          <Pipeline />
+          <PixelPipeline />
         </Reveal>
       </section>
 
-      {/* NO. 5 agents */}
-      <section className="l3-sect">
+      {/* NO. 5 agents (glint "from your terminal") */}
+      <section className="l3-sect ask">
         <Reveal className="no">
           <SectMeta label="NO. 5 · AGENTS & BUILDERS" idx={5} />
+        </Reveal>
+        <Reveal className="ask-head">
           <h2>
-            Your agent can <span className="green">work the desk.</span>
+            Or just ask. <span className="tone">From your terminal.</span>
           </h2>
+          <p className="muted">Plug the desk into any MCP-capable AI agent. It posts, reads sealed answers and settles, with your keys on your machine.</p>
         </Reveal>
-        <Reveal className="cmdline">
-          <code className="mono">{mcp}</code>
-          <Copy text={mcp} />
-        </Reveal>
-        <Reveal>
-          <AgentChat />
-        </Reveal>
-        <div className="link-row">
-          <a className="sq ghost sm" href="/api/openapi.json" target="_blank" rel="noreferrer">
-            OPENAPI
-          </a>
-          <a className="sq ghost sm" href="/api/sdk/blockotc.mjs" target="_blank" rel="noreferrer">
-            SDK
-          </a>
-          <Link to="/developers" className="sq ghost sm">
-            10 MCP TOOLS →
-          </Link>
+        <div className="ask-grid">
+          <Reveal className="ask-term">
+            <div className="cmdline">
+              <code className="mono">{mcp}</code>
+              <Copy text={mcp} />
+            </div>
+            <AgentChat />
+            <div className="ask-btns">
+              <SlotButton to="/developers">10 MCP TOOLS</SlotButton>
+              <SlotButton onClick={() => window.open("/api/sdk/blockotc.mjs", "_blank", "noreferrer")}>SDK</SlotButton>
+              <SlotButton onClick={() => window.open("/api/openapi.json", "_blank", "noreferrer")}>OPENAPI</SlotButton>
+            </div>
+          </Reveal>
+          <div className="ask-art" aria-hidden="true">
+            <span className="ask-glow" />
+            <AsciiSlabs />
+          </div>
         </div>
       </section>
 
@@ -509,12 +510,8 @@ export function Landing() {
           <span className="copper">Keep it private.</span>
         </h2>
         <div className="btn-group">
-          <Link to="/app?new=sell" className="sq ghost">
-            SELL PRIVATELY
-          </Link>
-          <Link to="/otc" className="sq go">
-            OPEN THE DESK <span className="key">ENTER ↵</span>
-          </Link>
+          <SlotButton to="/otc?side=sell">SELL PRIVATELY</SlotButton>
+          <KeyButton to="/otc">OPEN THE DESK</KeyButton>
         </div>
       </section>
     </div>

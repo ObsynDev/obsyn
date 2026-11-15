@@ -6,6 +6,7 @@ import { newBoxKeys, sideOf, toUrl } from "../lib/sealed.ts";
 import { saved } from "../lib/store.ts";
 import { Err, Link, navigate, useAction } from "../lib/ui.tsx";
 import { DotWave } from "./DotWave.tsx";
+import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { compact, TokenAvatar } from "./Terminal.tsx";
 
 const WINDOWS = [
@@ -162,12 +163,10 @@ function OtcSections({ onBuy, onSell }: { onBuy: () => void; onSell: () => void 
           </h2>
           <p className="muted">SLAB brings buyers, sellers, teams and agents together for private block trades on Robinhood Chain.</p>
           <div className="om-ctas">
-            <button className="sq go sm" onClick={onBuy}>
-              PLACE A BID →
-            </button>
-            <button className="sq ghost sm" onClick={onSell}>
-              SELL PRIVATELY →
-            </button>
+            <KeyButton onClick={onBuy} glyph="↵">
+              PLACE A BID
+            </KeyButton>
+            <SlotButton onClick={onSell}>SELL PRIVATELY</SlotButton>
           </div>
         </div>
         <div className="om-offers">
@@ -199,9 +198,9 @@ function OtcSections({ onBuy, onSell }: { onBuy: () => void; onSell: () => void 
           {open && open.length === 0 && (
             <div className="om-empty">
               <p>No open blocks right now. Post the first one.</p>
-              <button className="sq go sm" onClick={onBuy}>
-                PLACE A BID →
-              </button>
+              <KeyButton onClick={onBuy} glyph="↵">
+                PLACE A BID
+              </KeyButton>
             </div>
           )}
           {open?.slice(0, 12).map((r) => {
@@ -466,9 +465,9 @@ export function Otc() {
         </div>
 
         <Err msg={submit.error} />
-        <button className={`otc-go ${side}`} disabled={submit.busy}>
+        <KeyButton type="submit" block tone={side === "buy" ? "green" : "red"} disabled={submit.busy}>
           {submit.busy ? "CREATING…" : side === "buy" ? "CREATE PRIVATE BID" : "LIST PRIVATELY"}
-        </button>
+        </KeyButton>
       </form>
 
       <p className="otc-foot">

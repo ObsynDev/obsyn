@@ -141,12 +141,12 @@ export function AsciiSlabs() {
           let color: string;
           if (rnd < 0.02) {
             c = HEX[Math.floor(rnd * 1000) % 16];
-            color = "#e39a5d";
+            color = "#9bf0d4";
           } else {
             const k = layer[y * COLS + x];
             const g = [0.55, 0.78, 1][k];
             const a = 0.25 + L * 0.75;
-            color = `rgba(${Math.round(140 * g)},${Math.round(255 * g)},${Math.round(97 * g)},${a.toFixed(2)})`;
+            color = `rgba(${Math.round(139 * g)},${Math.round(124 * g)},${Math.round(255 * g)},${a.toFixed(2)})`;
           }
           ctx.fillStyle = color;
           ctx.fillText(c, x * cw, y * ch);
