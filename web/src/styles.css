@@ -5212,3 +5212,5 @@ main.site-main { max-width: none; padding-left: var(--gut); padding-right: var(-
 .l3-hero { min-height: min(calc(100vh - 120px), 760px); }
 .mb-facts { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 @media (max-width: 560px) { .chain-pill .cid { display: none; } }
+.mb-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 1560px) { .mb-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
