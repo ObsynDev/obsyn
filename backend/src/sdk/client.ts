@@ -290,15 +290,20 @@ export class OtcAgent {
 
   // ─────────────────────────── posting ───────────────────────────
 
-  private async post(side: "buy" | "sell", a: { token: string; amount: string; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string }) {
+  private async post(
+    side: "buy" | "sell",
+    a: { token: string; amount?: string; sizeUsd?: number; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string },
+  ) {
     const tok = await this.token(getAddress(a.token));
-    const amount = parseUnits(a.amount, tok.decimals);
+    if (!a.amount && !(side === "buy" && a.sizeUsd)) throw new Error(side === "buy" ? "Give amount (tokens) or sizeUsd." : "Give amount (tokens).");
+    const amount = a.amount ? parseUnits(a.amount, tok.decimals) : null;
     const keys = nacl.box.keyPair();
     const res = await this.api<{ id: string; manageToken: string; shareUrl: string; expiresAt: number }>("POST", "/rfqs", {
       side,
       token: tok.address,
       payToken: a.payWith,
-      amount: amount.toString(),
+      amount: amount?.toString(),
+      sizeUsd: amount ? undefined : a.sizeUsd,
       replySeconds: Math.round(a.replyMinutes * 60),
       encPubKey: b64(keys.publicKey),
       note: a.note,
@@ -306,11 +311,12 @@ export class OtcAgent {
     const s = this.loadState();
     s.bids[res.id] = { manageToken: res.manageToken, boxSecret: b64(keys.secretKey), createdAt: Date.now(), side };
     this.saveState(s);
-    return { bidId: res.id, side, token: tok.symbol, amount: a.amount, payWith: a.payWith, shareUrl: res.shareUrl, expiresAt: res.expiresAt };
+    return { bidId: res.id, side, token: tok.symbol, amount: a.amount ?? null, sizeUsd: amount ? null : a.sizeUsd, payWith: a.payWith, shareUrl: res.shareUrl, expiresAt: res.expiresAt };
   }
 
   /** Buyer posts first: sellers answer with sealed offers. */
-  createBid(a: { token: string; amount: string; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string }) {
+  /** Size by token amount, or by USD (sellers then say how many tokens they offer). */
+  createBid(a: { token: string; amount?: string; sizeUsd?: number; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string }) {
     return this.post("buy", a);
   }
 
@@ -341,7 +347,6 @@ export class OtcAgent {
     );
     const [tok, pay] = await Promise.all([this.token(rfq.token), this.token(rfq.payToken)]);
     const secret = unb64(b.boxSecret);
-    const amountWhole = rfq.amount ? Number(formatUnits(BigInt(rfq.amount), tok.decimals)) : NaN;
     const { pc } = await this.chain();
     const rows = await Promise.all(
       quotes.map(async (q) => {
@@ -355,7 +360,9 @@ export class OtcAgent {
         }
         // Anyone can post an answer, so treat its contents as hostile: one malformed answer
         // must never break reading the others.
-        if (!o || typeof o !== "object" || o.amount !== rfq.amount || !isUint(o.price)) return null;
+        if (!o || typeof o !== "object" || !isUint(o.price) || !isUint(o.amount) || BigInt(o.amount) === 0n) return null;
+        // A fixed-size posting only accepts answers for exactly that size; a USD-sized bid takes any size.
+        if (rfq.amount && o.amount !== rfq.amount) return null;
         if (side === "buy" && (!isAddress(String(o.seller)) || !isAddress(String(o.sellerPayout)) || !isUint(o.relayerFee))) return null;
         if (side === "sell" && !isAddress(String(o.buyer))) return null;
 
@@ -379,7 +386,8 @@ export class OtcAgent {
           offerId: q.id,
           totalPrice: formatUnits(BigInt(o.price), pay.decimals),
           payWith: pay.symbol,
-          unitPrice: total / amountWhole,
+          amount: formatUnits(BigInt(o.amount), tok.decimals),
+          unitPrice: total / Number(formatUnits(BigInt(o.amount), tok.decimals)),
           verified,
           hasFunds,
           message: typeof o.message === "string" ? o.message.slice(0, 200) : null,
@@ -491,13 +499,30 @@ export class OtcAgent {
    * Answer someone else's posting with a sealed price, encrypted to the poster.
    * On a buy bid this is a seller offer (ghost mode available). On a sell listing it is a buyer bid.
    */
-  async sendOffer(a: { bidId: string; totalPrice: string; payoutAddress?: string; ghost?: boolean; message?: string; seller?: string; buyer?: string }) {
+  async sendOffer(a: {
+    bidId: string;
+    totalPrice: string;
+    /** Whole tokens. Required when the bid is sized in USD (no fixed token amount). */
+    amount?: string;
+    payoutAddress?: string;
+    ghost?: boolean;
+    message?: string;
+    seller?: string;
+    buyer?: string;
+  }) {
     const cfg = await this.config();
     const rfq = await this.api<Rfq & { encPubKey?: string }>("GET", `/rfqs/${a.bidId}`);
     const side = sideOf(rfq);
-    if (!rfq.amount) throw new Error("This posting has no fixed size.");
     const pay = await this.token(rfq.payToken);
     const price = parseUnits(a.totalPrice, pay.decimals).toString();
+    // Fixed-size postings set the amount; a USD-sized bid lets each seller name how many tokens they offer.
+    let amount = rfq.amount;
+    if (!amount) {
+      if (!a.amount) throw new Error(`This bid is sized in USD (~$${rfq.sizeUsd}). Say how many tokens you offer with amount.`);
+      const tok = await this.token(rfq.token);
+      amount = parseUnits(a.amount, tok.decimals).toString();
+      if (BigInt(amount) <= 0n) throw new Error("amount must be above zero.");
+    }
     let ghostKey: Hex | undefined;
     let payload: Offer | BuyerBid;
     let who: Address;
@@ -513,18 +538,18 @@ export class OtcAgent {
       const payout = a.payoutAddress ? getAddress(a.payoutAddress) : this.address;
       if (!payout) throw new Error("Give payoutAddress (where the payment should go).");
       const relayerFee = a.ghost ? BigInt(rfq.payToken === zeroAddress ? cfg.relayer.minFee.eth : cfg.relayer.minFee.usdg) : 0n;
-      payload = { amount: rfq.amount, price, seller: who, sellerPayout: payout, relayerFee: relayerFee.toString(), ghost: Boolean(a.ghost), message: a.message };
+      payload = { amount, price, seller: who, sellerPayout: payout, relayerFee: relayerFee.toString(), ghost: Boolean(a.ghost), message: a.message };
     } else {
       if (a.ghost) throw new Error("Ghost mode is for sellers. On a sell listing you are the buyer.");
       who = a.buyer ? getAddress(a.buyer) : this.requireAddress("Bidding");
-      payload = { amount: rfq.amount, price, buyer: who, message: a.message };
+      payload = { amount, price, buyer: who, message: a.message };
     }
 
     // Prove the named wallet is ours. Without a key for it (an explicit seller/buyer address and
     // no private key) the answer goes out unsigned and the poster sees it as unverified.
     const signer = ghostKey ? privateKeyToAccount(ghostKey) : this.opts.privateKey ? privateKeyToAccount(this.opts.privateKey) : null;
     if (signer && signer.address === who) {
-      payload.sig = await signer.signMessage({ message: answerMessage(a.bidId, side, who, rfq.amount, price) });
+      payload.sig = await signer.signMessage({ message: answerMessage(a.bidId, side, who, amount, price) });
     }
 
     const eph = nacl.box.keyPair();

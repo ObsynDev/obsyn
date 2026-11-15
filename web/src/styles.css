@@ -3217,3 +3217,310 @@ body {
     grid-column: 1 / -1;
   }
 }
+
+/* ───── OTC desk (/otc) ───── */
+.otc {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 28px;
+  padding: 48px 0 120px;
+  isolation: isolate;
+}
+.otc .dotwave {
+  top: auto;
+  bottom: 0;
+}
+.otc-head {
+  text-align: center;
+  max-width: 760px;
+}
+.otc-head h1 {
+  font-size: clamp(34px, 5vw, 64px);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-weight: 600;
+}
+.otc-card {
+  width: min(480px, 100%);
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: rgb(14 14 16 / 0.95);
+  box-shadow: 0 40px 100px -40px rgb(0 0 0 / 0.9);
+}
+.otc-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 6px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+.otc-tabs button {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 600 14px var(--sans);
+  padding: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.otc-tabs button.on.buy {
+  background: var(--green);
+  color: var(--green-ink);
+}
+.otc-tabs button.on.sell {
+  background: var(--red);
+  color: var(--red-ink);
+}
+.otc-box {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.otc-box:focus-within {
+  border-color: var(--line-2);
+}
+.otc-k {
+  font: 500 11px var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.otc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.otc-dollar {
+  font: 500 34px var(--sans);
+  color: var(--muted);
+}
+.otc-amt {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: 500 38px var(--sans);
+  letter-spacing: -0.03em;
+  color: var(--text);
+  outline: none;
+}
+.otc-amt::placeholder {
+  color: var(--dim);
+}
+.otc-sealed {
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  color: var(--copper);
+}
+.otc-unit {
+  font: 600 14px var(--mono);
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: var(--panel-3);
+}
+.otc-sub {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+}
+.otc-pay {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.otc-pay button,
+.otc-chips button {
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  color: var(--muted);
+  font: 600 12px var(--mono);
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.otc-pay button.on,
+.otc-chips button.on {
+  color: var(--text);
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.otc-card.sell .otc-pay button.on,
+.otc-card.sell .otc-chips button.on {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+.otc-arrow {
+  justify-self: center;
+  margin: -16px 0;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  color: var(--muted);
+  font-size: 14px;
+}
+.tok-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 12px;
+  font: 600 14px var(--sans);
+  background: var(--green);
+  color: var(--green-ink);
+  cursor: pointer;
+}
+.otc-card.sell .tok-btn:not(.set) {
+  background: var(--red);
+  color: var(--red-ink);
+}
+.tok-btn.set {
+  background: var(--panel-3);
+  color: var(--text);
+  border: 1px solid var(--line-2);
+}
+.tok-btn .avatar {
+  border-radius: 5px;
+  font-size: 9px !important;
+}
+.otc-window {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 6px;
+  font-size: 13px;
+}
+.otc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.otc-go {
+  min-height: 54px;
+  border: 0;
+  border-radius: 6px;
+  font: 600 13px var(--mono);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.otc-go.buy {
+  background: var(--green);
+  color: var(--green-ink);
+}
+.otc-go.sell {
+  background: var(--red);
+  color: var(--red-ink);
+}
+.otc-go:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.otc-foot {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+@media (max-width: 480px) {
+  .otc-amt {
+    font-size: 30px;
+  }
+  .otc {
+    padding-top: 24px;
+  }
+}
+
+/* token picker */
+.sheet-backdrop.center {
+  justify-content: center;
+  align-items: flex-start;
+  padding: 10vh 12px 12px;
+}
+.picker {
+  width: min(440px, 100%);
+  max-height: 76vh;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--panel);
+  animation: slide 0.15s ease-out;
+}
+.picker-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.picker-search {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.picker-list {
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-height: 120px;
+}
+.picker-row {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.picker-row:hover {
+  background: var(--panel-2);
+}
+.picker-row span {
+  display: grid;
+}
+.picker-row i {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--muted);
+}
+.picker-row em {
+  font-style: normal;
+  font-size: 11px;
+}
+.picker-note {
+  margin: 0;
+}
+
+.otc-amt.otc-sealed {
+  font-size: 15px;
+  white-space: nowrap;
+}

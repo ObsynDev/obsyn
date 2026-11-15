@@ -111,7 +111,7 @@ export function createApp(deps: Deps) {
       token: z.string().refine(isAddress, "invalid token address"),
       payToken: z.string(),
       amount: z.string().regex(/^[1-9]\d*$/).optional(),
-      sizeUsd: z.number().positive().max(1e12).optional(),
+      sizeUsd: z.number().min(5, "minimum size is $5").max(1e12).optional(),
       replySeconds: z.number().int().min(MIN_REPLY).max(MAX_REPLY),
       encPubKey: z.string().refine((s) => isB64(s, 32), "must be a base64 32-byte NaCl box public key").optional(),
       buyerEncPubKey: z.string().refine((s) => isB64(s, 32), "must be a base64 32-byte NaCl box public key").optional(),
@@ -122,6 +122,8 @@ export function createApp(deps: Deps) {
 
   app.post("/rfqs", async (c) => {
     const body = CreateRfq.parse(await c.req.json());
+    // The escrow refuses deals where the traded token is USDG itself; catch it here, not at deposit time.
+    if (cfg.usdg && getAddress(body.token) === cfg.usdg) throw new BadRequest("USDG is a payment currency here; pick the token you want to trade.");
     const id = newId();
     const manageToken = newToken();
     const t = now();

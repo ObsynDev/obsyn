@@ -71,12 +71,23 @@ export function BuyerBid({ id }: { id: string }) {
     const out: Answer[] = [];
     for (const q of quotes.data) {
       const o = unseal<Offer & BuyerBidMsg>(q, secret);
-      if (!o || o.amount !== rfq.amount || !/^\d+$/.test(String(o.price))) continue;
+      // Hostile input: skip anything malformed instead of breaking the list.
+      const uint = (v: unknown) => typeof v === "string" && /^\d{1,78}$/.test(v);
+      if (!o || typeof o !== "object" || !uint(o.price) || !uint(o.amount) || BigInt(o.amount) === 0n) continue;
+      // Fixed-size postings only take answers for exactly that size; USD-sized bids take any size.
+      if (rfq.amount && o.amount !== rfq.amount) continue;
+      if (side === "buy" && (!isAddress(String(o.sellerPayout)) || !uint(o.relayerFee))) continue;
       const from = side === "buy" ? o.seller : o.buyer;
       if (!from || !isAddress(from)) continue;
       out.push({ q, price: BigInt(o.price), amount: o.amount, from, ghost: side === "buy" && !!o.ghost, message: o.message, raw: o });
     }
-    return out.sort((a, b) => (side === "buy" ? (a.price < b.price ? -1 : 1) : a.price > b.price ? -1 : 1));
+    // Rank by price per token (amounts can differ on USD-sized bids). Cross-multiply to stay exact.
+    const cmp = (a: Answer, b: Answer) => {
+      const l = a.price * BigInt(b.amount);
+      const r = b.price * BigInt(a.amount);
+      return l === r ? 0 : l < r ? -1 : 1;
+    };
+    return out.sort((a, b) => (side === "buy" ? cmp(a, b) : cmp(b, a)));
   }, [quotes.data, secret, rfq, side]);
 
   // Per answer: signed by the wallet it names? Does that wallet hold enough right now?
@@ -187,7 +198,6 @@ export function BuyerBid({ id }: { id: string }) {
   if (!rfq || !tok || !pay) return <p className="muted">Loading…</p>;
 
   const left = rfq.expiresAt - now;
-  const amountWhole = Number(formatUnits(BigInt(rfq.amount ?? "0"), tok.decimals));
   const others = side === "buy" ? "sellers" : "buyers";
   const answerNoun = side === "buy" ? "offers" : "bids";
 
@@ -196,7 +206,8 @@ export function BuyerBid({ id }: { id: string }) {
       <section className="card">
         <div className="card-head">
           <h2>
-            {side === "buy" ? "Your bid" : "Your listing"}: {rfq.amount ? fmtAmount(rfq.amount, tok.decimals, 2) : "—"} {tok.symbol}
+            {side === "buy" ? "Your bid" : "Your listing"}:{" "}
+            {rfq.amount ? `${fmtAmount(rfq.amount, tok.decimals, 2)} ${tok.symbol}` : `~$${(rfq.sizeUsd ?? 0).toLocaleString("en-US")} of ${tok.symbol}`}
           </h2>
           {rfq.status === "open" ? (
             <Pill tone={left > 0 ? "info" : "warn"}>{left > 0 ? `${fmtLeft(left)} for ${answerNoun}` : `${answerNoun} closed`}</Pill>
@@ -255,7 +266,7 @@ export function BuyerBid({ id }: { id: string }) {
                   </strong>
                   <span className="muted">
                     {" "}
-                    · {(Number(formatUnits(a.price, pay.decimals)) / amountWhole).toPrecision(6)} {pay.symbol}/{tok.symbol}
+                    {" "}for {fmtAmount(a.amount, tok.decimals, 4)} {tok.symbol} · {(Number(formatUnits(a.price, pay.decimals)) / Number(formatUnits(BigInt(a.amount), tok.decimals))).toPrecision(6)} {pay.symbol}/{tok.symbol}
                   </span>
                   <div className="muted small">
                     from <span className="mono">{short(a.from)}</span>

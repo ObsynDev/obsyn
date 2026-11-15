@@ -197,6 +197,8 @@ describe("sealed RFQ flow", () => {
     assert.equal((await createRfq({ buyerEncPubKey: "abc" })).status, 400);
     assert.equal((await createRfq({ amount: undefined })).status, 400); // no size at all
     assert.equal((await createRfq({ amount: undefined, sizeUsd: 25_000, payToken: "ETH" })).status, 201);
+    assert.equal((await createRfq({ amount: undefined, sizeUsd: 2, payToken: "ETH" })).status, 400); // $5 minimum
+    assert.equal((await createRfq({ token: USDG })).status, 400); // USDG is the payment currency, not a tradable token
   });
 
   it("buyer can cancel; others cannot", async () => {

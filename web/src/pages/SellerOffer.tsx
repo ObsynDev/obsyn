@@ -22,6 +22,8 @@ export function SellerOffer({ id }: { id: string }) {
   const [ghostKey] = useState<Hex>(() => generatePrivateKey());
   const ghostAddr = privateKeyToAccount(ghostKey).address;
   const [price, setPrice] = useState("");
+  // Only used when the bid is sized in USD: the seller names how many tokens they offer.
+  const [offerAmount, setOfferAmount] = useState("");
   const [payout, setPayout] = useState("");
   const [message, setMessage] = useState("");
 
@@ -45,7 +47,6 @@ export function SellerOffer({ id }: { id: string }) {
 
   const submit = useAction(async () => {
     if (!rfq || !tok || !pay || !cfg) return;
-    if (!rfq.amount) throw new Error("This bid has no fixed size.");
     const seller = mode === "ghost" ? ghostAddr : wallet;
     if (!seller) throw new Error("Connect the wallet that holds the tokens.");
     if (!isAddress(payout)) throw new Error("Enter the address that should receive the payment.");
@@ -55,8 +56,14 @@ export function SellerOffer({ id }: { id: string }) {
       mode === "ghost" ? BigInt(pay.symbol === "ETH" ? cfg.relayer.minFee.eth : cfg.relayer.minFee.usdg) : 0n;
     if (mode === "ghost" && !cfg.relayer.enabled) throw new Error("Ghost mode is unavailable: the relayer is offline.");
 
+    let amount = rfq.amount;
+    if (!amount) {
+      const base = parseUnits(offerAmount.replace(/[,\s]/g, "") || "0", tok.decimals);
+      if (base <= 0n) throw new Error("Enter how many tokens you are offering.");
+      amount = base.toString();
+    }
     const offer: Offer = {
-      amount: rfq.amount,
+      amount,
       price: priceBase.toString(),
       seller,
       sellerPayout: getAddress(payout),
@@ -86,8 +93,8 @@ export function SellerOffer({ id }: { id: string }) {
   const left = rfq.expiresAt - now;
   const open = rfq.status === "open" && left > 0;
   const unit =
-    price && rfq.amount && Number(price) > 0
-      ? Number(price.replace(/,/g, "")) / Number(formatUnits(BigInt(rfq.amount), tok.decimals))
+    price && Number(price) > 0 && (rfq.amount || Number(offerAmount) > 0)
+      ? Number(price.replace(/,/g, "")) / (rfq.amount ? Number(formatUnits(BigInt(rfq.amount), tok.decimals)) : Number(offerAmount.replace(/,/g, "")))
       : null;
 
   return (
@@ -95,7 +102,7 @@ export function SellerOffer({ id }: { id: string }) {
       <section className="card">
         <div className="card-head">
           <h2>
-            Bid for {rfq.amount ? fmtAmount(rfq.amount, tok.decimals, 2) : "—"} {tok.symbol}
+            Bid for {rfq.amount ? `${fmtAmount(rfq.amount, tok.decimals, 2)} ${tok.symbol}` : `~$${(rfq.sizeUsd ?? 0).toLocaleString("en-US")} of ${tok.symbol}`}
           </h2>
           {open ? <Pill tone="info">{fmtLeft(left)} left</Pill> : <Pill tone="muted">{rfq.status === "open" ? "closed" : rfq.status}</Pill>}
         </div>
@@ -160,8 +167,14 @@ export function SellerOffer({ id }: { id: string }) {
           )}
           <Err msg={connect.error} />
 
+          {!rfq.amount && (
+            <label>
+              How many {tok.symbol} are you offering? <span className="muted">(the buyer asked for about ${(rfq.sizeUsd ?? 0).toLocaleString("en-US")} worth)</span>
+              <input value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} inputMode="decimal" placeholder="0" required />
+            </label>
+          )}
           <label>
-            Total price ({pay.symbol}) for the full {fmtAmount(rfq.amount ?? "0", tok.decimals, 2)} {tok.symbol}
+            Total price ({pay.symbol}) for {rfq.amount ? `the full ${fmtAmount(rfq.amount, tok.decimals, 2)}` : "your"} {tok.symbol}
             <input value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" placeholder="0.0" required />
             {unit !== null && isFinite(unit) && (
               <small className="muted">

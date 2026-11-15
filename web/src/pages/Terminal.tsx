@@ -83,7 +83,7 @@ function BlockCard({ r, now }: { r: Rfq; now: number }) {
           <span className="spacer" />
           <span className="stat">
             <i>SIZE</i>
-            <b>{r.amount && tok ? compact(r.amount, tok.decimals) : "—"}</b>
+            <b>{r.amount && tok ? compact(r.amount, tok.decimals) : r.sizeUsd ? `~$${compact(BigInt(Math.round(r.sizeUsd)), 0)}` : "—"}</b>
           </span>
         </div>
 

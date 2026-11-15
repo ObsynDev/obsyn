@@ -276,6 +276,34 @@ describe("MCP agents", { skip: !canRun && "anvil or forge build output missing" 
     assert.equal(await pc.getBalance({ address: payout }), 8n * 10n ** 17n - 2n * 10n ** 16n - 10n ** 14n); // 0.8 - 2.5% - relayer fee
   });
 
+  it("USD-sized bid: sellers name the token amount, the deal settles", async () => {
+    const buyer = await agentClient(KEYS.buyer);
+    const seller = await agentClient(KEYS.seller);
+    const buyerAddr = privateKeyToAccount(KEYS.buyer).address;
+    const payout = privateKeyToAccount(generatePrivateKey()).address;
+    const before = await bal(stock, buyerAddr);
+
+    const bid = await buyer.call("otc_create_bid", { token: stock, sizeUsd: 1000, payWith: "USDG", replyMinutes: 15 });
+    assert.equal(bid.sizeUsd, 1000);
+    assert.equal(bid.amount, null);
+    // refused before reaching the backend: the MCP input schema enforces the $5 minimum
+    await assert.rejects(buyer.call("otc_create_bid", { token: stock, sizeUsd: 2, payWith: "USDG", replyMinutes: 15 }));
+
+    await assert.rejects(seller.call("otc_send_offer", { bidId: bid.bidId, totalPrice: "1000" }), /sized in USD/);
+    const off = await seller.call("otc_send_offer", { bidId: bid.bidId, totalPrice: "1000", amount: "4", payoutAddress: payout });
+
+    const [o] = await buyer.call("otc_get_offers", { bidId: bid.bidId });
+    assert.equal(o.amount, "4");
+    assert.equal(o.unitPrice, 250);
+    assert.equal(o.verified, true, "signature covers the seller's own amount");
+
+    await buyer.call("otc_accept_offer", { bidId: bid.bidId, offerId: off.offerId, fundingMinutes: 30 });
+    await buyer.call("otc_deposit", { bidId: bid.bidId });
+    await seller.call("otc_deposit", { offerId: off.offerId });
+    assert.equal((await buyer.call("otc_deal_status", { bidId: bid.bidId })).status, "settled");
+    assert.equal((await bal(stock, buyerAddr)) - before, 4n * 10n ** 18n);
+  });
+
   it("hostile answers: malformed ones are skipped, forged ones are flagged and refused", async () => {
     const seller = await agentClient(KEYS.seller);
     const buyer = await agentClient(KEYS.buyer);

@@ -68,7 +68,8 @@ export function createMcpServer(agent: OtcAgent) {
         "Ask to buy a block of a token. Sellers reply with sealed offers only you can decrypt. Returns a bidId and a share link for sellers.",
       inputSchema: {
         token: z.string().describe("Token address on Robinhood Chain"),
-        amount: z.string().describe("How many tokens, in whole units, e.g. '25000'"),
+        amount: z.string().optional().describe("How many tokens, in whole units, e.g. '25000'"),
+        sizeUsd: z.number().min(5).optional().describe("Or size the bid in USD; sellers then say how many tokens they offer"),
         payWith: z.enum(["ETH", "USDG"]),
         replyMinutes: z.number().min(15).max(1440).default(60).describe("How long sellers can reply (15–1440)"),
         note: z.string().max(280).optional().describe("Public note to sellers"),
@@ -119,6 +120,7 @@ export function createMcpServer(agent: OtcAgent) {
       inputSchema: {
         bidId: z.string(),
         totalPrice: z.string().describe("Total price for the whole size, in ETH or USDG units, e.g. '41250.5'"),
+        amount: z.string().optional().describe("Whole tokens you offer; required when the bid is sized in USD"),
         payoutAddress: z.string().optional().describe("Where the payment goes (a fresh address keeps it private)"),
         ghost: z.boolean().default(false),
         message: z.string().max(200).optional().describe("Sealed note to the poster"),

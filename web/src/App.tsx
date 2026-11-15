@@ -11,6 +11,7 @@ import { Security } from "./pages/Security.tsx";
 import { SellerOffer } from "./pages/SellerOffer.tsx";
 import { SellerStatus } from "./pages/SellerStatus.tsx";
 import { MyLinks, Terminal } from "./pages/Terminal.tsx";
+import { Otc } from "./pages/Otc.tsx";
 
 /** Marketing pages get the site header; everything else is the app. */
 const SITE_PAGES = new Set(["/", "/how", "/developers", "/security"]);
@@ -25,6 +26,8 @@ function route(path: string) {
       return <Landing />;
     case "/app":
       return <Terminal />;
+    case "/otc":
+      return <Otc />;
     case "/mine":
       return <MyLinks />;
     case "/how":
@@ -77,11 +80,13 @@ function LiveBadge() {
 }
 
 const SITE_NAV: [string, string][] = [
+  ["/otc", "OTC desk"],
   ["/how", "How it works"],
   ["/developers", "Developers"],
   ["/security", "Security"],
 ];
 const APP_NAV: [string, string][] = [
+  ["/otc", "OTC desk"],
   ["/app", "Terminal"],
   ["/mine", "My blocks"],
   ["/how", "How it works"],
@@ -91,7 +96,7 @@ export function App() {
   const path = usePath();
   const site = SITE_PAGES.has(path);
   useEffect(() => {
-    document.title = path === "/" ? `${BRAND.name} · ${BRAND.description}` : path === "/app" ? `${BRAND.name} · Terminal` : BRAND.name;
+    document.title = path === "/" ? `${BRAND.name} · ${BRAND.description}` : path === "/app" ? `${BRAND.name} · Terminal` : path === "/otc" ? `${BRAND.name} · OTC desk` : BRAND.name;
   }, [path]);
   const nav = site ? SITE_NAV : APP_NAV;
 

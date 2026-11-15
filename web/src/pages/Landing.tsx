@@ -177,7 +177,7 @@ export function Landing() {
       const t = e.target as HTMLElement | null;
       if (e.key !== "Enter" || e.metaKey || e.ctrlKey || e.altKey) return;
       if (t && (t.closest("input, textarea, select, button, a, summary, [contenteditable]") || t.isContentEditable)) return;
-      navigate("/app");
+      navigate("/otc");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -210,7 +210,7 @@ export function Landing() {
               <Link to="/how" className="sq ghost">
                 HOW IT WORKS <span aria-hidden="true">→</span>
               </Link>
-              <Link to="/app" className="sq go">
+              <Link to="/otc" className="sq go">
                 OPEN THE DESK <span className="key">ENTER ↵</span>
               </Link>
             </div>
@@ -442,7 +442,7 @@ export function Landing() {
           <Link to="/app?new=sell" className="sq ghost">
             SELL PRIVATELY
           </Link>
-          <Link to="/app" className="sq go">
+          <Link to="/otc" className="sq go">
             OPEN THE DESK <span className="key">ENTER ↵</span>
           </Link>
         </div>
