@@ -36,3 +36,19 @@ it("dealId matches Solidity abi.encode + keccak256", (t) => {
   const expected = execFileSync("cast", ["keccak", encoded], { encoding: "utf8" }).trim();
   assert.equal(dealId(terms), expected);
 });
+
+it("web app and SDK sign the exact same answer text, and each verifies the other's signature", async () => {
+  const { answerMessage: sdkMsg } = await import("../src/sdk/client.ts");
+  const { answerMessage: webMsg } = await import("../../web/src/lib/sealed.ts");
+  const { privateKeyToAccount } = await import("viem/accounts");
+  const { verifyMessage } = await import("viem");
+  const acct = privateKeyToAccount("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d");
+  for (const side of ["buy", "sell"] as const) {
+    const args = ["abc123", side, acct.address.toLowerCase(), "7000000000000000000", "1700000000"] as const;
+    assert.equal(webMsg(...args), sdkMsg(...args));
+    const sig = await acct.signMessage({ message: webMsg(...args) });
+    assert.equal(await verifyMessage({ address: acct.address, message: sdkMsg(...args), signature: sig }), true);
+    // changing any signed field breaks it
+    assert.equal(await verifyMessage({ address: acct.address, message: sdkMsg("abc123", side, acct.address, "7000000000000000000", "1700000000000"), signature: sig }), false);
+  }
+});

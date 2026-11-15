@@ -3,7 +3,8 @@ import { formatUnits, getAddress, isAddress, parseUnits, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { api, type Rfq, type ServerConfig } from "../lib/api.ts";
 import { connectWallet, tokenInfo, type TokenInfo } from "../lib/chain.ts";
-import { seal, unb64, type Offer } from "../lib/sealed.ts";
+import { answerMessage, seal, sideOf, unb64, type Offer } from "../lib/sealed.ts";
+import { BuyerAnswer } from "./BuyerAnswer.tsx";
 import { saved } from "../lib/store.ts";
 import { Err, fmtAmount, fmtLeft, navigate, Pill, short, useAction, useNow } from "../lib/ui.tsx";
 
@@ -63,14 +64,24 @@ export function SellerOffer({ id }: { id: string }) {
       ghost: mode === "ghost",
       message: message.trim() || undefined,
     };
-    const res = await api.submitQuote(rfq.id, seal(offer, unb64(rfq.buyerEncPubKey)));
+    // Sign with the wallet the offer names, so the buyer can tell it isn't a fake in someone else's name.
+    const msg = answerMessage(rfq.id, "buy", seller, offer.amount, offer.price);
+    if (mode === "ghost") {
+      offer.sig = await privateKeyToAccount(ghostKey).signMessage({ message: msg });
+    } else {
+      const { wallet: w, account } = await connectWallet();
+      if (account !== getAddress(seller)) throw new Error(`Switch your wallet back to ${seller}.`);
+      offer.sig = await w.signMessage({ account, message: msg });
+    }
+    const res = await api.submitQuote(rfq.id, seal(offer, unb64(rfq.encPubKey ?? rfq.buyerEncPubKey)));
     const link = `/offer/${res.quoteId}#t=${res.quoteToken}${mode === "ghost" ? `&g=${ghostKey}` : ""}`;
-    saved.addOffer({ id: res.quoteId, rfqId: rfq.id, link, offer, createdAt: Date.now() });
+    saved.addOffer({ id: res.quoteId, rfqId: rfq.id, side: "buy", link, offer, createdAt: Date.now() });
     navigate(link);
   });
 
   if (loadErr) return <p className="err">{loadErr}</p>;
-  if (!rfq || !tok || !pay) return <p className="muted">Loading bid…</p>;
+  if (!rfq || !tok || !pay) return <p className="muted">Loading…</p>;
+  if (sideOf(rfq) === "sell") return <BuyerAnswer rfq={rfq} tok={tok} pay={pay} />;
 
   const left = rfq.expiresAt - now;
   const open = rfq.status === "open" && left > 0;

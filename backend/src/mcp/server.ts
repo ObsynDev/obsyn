@@ -15,8 +15,8 @@ async function run(fn: () => Promise<unknown>) {
 }
 
 const ref = {
-  bidId: z.string().optional().describe("Your bid id (when you are the buyer)"),
-  offerId: z.string().optional().describe("Your offer id (when you are the seller)"),
+  bidId: z.string().optional().describe("Id of something you posted (bid or sell listing)"),
+  offerId: z.string().optional().describe("Id of an answer you sent (offer or bid)"),
 };
 
 export function createMcpServer(agent: OtcAgent) {
@@ -35,11 +35,29 @@ export function createMcpServer(agent: OtcAgent) {
   server.registerTool(
     "otc_list_bids",
     {
-      title: "Open bids",
-      description: "Open buy requests (where demand is forming). Sellers answer these with otc_send_offer.",
+      title: "Open bids and sell listings",
+      description:
+        "Open postings. side=buy: a buyer wants tokens, answer as a seller. side=sell: a seller is offloading tokens, answer as a buyer. Answer either with otc_send_offer.",
       annotations: { readOnlyHint: true },
     },
     () => run(() => agent.listBids()),
+  );
+
+  server.registerTool(
+    "otc_create_listing",
+    {
+      title: "Sell privately",
+      description:
+        "List a block of a token for sale. Buyers reply with sealed bids only you can decrypt; you pick one with otc_accept_offer (optionally in ghost mode). Returns a bidId (your listing) and a share link for buyers.",
+      inputSchema: {
+        token: z.string().describe("Token address on Robinhood Chain"),
+        amount: z.string().describe("How many tokens you are selling, in whole units, e.g. '50000'"),
+        payWith: z.enum(["ETH", "USDG"]).describe("What buyers pay in"),
+        replyMinutes: z.number().min(15).max(1440).default(60).describe("How long buyers can bid (15–1440)"),
+        note: z.string().max(280).optional().describe("Public note to buyers"),
+      },
+    },
+    (a) => run(() => agent.createListing(a)),
   );
 
   server.registerTool(
@@ -62,8 +80,9 @@ export function createMcpServer(agent: OtcAgent) {
   server.registerTool(
     "otc_get_offers",
     {
-      title: "Read sealed offers",
-      description: "Decrypts the offers on your bid locally. Sorted cheapest first.",
+      title: "Read sealed answers",
+      description:
+        "Decrypts, locally, the answers on something you posted. On your bid: seller offers; on your sell listing: buyer bids. verified=true means the answer is signed by the wallet it names; hasFunds says whether that wallet holds enough right now (null = unknown, e.g. a ghost wallet). Verified answers first, then best price.",
       inputSchema: { bidId: z.string() },
       annotations: { readOnlyHint: true },
     },
@@ -73,14 +92,19 @@ export function createMcpServer(agent: OtcAgent) {
   server.registerTool(
     "otc_accept_offer",
     {
-      title: "Accept an offer",
-      description: "Fix the deal terms with one seller. Both sides then deposit before the funding deadline.",
+      title: "Accept an answer",
+      description:
+        "Fix the deal terms with one answer on your posting. Both sides then deposit before the funding deadline. On a sell listing you are the seller: set payoutAddress and optionally ghost=true.",
       inputSchema: {
         bidId: z.string(),
         offerId: z.string(),
         fundingMinutes: z.number().min(5).max(10080).default(60).describe("Time both sides have to deposit"),
-        buyer: z.string().optional().describe("Buyer address, if this agent has no wallet key"),
+        buyer: z.string().optional().describe("Your bid: buyer address, if this agent has no wallet key"),
+        seller: z.string().optional().describe("Your listing: seller address, if this agent has no wallet key"),
+        payoutAddress: z.string().optional().describe("Your listing: where the payment goes"),
+        ghost: z.boolean().default(false).describe("Your listing: deposit from a one-time wallet via the relayer"),
         referrer: z.string().optional().describe("Partner address that earns half the fee"),
+        allowUnverified: z.boolean().default(false).describe("Accept an answer that is not signed by the wallet it names (may be fake; not recommended)"),
       },
     },
     (a) => run(() => agent.acceptOffer(a)),
@@ -89,16 +113,17 @@ export function createMcpServer(agent: OtcAgent) {
   server.registerTool(
     "otc_send_offer",
     {
-      title: "Send a sealed offer",
+      title: "Send a sealed answer",
       description:
-        "Answer a bid with a total price, encrypted to the buyer. ghost=true uses a one-time wallet and a gasless relayed deposit; the relayer fee comes out of proceeds.",
+        "Answer a posting with a total price, encrypted to the poster. On a bid you answer as the seller (ghost=true uses a one-time wallet and a gasless relayed deposit; the relayer fee comes out of proceeds). On a sell listing you answer as the buyer.",
       inputSchema: {
         bidId: z.string(),
         totalPrice: z.string().describe("Total price for the whole size, in ETH or USDG units, e.g. '41250.5'"),
         payoutAddress: z.string().optional().describe("Where the payment goes (a fresh address keeps it private)"),
         ghost: z.boolean().default(false),
-        message: z.string().max(200).optional().describe("Sealed note to the buyer"),
-        seller: z.string().optional().describe("Seller address, if this agent has no wallet key"),
+        message: z.string().max(200).optional().describe("Sealed note to the poster"),
+        seller: z.string().optional().describe("On a bid: seller address, if this agent has no wallet key"),
+        buyer: z.string().optional().describe("On a sell listing: buyer address, if this agent has no wallet key"),
       },
     },
     (a) => run(() => agent.sendOffer(a)),

@@ -1,4 +1,8 @@
 import assert from "node:assert/strict";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { beforeEach, describe, it } from "node:test";
 import nacl from "tweetnacl";
 import { zeroAddress, type Address } from "viem";
@@ -200,6 +204,83 @@ describe("sealed RFQ flow", () => {
     assert.equal((await call(app, "POST", `/rfqs/${rfq.json.id}/cancel`, {}, "wrong")).status, 401);
     assert.equal((await call(app, "POST", `/rfqs/${rfq.json.id}/cancel`, {}, rfq.json.manageToken)).status, 200);
     assert.equal((await call(app, "GET", `/rfqs/${rfq.json.id}`)).json.status, "cancelled");
+  });
+});
+
+describe("sell listings (seller posts first)", () => {
+  const sellerKeys = nacl.box.keyPair();
+  const buyerKeys = nacl.box.keyPair();
+
+  it("runs listing → sealed buyer bid → seller accepts → buyer sees terms", async () => {
+    clock = 1_800_000_000;
+    const app = setup();
+    const listing = await call(app, "POST", "/rfqs", {
+      side: "sell",
+      token: TOKEN,
+      payToken: "USDG",
+      amount: "1000000000000000000000",
+      replySeconds: 3600,
+      encPubKey: b64(sellerKeys.publicKey),
+    });
+    assert.equal(listing.status, 201);
+
+    const sells = await call(app, "GET", "/rfqs?side=sell");
+    assert.equal(sells.json.length, 1);
+    assert.equal(sells.json[0].side, "sell");
+    assert.equal((await call(app, "GET", "/rfqs?side=buy")).json.length, 0);
+
+    // buyer answers with a sealed bid
+    const bid = { amount: "1000000000000000000000", price: "25500000000", buyer: BUYER };
+    const nonce = nacl.randomBytes(24);
+    const q = await call(app, "POST", `/rfqs/${listing.json.id}/quotes`, {
+      sellerEncPubKey: b64(buyerKeys.publicKey),
+      nonce: b64(nonce),
+      ciphertext: b64(nacl.box(enc(bid), nonce, unb64(sells.json[0].encPubKey), buyerKeys.secretKey)),
+    });
+    assert.equal(q.status, 201);
+
+    // only the seller can read it
+    const quotes = await call(app, "GET", `/rfqs/${listing.json.id}/quotes`, undefined, listing.json.manageToken);
+    const opened = nacl.box.open(unb64(quotes.json[0].ciphertext), unb64(quotes.json[0].nonce), unb64(quotes.json[0].sellerEncPubKey), sellerKeys.secretKey);
+    assert.deepEqual(JSON.parse(new TextDecoder().decode(opened!)), bid);
+
+    // seller accepts and fixes the terms
+    const acc = await call(app, "POST", `/rfqs/${listing.json.id}/accept`, { quoteId: q.json.quoteId, terms: termsFor({ price: bid.price }) }, listing.json.manageToken);
+    assert.equal(acc.status, 200, JSON.stringify(acc.json));
+
+    const mine = await call(app, "GET", `/quotes/${q.json.quoteId}`, undefined, q.json.quoteToken);
+    assert.equal(mine.json.status, "accepted");
+    assert.equal(mine.json.rfq.side, "sell");
+    assert.equal(mine.json.terms.price, bid.price);
+  });
+
+  it("a sell listing needs a fixed amount", async () => {
+    const app = setup();
+    const r = await call(app, "POST", "/rfqs", {
+      side: "sell",
+      token: TOKEN,
+      payToken: "ETH",
+      sizeUsd: 50_000,
+      replySeconds: 3600,
+      encPubKey: b64(sellerKeys.publicKey),
+    });
+    assert.equal(r.status, 400);
+  });
+
+  it("an existing production database (no side column) is migrated on startup", () => {
+    const file = join(mkdtempSync(join(tmpdir(), "mig-")), "old.db");
+    const old = new DatabaseSync(file);
+    // schema as deployed before sell listings existed
+    old.exec(`CREATE TABLE rfqs (id TEXT PRIMARY KEY, manage_hash TEXT NOT NULL, token TEXT NOT NULL, pay_token TEXT NOT NULL,
+      amount TEXT, size_usd REAL, buyer_enc_pubkey TEXT NOT NULL, note TEXT, expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'open', accepted_quote_id TEXT, deal_id TEXT, terms_json TEXT)`);
+    old.exec("INSERT INTO rfqs (id, manage_hash, token, pay_token, buyer_enc_pubkey, expires_at, created_at) VALUES ('x','h','t','p','k',1,1)");
+    old.close();
+
+    const db = openDb(file);
+    assert.equal((db.prepare("SELECT side FROM rfqs WHERE id = 'x'").get() as { side: string }).side, "buy");
+    db.close();
+    openDb(file).close(); // running it again is a no-op
   });
 });
 

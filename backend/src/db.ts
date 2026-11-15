@@ -2,11 +2,14 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
+/** buy: a buyer posted it, sellers answer. sell: a seller posted it, buyers answer. */
+export type RfqSide = "buy" | "sell";
 export type RfqStatus = "open" | "accepted" | "cancelled";
 export type QuoteStatus = "pending" | "accepted" | "rejected";
 
 export interface RfqRow {
   id: string;
+  side: RfqSide;
   manage_hash: string;
   token: string;
   pay_token: string;
@@ -68,5 +71,8 @@ export function openDb(path: string): DatabaseSync {
     );
     CREATE INDEX IF NOT EXISTS quotes_rfq ON quotes(rfq_id);
   `);
+  // migration: sell-side listings (existing rows are buy-side bids)
+  const cols = db.prepare("PRAGMA table_info(rfqs)").all() as { name: string }[];
+  if (!cols.some((c) => c.name === "side")) db.exec("ALTER TABLE rfqs ADD COLUMN side TEXT NOT NULL DEFAULT 'buy'");
   return db;
 }

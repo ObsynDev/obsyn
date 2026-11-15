@@ -9,6 +9,6 @@
  * Without a privateKey, deposit() and refund() return unsigned transactions.
  * Works in Node and browsers. For persistence in Node use FileStore from "./file-store.ts".
  */
-export { OtcAgent as BlockOtc, MemoryStore } from "./client.ts";
-export type { AgentOptions as BlockOtcOptions, Offer, State, StateStore, UnsignedTx } from "./client.ts";
+export { OtcAgent as BlockOtc, MemoryStore, answerMessage } from "./client.ts";
+export type { AgentOptions as BlockOtcOptions, BuyerBid, Offer, State, StateStore, UnsignedTx } from "./client.ts";
 export { dealId, termsFromJson, termsToJson, type Terms } from "../terms.ts";

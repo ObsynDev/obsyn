@@ -2,12 +2,15 @@ import { useMemo } from "react";
 import { getAddress, type Hex } from "viem";
 import { api } from "../lib/api.ts";
 import { termsFromJson } from "../lib/chain.ts";
-import { hashParams } from "../lib/sealed.ts";
+import { hashParams, sideOf, type BuyerBid, type Offer } from "../lib/sealed.ts";
 import { saved } from "../lib/store.ts";
 import { Copy, Pill, usePoll } from "../lib/ui.tsx";
 import { DealPanel } from "./DealPanel.tsx";
 
-/** /offer/:id#t=<quoteToken>[&g=<ghostKey>] — the seller's private page. */
+/**
+ * /offer/:id#t=<quoteToken>[&g=<ghostKey>] — private page for an answer you sent:
+ * a seller offer on someone's bid, or a buyer bid on someone's sell listing.
+ */
 export function SellerStatus({ id }: { id: string }) {
   const params = hashParams();
   const token = params.get("t") ?? "";
@@ -16,60 +19,74 @@ export function SellerStatus({ id }: { id: string }) {
   const mine = saved.offer(id);
 
   const terms = useMemo(() => (q.data?.terms ? termsFromJson(q.data.terms) : null), [q.data?.terms]);
+  // Answering a buy bid makes you the seller; answering a sell listing makes you the buyer.
+  const role = q.data ? (sideOf(q.data.rfq) === "buy" ? "seller" : "buyer") : null;
 
-  // The buyer builds the final terms. Check they match what we offered before depositing anything.
+  // The poster builds the final terms. Check they match what we sent before depositing anything.
   const mismatch = useMemo(() => {
-    if (!terms || !mine) return [];
-    const o = mine.offer;
+    if (!terms || !mine || !role) return [];
     const out: string[] = [];
-    if (terms.price !== BigInt(o.price)) out.push("price");
-    if (terms.amount !== BigInt(o.amount)) out.push("amount");
-    if (terms.seller !== getAddress(o.seller)) out.push("seller address");
-    if (terms.sellerPayout !== getAddress(o.sellerPayout)) out.push("payout address");
-    if (terms.relayerFee !== BigInt(o.relayerFee)) out.push("relayer fee");
+    if (terms.price !== BigInt(mine.offer.price)) out.push("price");
+    if (terms.amount !== BigInt(mine.offer.amount)) out.push("amount");
+    if (role === "seller") {
+      const o = mine.offer as Offer;
+      if (terms.seller !== getAddress(o.seller)) out.push("seller address");
+      if (terms.sellerPayout !== getAddress(o.sellerPayout)) out.push("payout address");
+      if (terms.relayerFee !== BigInt(o.relayerFee)) out.push("relayer fee");
+    } else {
+      const b = mine.offer as BuyerBid;
+      if (terms.buyer !== getAddress(b.buyer)) out.push("buyer address");
+    }
     return out;
-  }, [terms, mine]);
+  }, [terms, mine, role]);
 
-  if (!token) return <p className="err">This private link is incomplete. Open the full link you saved after sending the offer.</p>;
+  if (!token) return <p className="err">This private link is incomplete. Open the full link you saved after answering.</p>;
   if (q.error && !q.data) return <p className="err">{q.error}</p>;
-  if (!q.data) return <p className="muted">Loading your offer…</p>;
+  if (!q.data || !role) return <p className="muted">Loading…</p>;
 
   const d = q.data;
+  const noun = role === "seller" ? "offer" : "bid";
   return (
     <div className="narrow">
       <section className="card">
         <div className="card-head">
-          <h2>Your sealed offer</h2>
+          <h2>Your sealed {noun}</h2>
           <Pill tone={d.status === "accepted" ? "ok" : d.status === "rejected" ? "muted" : "info"}>
-            {d.status === "pending" ? "waiting for buyer" : d.status === "rejected" ? "not selected" : "accepted"}
+            {d.status === "pending" ? `waiting for the ${role === "seller" ? "buyer" : "seller"}` : d.status === "rejected" ? "not selected" : "accepted"}
           </Pill>
         </div>
         <p className="muted">
-          Keep this link: it's the only way back to this offer{ghostKey ? " and it holds your one-time wallet key" : ""}.{" "}
-          <Copy text={window.location.href} label="Copy private link" />
+          Keep this link: it's the only way back to this {noun}
+          {ghostKey ? " and it holds your one-time wallet key" : ""}. <Copy text={window.location.href} label="Copy private link" />
         </p>
-        {d.status === "pending" && <p className="muted">The buyer hasn't picked yet. This page updates on its own.</p>}
-        {d.status === "rejected" && <p className="muted">The buyer went with another offer or cancelled the bid. Nothing was deposited.</p>}
+        {d.status === "pending" && <p className="muted">They haven't picked yet. This page updates on its own.</p>}
+        {d.status === "rejected" && <p className="muted">They went with another answer or cancelled. Nothing was deposited.</p>}
       </section>
 
       {terms && mismatch.length > 0 && (
-        <p className="err">
-          Don't deposit: the deal terms differ from your offer ({mismatch.join(", ")}).
-        </p>
+        <p className="err">Don't deposit: the deal terms differ from your {noun} ({mismatch.join(", ")}).</p>
       )}
       {terms && !mine && (
-        <p className="muted">This browser has no copy of your original offer, so check the numbers below yourself before depositing.</p>
+        <p className="muted">This browser has no copy of your original {noun}, so check the numbers below yourself before depositing.</p>
       )}
-      {terms && d.dealId && mismatch.length === 0 && (
-        <DealPanelWithEscrow dealId={d.dealId} terms={terms} ghostKey={ghostKey} />
-      )}
+      {terms && d.dealId && mismatch.length === 0 && <DealPanelWithEscrow dealId={d.dealId} terms={terms} role={role} ghostKey={ghostKey} />}
     </div>
   );
 }
 
-function DealPanelWithEscrow({ dealId, terms, ghostKey }: { dealId: Hex; terms: ReturnType<typeof termsFromJson>; ghostKey?: Hex }) {
+function DealPanelWithEscrow({
+  dealId,
+  terms,
+  role,
+  ghostKey,
+}: {
+  dealId: Hex;
+  terms: ReturnType<typeof termsFromJson>;
+  role: "buyer" | "seller";
+  ghostKey?: Hex;
+}) {
   const cfg = usePoll(api.config, 60_000, []);
   if (!cfg.data) return null;
-  if (!cfg.data.escrow) return <p className="err">The server has no escrow address configured.</p>;
-  return <DealPanel escrow={cfg.data.escrow} dealId={dealId} terms={terms} role="seller" ghostKey={ghostKey} />;
+  if (!cfg.data.escrow) return <p className="err">Trading isn't live yet: the server has no escrow address configured.</p>;
+  return <DealPanel escrow={cfg.data.escrow} dealId={dealId} terms={terms} role={role} ghostKey={role === "seller" ? ghostKey : undefined} />;
 }

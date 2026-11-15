@@ -27,12 +27,14 @@ const Rfq = {
   type: "object",
   properties: {
     id: { type: "string" },
+    side: { enum: ["buy", "sell"], description: "buy: a buyer posted it and sellers answer. sell: a seller posted it and buyers answer." },
     token: address,
     payToken: address,
     amount: { ...uintString, nullable: true },
     sizeUsd: { type: ["number", "null"] },
     note: { type: ["string", "null"] },
-    buyerEncPubKey: { type: "string", description: "Base64 NaCl box public key; encrypt offers to this" },
+    encPubKey: { type: "string", description: "Poster's base64 NaCl box public key; encrypt answers to this" },
+    buyerEncPubKey: { type: "string", deprecated: true, description: "Same as encPubKey" },
     expiresAt: { type: "integer", description: "Unix seconds; offers close after this" },
     status: { enum: ["open", "accepted", "cancelled"] },
     quoteCount: { type: "integer" },
@@ -49,7 +51,7 @@ const SealedQuote = {
       type: "string",
       maxLength: 4096,
       description:
-        "nacl.box(JSON offer, nonce, buyerEncPubKey, sellerSecret). Offer JSON: {amount, price, seller, sellerPayout, relayerFee, ghost, message?}",
+        "nacl.box(JSON answer, nonce, encPubKey, ephemeralSecret). On a buy bid the answer is a seller offer {amount, price, seller, sellerPayout, relayerFee, ghost, message?}; on a sell listing it is a buyer bid {amount, price, buyer, message?}.",
     },
   },
 } as const;
@@ -81,22 +83,26 @@ export const openapi = {
     },
     "/rfqs": {
       get: {
-        summary: "Open bids, newest first",
-        parameters: [{ name: "token", in: "query", schema: address }],
+        summary: "Open bids and sell listings, newest first",
+        parameters: [
+          { name: "token", in: "query", schema: address },
+          { name: "side", in: "query", schema: { enum: ["buy", "sell"] } },
+        ],
         responses: { 200: ok("Open bids", { type: "array", items: { $ref: "#/components/schemas/Rfq" } }) },
       },
       post: {
-        summary: "Place a bid",
+        summary: "Post a bid (side=buy) or a sell listing (side=sell)",
         requestBody: body({
           type: "object",
-          required: ["token", "payToken", "replySeconds", "buyerEncPubKey"],
+          required: ["token", "payToken", "replySeconds", "encPubKey"],
           properties: {
+            side: { enum: ["buy", "sell"], default: "buy" },
             token: address,
             payToken: { description: "ETH, USDG, or the USDG address", type: "string" },
             amount: uintString,
             sizeUsd: { type: "number" },
             replySeconds: { type: "integer", minimum: 900, maximum: 86400 },
-            buyerEncPubKey: { type: "string" },
+            encPubKey: { type: "string" },
             note: { type: "string", maxLength: 280 },
           },
         }),

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { isAddress, parseUnits, getAddress } from "viem";
 import { api, type Rfq } from "../lib/api.ts";
 import { tokenInfo, type TokenInfo } from "../lib/chain.ts";
-import { newBoxKeys, toUrl } from "../lib/sealed.ts";
+import { newBoxKeys, sideOf, toUrl } from "../lib/sealed.ts";
 import { saved } from "../lib/store.ts";
 import { Err, fmtAmount, fmtLeft, fmtUsd, Link, navigate, useAction, useNow, usePoll } from "../lib/ui.tsx";
 
@@ -26,6 +26,7 @@ function useToken(addr: string) {
 }
 
 function BidForm() {
+  const [side, setSide] = useState<"buy" | "sell">("buy");
   const [token, setToken] = useState("");
   const [amount, setAmount] = useState("");
   const [pay, setPay] = useState<"ETH" | "USDG">("ETH");
@@ -39,17 +40,19 @@ function BidForm() {
     if (base <= 0n) throw new Error("Amount must be above zero.");
     const keys = newBoxKeys();
     const res = await api.createRfq({
+      side,
       token: info.address,
       payToken: pay,
       amount: base.toString(),
       replySeconds: win,
-      buyerEncPubKey: btoa(String.fromCharCode(...keys.publicKey)),
+      encPubKey: btoa(String.fromCharCode(...keys.publicKey)),
       note: note.trim() || undefined,
     });
     const link = `/bid/${res.id}#t=${res.manageToken}&k=${toUrl(keys.secretKey)}`;
-    saved.addBid({ id: res.id, link, token: info.symbol, createdAt: Date.now() });
+    saved.addBid({ id: res.id, side, link, token: info.symbol, createdAt: Date.now() });
     navigate(link);
   });
+  const other = side === "buy" ? "Sellers" : "Buyers";
 
   return (
     <form
@@ -59,9 +62,19 @@ function BidForm() {
         submit.run();
       }}
     >
+      <div className="seg wide">
+        <button type="button" className={side === "buy" ? "on" : ""} onClick={() => setSide("buy")}>
+          Buy
+        </button>
+        <button type="button" className={side === "sell" ? "on" : ""} onClick={() => setSide("sell")}>
+          Sell privately
+        </button>
+      </div>
       <div className="card-head">
-        <h2>Place a bid</h2>
-        <span className="muted">No account. You get a private link.</span>
+        <h2>{side === "buy" ? "Place a bid" : "List a block for sale"}</h2>
+        <span className="muted">
+          No account. You get a private link. {other} answer with sealed {side === "buy" ? "offers" : "bids"} only you can read.
+        </span>
       </div>
       <label>
         Token address
@@ -75,7 +88,7 @@ function BidForm() {
       </label>
       <div className="row2">
         <label>
-          Pay with
+          {side === "buy" ? "Pay with" : "Get paid in"}
           <div className="seg">
             {(["ETH", "USDG"] as const).map((p) => (
               <button type="button" key={p} className={pay === p ? "on" : ""} onClick={() => setPay(p)}>
@@ -85,7 +98,7 @@ function BidForm() {
           </div>
         </label>
         <label>
-          Sellers can reply for
+          {other} can reply for
           <select value={win} onChange={(e) => setWin(Number(e.target.value))}>
             {WINDOWS.map((w) => (
               <option key={w.s} value={w.s}>
@@ -96,12 +109,17 @@ function BidForm() {
         </label>
       </div>
       <label>
-        Note to sellers <span className="muted">(optional, public)</span>
-        <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={280} placeholder="Can fill in one block" />
+        Note to {other.toLowerCase()} <span className="muted">(optional, public)</span>
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          maxLength={280}
+          placeholder={side === "buy" ? "Can fill in one block" : "Whole block only"}
+        />
       </label>
       <Err msg={submit.error} />
       <button className="btn primary" disabled={submit.busy}>
-        {submit.busy ? "Creating…" : "Create private bid"}
+        {submit.busy ? "Creating…" : side === "buy" ? "Create private bid" : "Create private listing"}
       </button>
     </form>
   );
@@ -116,12 +134,17 @@ function RfqRow({ r, now }: { r: Rfq; now: number }) {
   }, [r.token, r.payToken]);
   return (
     <Link to={`/rfq/${r.id}`} className="feed-row">
-      <span className="sym">{tok?.symbol ?? r.token.slice(0, 8)}</span>
+      <span className="sym">
+        <span className={`side ${sideOf(r)}`}>{sideOf(r) === "buy" ? "Buying" : "Selling"}</span> {tok?.symbol ?? r.token.slice(0, 8)}
+      </span>
       <span className="num">
         {r.amount && tok ? fmtAmount(r.amount, tok.decimals, 2) : r.sizeUsd ? fmtUsd(r.sizeUsd) : "—"}
       </span>
       <span className="muted">{payTok?.symbol ?? "…"}</span>
-      <span className="muted">{r.quoteCount} offer{r.quoteCount === 1 ? "" : "s"}</span>
+      <span className="muted">
+        {r.quoteCount} {sideOf(r) === "buy" ? "offer" : "bid"}
+        {r.quoteCount === 1 ? "" : "s"}
+      </span>
       <span className="left">{fmtLeft(r.expiresAt - now)}</span>
     </Link>
   );
@@ -133,11 +156,11 @@ function DemandFeed() {
   return (
     <section className="card">
       <div className="card-head">
-        <h2>Open bids</h2>
-        <span className="muted">Sell into real demand. Your offer is sealed.</span>
+        <h2>Open bids and listings</h2>
+        <span className="muted">Sell into real demand, or buy a block someone is offloading. Your answer is sealed.</span>
       </div>
       {error && <p className="err">Backend unreachable: {error}</p>}
-      {data && data.length === 0 && <p className="muted empty">No open bids right now.</p>}
+      {data && data.length === 0 && <p className="muted empty">Nothing open right now.</p>}
       <div className="feed">
         {data?.map((r) => (
           <RfqRow key={r.id} r={r} now={now} />
@@ -159,12 +182,12 @@ function MyLinks() {
       <ul className="links">
         {bids.map((b) => (
           <li key={b.id}>
-            <Link to={b.link}>Bid · {b.token}</Link> <span className="muted">{new Date(b.createdAt).toLocaleString()}</span>
+            <Link to={b.link}>{b.side === "sell" ? "Listing" : "Bid"} · {b.token}</Link> <span className="muted">{new Date(b.createdAt).toLocaleString()}</span>
           </li>
         ))}
         {offers.map((o) => (
           <li key={o.id}>
-            <Link to={o.link}>Offer {o.offer.ghost ? "· ghost" : ""}</Link>{" "}
+            <Link to={o.link}>{o.side === "sell" ? "Bid on a listing" : "Offer"} {"ghost" in o.offer && o.offer.ghost ? "· ghost" : ""}</Link>{" "}
             <span className="muted">{new Date(o.createdAt).toLocaleString()}</span>
           </li>
         ))}

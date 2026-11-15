@@ -12,11 +12,15 @@ export interface ServerConfig {
 
 export interface Rfq {
   id: string;
+  /** buy: a buyer posted it, sellers answer. sell: a seller posted it, buyers answer. */
+  side?: "buy" | "sell";
   token: Address;
   payToken: Address;
   amount: string | null;
   sizeUsd: number | null;
   note: string | null;
+  /** Poster's key: encrypt answers to this. */
+  encPubKey?: string;
   buyerEncPubKey: string;
   expiresAt: number;
   status: "open" | "accepted" | "cancelled";
@@ -73,12 +77,13 @@ export const api = {
   listRfqs: () => req<Rfq[]>("GET", "/rfqs"),
   getRfq: (id: string) => req<Rfq>("GET", `/rfqs/${id}`),
   createRfq: (body: {
+    side: "buy" | "sell";
     token: string;
     payToken: "ETH" | "USDG";
     amount?: string;
     sizeUsd?: number;
     replySeconds: number;
-    buyerEncPubKey: string;
+    encPubKey: string;
     note?: string;
   }) => req<{ id: string; manageToken: string; expiresAt: number }>("POST", "/rfqs", body),
   cancelRfq: (id: string, t: string) => req<{ ok: true }>("POST", `/rfqs/${id}/cancel`, {}, t),

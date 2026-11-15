@@ -49,6 +49,14 @@ This is an internal review written while building the code. **It is not an audit
 - Rate limiting is per IP from `x-forwarded-for`. That header is only trustworthy behind a proxy that overwrites it; set one up in production.
 - CORS is open (`*`). That's safe because no request relies on cookies or ambient credentials.
 
+## Answers are hostile input
+
+Anyone can post an answer to a bid or listing, so the poster treats every decrypted answer as untrusted:
+
+- Malformed answers (bad numbers, bad addresses, wrong shape) are dropped one by one; they can't break reading the rest.
+- Every answer is signed (EIP-191) by the wallet it names, over the posting id, role, address, amount and price. Unsigned or mis-signed answers show as **unverified**, rank below verified ones, and need an explicit override to accept (`allowUnverified` in the SDK/MCP, a confirm dialog in the web app). This stops fake answers "from" someone else's wallet that would tie up the poster's deposit until the deadline.
+- The poster also sees whether the named wallet currently holds enough to pay or deliver. A signed answer from an empty wallet can still stall a deal, so the side that posted should prefer to deposit after the other side has.
+
 ## Client side
 
 - Private links put secrets in the URL `#fragment`, which browsers never send to servers. They **do** end up in browser history, and possibly in history sync. Treat a private link like a password.

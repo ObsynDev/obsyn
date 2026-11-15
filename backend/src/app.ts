@@ -35,11 +35,15 @@ const bearer = (c: Context) => c.req.header("authorization")?.replace(/^Bearer\s
 function publicRfq(r: RfqRow, quoteCount: number) {
   return {
     id: r.id,
+    side: r.side,
     token: r.token,
     payToken: r.pay_token,
     amount: r.amount,
     sizeUsd: r.size_usd,
     note: r.note,
+    /** The poster's NaCl box key: encrypt answers to this. */
+    encPubKey: r.buyer_enc_pubkey,
+    /** @deprecated same as encPubKey (kept for older clients) */
     buyerEncPubKey: r.buyer_enc_pubkey,
     expiresAt: r.expires_at,
     status: r.status,
@@ -102,15 +106,18 @@ export function createApp(deps: Deps) {
 
   const CreateRfq = z
     .object({
+      side: z.enum(["buy", "sell"]).default("buy"),
       token: z.string().refine(isAddress, "invalid token address"),
       payToken: z.string(),
       amount: z.string().regex(/^[1-9]\d*$/).optional(),
       sizeUsd: z.number().positive().max(1e12).optional(),
       replySeconds: z.number().int().min(MIN_REPLY).max(MAX_REPLY),
-      buyerEncPubKey: z.string().refine((s) => isB64(s, 32), "must be a base64 32-byte NaCl box public key"),
+      encPubKey: z.string().refine((s) => isB64(s, 32), "must be a base64 32-byte NaCl box public key").optional(),
+      buyerEncPubKey: z.string().refine((s) => isB64(s, 32), "must be a base64 32-byte NaCl box public key").optional(),
       note: z.string().max(280).optional(),
     })
-    .refine((v) => v.amount || v.sizeUsd, "give amount (token base units) or sizeUsd");
+    .refine((v) => v.encPubKey || v.buyerEncPubKey, "give encPubKey")
+    .refine((v) => v.amount || (v.side === "buy" && v.sizeUsd), "give amount (token base units); buy bids may give sizeUsd instead");
 
   app.post("/rfqs", async (c) => {
     const body = CreateRfq.parse(await c.req.json());
@@ -118,34 +125,43 @@ export function createApp(deps: Deps) {
     const manageToken = newToken();
     const t = now();
     db.prepare(
-      `INSERT INTO rfqs (id, manage_hash, token, pay_token, amount, size_usd, buyer_enc_pubkey, note, expires_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO rfqs (id, side, manage_hash, token, pay_token, amount, size_usd, buyer_enc_pubkey, note, expires_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
+      body.side,
       hashToken(manageToken),
       getAddress(body.token),
       payTokenFor(body.payToken),
       body.amount ?? null,
       body.sizeUsd ?? null,
-      body.buyerEncPubKey,
+      (body.encPubKey ?? body.buyerEncPubKey)!,
       body.note ?? null,
       t + body.replySeconds,
       t,
     );
-    // The manage token is shown once. The share link carries no secret: sellers only need the id.
+    // The manage token is shown once. The share link carries no secret: the other side only needs the id.
     return c.json({ id, manageToken, shareUrl: `${cfg.publicUrl}/rfq/${id}`, expiresAt: t + body.replySeconds }, 201);
   });
 
-  /** "Where demand is forming": open bids, newest first. */
+  /** "Where demand is forming": open bids (side=buy) and sell listings (side=sell), newest first. */
   app.get("/rfqs", (c) => {
     const token = c.req.query("token");
-    const rows = (
-      token && isAddress(token)
-        ? db
-            .prepare("SELECT * FROM rfqs WHERE status = 'open' AND expires_at > ? AND token = ? ORDER BY created_at DESC LIMIT 100")
-            .all(now(), getAddress(token))
-        : db.prepare("SELECT * FROM rfqs WHERE status = 'open' AND expires_at > ? ORDER BY created_at DESC LIMIT 100").all(now())
-    ) as unknown as RfqRow[];
+    const side = c.req.query("side");
+    const where = ["status = 'open'", "expires_at > ?"];
+    const args: (string | number)[] = [now()];
+    if (token && isAddress(token)) {
+      where.push("token = ?");
+      args.push(getAddress(token));
+    }
+    if (side === "buy" || side === "sell") {
+      where.push("side = ?");
+      args.push(side);
+    }
+    // where[] holds only fixed SQL fragments; all values go through placeholders.
+    const rows = db
+      .prepare(`SELECT * FROM rfqs WHERE ${where.join(" AND ")} ORDER BY created_at DESC LIMIT 100`)
+      .all(...args) as unknown as RfqRow[];
     return c.json(rows.map((r) => publicRfq(r, quoteCount(r.id))));
   });
 
@@ -192,7 +208,7 @@ export function createApp(deps: Deps) {
     return c.json({ quoteId: id, quoteToken }, 201);
   });
 
-  /** Buyer reads the sealed offers (still encrypted; decrypted client-side). */
+  /** The poster reads the sealed answers (still encrypted; decrypted client-side). */
   app.get("/rfqs/:id/quotes", (c) => {
     const r = rfq(c.req.param("id"));
     if (!r) return c.json({ error: "not found" }, 404);
@@ -212,7 +228,7 @@ export function createApp(deps: Deps) {
 
   const Accept = z.object({ quoteId: z.string().min(1), terms: TermsSchema });
 
-  /** Buyer picks a quote and fixes the on-chain terms both sides will deposit against. */
+  /** The poster picks an answer and fixes the on-chain terms both sides will deposit against. */
   app.post("/rfqs/:id/accept", async (c) => {
     const r = rfq(c.req.param("id"));
     if (!r) return c.json({ error: "not found" }, 404);
@@ -252,7 +268,7 @@ export function createApp(deps: Deps) {
     return c.json({ dealId: id, terms: termsToJson(terms), escrow: cfg.escrow, chainId: cfg.chainId });
   });
 
-  /** Buyer re-reads the accepted deal (e.g. after reopening their private link). */
+  /** The poster re-reads the accepted deal (e.g. after reopening their private link). */
   app.get("/rfqs/:id/deal", (c) => {
     const r = rfq(c.req.param("id"));
     if (!r) return c.json({ error: "not found" }, 404);
@@ -267,7 +283,7 @@ export function createApp(deps: Deps) {
     });
   });
 
-  /** Seller checks on their quote; once accepted they get the exact terms to deposit against. */
+  /** The responder checks on their quote; once accepted they get the exact terms to deposit against. */
   app.get("/quotes/:id", (c) => {
     const q = db.prepare("SELECT * FROM quotes WHERE id = ?").get(c.req.param("id")) as unknown as QuoteRow | undefined;
     if (!q) return c.json({ error: "not found" }, 404);

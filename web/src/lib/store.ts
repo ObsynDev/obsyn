@@ -2,10 +2,11 @@
  * Per-browser convenience copies of your private links, so you can find your bids/offers again.
  * The link itself (with its #secret) is the real key; this is just a shortcut list.
  */
-import type { Offer } from "./sealed.ts";
+import type { BuyerBid, Offer } from "./sealed.ts";
 
 export interface SavedBid {
   id: string;
+  side?: "buy" | "sell";
   link: string;
   token: string;
   createdAt: number;
@@ -14,7 +15,8 @@ export interface SavedOffer {
   id: string;
   rfqId: string;
   link: string;
-  offer: Offer;
+  side?: "buy" | "sell";
+  offer: Offer | BuyerBid;
   createdAt: number;
 }
 

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatUnits, getAddress, toHex, zeroAddress, type Address, type Hex } from "viem";
-import { api, ApiError, type DealInfo, type Rfq, type SealedQuote } from "../lib/api.ts";
-import { connectWallet, termsFromJson, termsToJson, tokenInfo, type Terms, type TokenInfo } from "../lib/chain.ts";
-import { fromUrl, hashParams, keysFromSecret, unseal, type Offer } from "../lib/sealed.ts";
-import { referral } from "../lib/store.ts";
+import { formatUnits, getAddress, isAddress, toHex, zeroAddress, type Address, type Hex } from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { api, ApiError, type DealInfo, type Rfq, type SealedQuote, type ServerConfig } from "../lib/api.ts";
+import { balanceOfAsset, connectWallet, termsFromJson, termsToJson, tokenInfo, verifyAnswerSig, type Terms, type TokenInfo } from "../lib/chain.ts";
+import { answerMessage, fromUrl, hashParams, keysFromSecret, sideOf, unseal, type BuyerBid as BuyerBidMsg, type Offer } from "../lib/sealed.ts";
+import { referral, saved } from "../lib/store.ts";
 import { Copy, Err, fmtAmount, fmtLeft, Pill, short, useAction, useNow, usePoll } from "../lib/ui.tsx";
 import { DealPanel } from "./DealPanel.tsx";
 
@@ -13,7 +14,12 @@ const FUND_WINDOWS = [
   { label: "24 hours", s: 86400 },
 ];
 
-/** /bid/:id#t=<manageToken>&k=<boxSecret> — the buyer's private page. */
+type Answer = { q: SealedQuote; price: bigint; amount: string; from: string; ghost: boolean; message?: string; raw: Offer | BuyerBidMsg };
+
+/**
+ * /bid/:id#t=<manageToken>&k=<boxSecret>[&g=<ghostKey>] — private page for something you posted.
+ * A buy bid (you are the buyer, sellers answer) or a sell listing (you are the seller, buyers answer).
+ */
 export function BuyerBid({ id }: { id: string }) {
   const params = hashParams();
   const token = params.get("t") ?? "";
@@ -25,19 +31,24 @@ export function BuyerBid({ id }: { id: string }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const [ghostKey, setGhostKey] = useState<Hex | undefined>(() => (params.get("g") as Hex | null) ?? undefined);
   const now = useNow();
   const [rfq, setRfq] = useState<Rfq | null>(null);
+  const [cfg, setCfg] = useState<ServerConfig | null>(null);
   const [tok, setTok] = useState<TokenInfo | null>(null);
   const [pay, setPay] = useState<TokenInfo | null>(null);
   const [deal, setDeal] = useState<DealInfo | null>(null);
   const [fundWindow, setFundWindow] = useState(3600);
   const [err, setErr] = useState<string | null>(null);
+  // sell listings only: how the seller wants to settle
+  const [ghost, setGhost] = useState(false);
+  const [payout, setPayout] = useState("");
 
   useEffect(() => {
-    api
-      .getRfq(id)
-      .then(async (r) => {
+    Promise.all([api.getRfq(id), api.config()])
+      .then(async ([r, c]) => {
         setRfq(r);
+        setCfg(c);
         setTok(await tokenInfo(r.token));
         setPay(await tokenInfo(r.payToken));
         if (r.status === "accepted") setDeal(await api.getDeal(id, token));
@@ -45,39 +56,124 @@ export function BuyerBid({ id }: { id: string }) {
       .catch((e) => setErr(e.message));
   }, [id, token]);
 
+  const side = rfq ? sideOf(rfq) : "buy";
+  const role = side === "buy" ? "buyer" : "seller";
+
   const quotes = usePoll(
     () => (rfq && rfq.status === "open" ? api.listQuotes(id, token) : Promise.resolve([] as SealedQuote[])),
     5000,
     [id, token, rfq?.status],
   );
 
-  const offers = useMemo(() => {
+  // Buy bid: seller offers, cheapest first. Sell listing: buyer bids, highest first.
+  const answers = useMemo<Answer[]>(() => {
     if (!secret || !quotes.data || !rfq) return [];
-    return quotes.data
-      .map((q) => ({ q, o: unseal<Offer>(q, secret) }))
-      .filter((x): x is { q: SealedQuote; o: Offer } => !!x.o && x.o.amount === rfq.amount)
-      .sort((a, b) => (BigInt(a.o.price) < BigInt(b.o.price) ? -1 : 1));
-  }, [quotes.data, secret, rfq]);
+    const out: Answer[] = [];
+    for (const q of quotes.data) {
+      const o = unseal<Offer & BuyerBidMsg>(q, secret);
+      if (!o || o.amount !== rfq.amount || !/^\d+$/.test(String(o.price))) continue;
+      const from = side === "buy" ? o.seller : o.buyer;
+      if (!from || !isAddress(from)) continue;
+      out.push({ q, price: BigInt(o.price), amount: o.amount, from, ghost: side === "buy" && !!o.ghost, message: o.message, raw: o });
+    }
+    return out.sort((a, b) => (side === "buy" ? (a.price < b.price ? -1 : 1) : a.price > b.price ? -1 : 1));
+  }, [quotes.data, secret, rfq, side]);
 
-  const accept = useAction(async (quoteId: string, o: Offer) => {
+  // Per answer: signed by the wallet it names? Does that wallet hold enough right now?
+  const [checks, setChecks] = useState<Record<string, { verified: boolean; hasFunds: boolean | null }>>({});
+  useEffect(() => {
     if (!rfq) return;
-    const { account } = await connectWallet();
+    let alive = true;
+    for (const a of answers) {
+      if (checks[a.q.id]) continue;
+      const who = getAddress(a.from);
+      Promise.all([
+        verifyAnswerSig(who, answerMessage(id, side, who, a.amount, a.price.toString()), (a.raw as { sig?: unknown }).sig),
+        a.ghost
+          ? Promise.resolve(null) // a one-time wallet is only funded after acceptance
+          : (side === "buy" ? balanceOfAsset(rfq.token, who).then((b) => b >= BigInt(a.amount)) : balanceOfAsset(rfq.payToken, who).then((b) => b >= a.price)).catch(
+              () => null,
+            ),
+      ]).then(([verified, hasFunds]) => alive && setChecks((c) => ({ ...c, [a.q.id]: { verified, hasFunds } })));
+    }
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, rfq, side, id]);
+
+  // Verified answers first, then best price.
+  const ranked = useMemo(
+    () => [...answers].sort((a, b) => Number(checks[b.q.id]?.verified ?? false) - Number(checks[a.q.id]?.verified ?? false)),
+    [answers, checks],
+  );
+
+  const accept = useAction(async (a: Answer) => {
+    if (!rfq) return;
+    if (!checks[a.q.id]?.verified) {
+      const ok = window.confirm(
+        "This answer isn't signed by the wallet it names. It may be fake: someone using another wallet's address to tie up your deal until the deadline. Accept anyway?",
+      );
+      if (!ok) return;
+    }
     const salt = toHex(crypto.getRandomValues(new Uint8Array(32))) as Hex;
     const ref = referral();
-    const terms: Terms = {
-      buyer: account,
-      seller: getAddress(o.seller),
-      token: rfq.token,
-      amount: BigInt(o.amount),
-      payToken: rfq.payToken,
-      price: BigInt(o.price),
-      sellerPayout: getAddress(o.sellerPayout),
-      referrer: (ref ? getAddress(ref) : zeroAddress) as Address,
-      relayerFee: BigInt(o.relayerFee),
-      deadline: BigInt(Math.floor(Date.now() / 1000) + fundWindow),
-      salt,
-    };
-    setDeal(await api.accept(id, token, quoteId, termsToJson(terms)));
+    const referrer = (ref ? getAddress(ref) : zeroAddress) as Address;
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + fundWindow);
+    let terms: Terms;
+
+    if (side === "buy") {
+      const o = a.raw as Offer;
+      const { account } = await connectWallet();
+      terms = {
+        buyer: account,
+        seller: getAddress(o.seller),
+        token: rfq.token,
+        amount: BigInt(o.amount),
+        payToken: rfq.payToken,
+        price: BigInt(o.price),
+        sellerPayout: getAddress(o.sellerPayout),
+        referrer,
+        relayerFee: BigInt(o.relayerFee),
+        deadline,
+        salt,
+      };
+    } else {
+      const b = a.raw as BuyerBidMsg;
+      if (!isAddress(payout)) throw new Error("Enter the address that should receive the payment.");
+      let seller: Address;
+      let relayerFee = 0n;
+      if (ghost) {
+        if (!cfg?.relayer.enabled) throw new Error("Ghost mode is unavailable: the relayer is offline.");
+        const key = ghostKey ?? generatePrivateKey();
+        seller = privateKeyToAccount(key).address;
+        relayerFee = BigInt(rfq.payToken === zeroAddress ? cfg.relayer.minFee.eth : cfg.relayer.minFee.usdg);
+        // Put the one-time key in this page's link before telling the server anything,
+        // so reloading or reopening the saved link never loses it.
+        const p = hashParams();
+        p.set("g", key);
+        const link = `/bid/${id}#${p.toString()}`;
+        window.history.replaceState(null, "", link);
+        saved.addBid({ id, side: "sell", link, token: tok?.symbol ?? "", createdAt: Date.now() });
+        setGhostKey(key);
+      } else {
+        seller = (await connectWallet()).account;
+      }
+      terms = {
+        buyer: getAddress(b.buyer),
+        seller,
+        token: rfq.token,
+        amount: BigInt(b.amount),
+        payToken: rfq.payToken,
+        price: BigInt(b.price),
+        sellerPayout: getAddress(payout),
+        referrer,
+        relayerFee,
+        deadline,
+        salt,
+      };
+    }
+    setDeal(await api.accept(id, token, a.q.id, termsToJson(terms)));
     setRfq({ ...rfq, status: "accepted" });
   });
 
@@ -86,32 +182,34 @@ export function BuyerBid({ id }: { id: string }) {
     setRfq((r) => (r ? { ...r, status: "cancelled" } : r));
   });
 
-  if (!token || !secret) return <p className="err">This private link is incomplete. Open the full link you saved when creating the bid.</p>;
+  if (!token || !secret) return <p className="err">This private link is incomplete. Open the full link you saved when posting.</p>;
   if (err) return <p className="err">{err}</p>;
-  if (!rfq || !tok || !pay) return <p className="muted">Loading your bid…</p>;
+  if (!rfq || !tok || !pay) return <p className="muted">Loading…</p>;
 
   const left = rfq.expiresAt - now;
   const amountWhole = Number(formatUnits(BigInt(rfq.amount ?? "0"), tok.decimals));
+  const others = side === "buy" ? "sellers" : "buyers";
+  const answerNoun = side === "buy" ? "offers" : "bids";
 
   return (
     <div className="narrow">
       <section className="card">
         <div className="card-head">
           <h2>
-            Your bid: {rfq.amount ? fmtAmount(rfq.amount, tok.decimals, 2) : "—"} {tok.symbol}
+            {side === "buy" ? "Your bid" : "Your listing"}: {rfq.amount ? fmtAmount(rfq.amount, tok.decimals, 2) : "—"} {tok.symbol}
           </h2>
           {rfq.status === "open" ? (
-            <Pill tone={left > 0 ? "info" : "warn"}>{left > 0 ? `${fmtLeft(left)} for offers` : "offers closed"}</Pill>
+            <Pill tone={left > 0 ? "info" : "warn"}>{left > 0 ? `${fmtLeft(left)} for ${answerNoun}` : `${answerNoun} closed`}</Pill>
           ) : (
             <Pill tone={rfq.status === "accepted" ? "ok" : "muted"}>{rfq.status}</Pill>
           )}
         </div>
         <p className="muted">
-          This page is your key. Keep the link private: anyone with it can accept offers on your behalf.{" "}
-          <Copy text={window.location.href} label="Copy private link" />
+          This page is your key. Keep the link private: anyone with it can accept {answerNoun} on your behalf
+          {ghostKey ? " and controls your one-time wallet" : ""}. <Copy text={window.location.href} label="Copy private link" />
         </p>
         <p className="muted">
-          Share with sellers: <span className="mono">{`${window.location.origin}/rfq/${id}`}</span>{" "}
+          Share with {others}: <span className="mono">{`${window.location.origin}/rfq/${id}`}</span>{" "}
           <Copy text={`${window.location.origin}/rfq/${id}`} />
         </p>
       </section>
@@ -119,39 +217,71 @@ export function BuyerBid({ id }: { id: string }) {
       {rfq.status === "open" && (
         <section className="card">
           <div className="card-head">
-            <h2>Sealed offers</h2>
-            <span className="muted">Decrypted here, in your browser. Cheapest first.</span>
+            <h2>Sealed {answerNoun}</h2>
+            <span className="muted">Decrypted here, in your browser. {side === "buy" ? "Cheapest" : "Highest"} first.</span>
           </div>
-          {quotes.error && (
-            <p className="err">
-              {quotes.error}
-            </p>
+          {quotes.error && <p className="err">{quotes.error}</p>}
+          {answers.length === 0 && <p className="muted empty">No {answerNoun} yet. They'll appear here as they arrive.</p>}
+
+          {side === "sell" && answers.length > 0 && (
+            <div className="form">
+              <div className="seg wide">
+                <button type="button" className={!ghost ? "on" : ""} onClick={() => setGhost(false)}>
+                  Deliver from my wallet
+                </button>
+                <button type="button" className={ghost ? "on" : ""} onClick={() => setGhost(true)}>
+                  Ghost mode
+                </button>
+              </div>
+              {ghost && (
+                <p className="muted small">
+                  A one-time wallet is made in this browser. After accepting you move the tokens into it and the relayer deposits
+                  them for you. The buyer sees only the one-time address; the relayer fee comes out of the proceeds.
+                </p>
+              )}
+              <label>
+                Send payment to
+                <input value={payout} onChange={(e) => setPayout(e.target.value)} placeholder="0x… (a fresh address keeps it private)" spellCheck={false} />
+              </label>
+            </div>
           )}
-          {offers.length === 0 && <p className="muted empty">No offers yet. They'll appear here as they arrive.</p>}
+
           <div className="offers">
-            {offers.map(({ q, o }, i) => (
-              <div key={q.id} className={i === 0 ? "offer best" : "offer"}>
+            {ranked.map((a, i) => (
+              <div key={a.q.id} className={i === 0 && checks[a.q.id]?.verified ? "offer best" : "offer"}>
                 <div>
                   <strong>
-                    {fmtAmount(o.price, pay.decimals)} {pay.symbol}
+                    {fmtAmount(a.price, pay.decimals)} {pay.symbol}
                   </strong>
                   <span className="muted">
                     {" "}
-                    · {(Number(formatUnits(BigInt(o.price), pay.decimals)) / amountWhole).toPrecision(6)} {pay.symbol}/{tok.symbol}
+                    · {(Number(formatUnits(a.price, pay.decimals)) / amountWhole).toPrecision(6)} {pay.symbol}/{tok.symbol}
                   </span>
                   <div className="muted small">
-                    from <span className="mono">{short(o.seller)}</span>
-                    {o.ghost && " · ghost mode"}
-                    {o.message && ` · "${o.message}"`}
+                    from <span className="mono">{short(a.from)}</span>
+                    {a.ghost && " · ghost mode"}
+                    {a.message && ` · "${a.message.slice(0, 200)}"`}
+                  </div>
+                  <div className="checks">
+                    {!checks[a.q.id] ? (
+                      <Pill tone="muted">checking…</Pill>
+                    ) : (
+                      <>
+                        <Pill tone={checks[a.q.id].verified ? "ok" : "warn"}>{checks[a.q.id].verified ? "signed by this wallet" : "unverified"}</Pill>
+                        {checks[a.q.id].hasFunds === true && <Pill tone="ok">{side === "buy" ? "holds the tokens" : "has the funds"}</Pill>}
+                        {checks[a.q.id].hasFunds === false && <Pill tone="warn">{side === "buy" ? "doesn't hold the tokens" : "not enough funds"}</Pill>}
+                        {checks[a.q.id].hasFunds === null && a.ghost && <Pill tone="muted">funded after accept</Pill>}
+                      </>
+                    )}
                   </div>
                 </div>
-                <button className="btn primary sm" disabled={accept.busy} onClick={() => accept.run(q.id, o)}>
+                <button className="btn primary sm" disabled={accept.busy} onClick={() => accept.run(a)}>
                   Accept
                 </button>
               </div>
             ))}
           </div>
-          {offers.length > 0 && (
+          {answers.length > 0 && (
             <label className="inline">
               Funding window after accepting
               <select value={fundWindow} onChange={(e) => setFundWindow(Number(e.target.value))}>
@@ -165,16 +295,22 @@ export function BuyerBid({ id }: { id: string }) {
           )}
           <Err msg={accept.error} />
           <button className="btn ghost sm" disabled={cancel.busy} onClick={() => cancel.run()}>
-            Cancel bid
+            Cancel {side === "buy" ? "bid" : "listing"}
           </button>
           <Err msg={cancel.error} />
         </section>
       )}
 
       {deal && deal.escrow && (
-        <DealPanel escrow={deal.escrow} dealId={deal.dealId} terms={termsFromJson(deal.terms)} role="buyer" />
+        <DealPanel
+          escrow={deal.escrow}
+          dealId={deal.dealId}
+          terms={termsFromJson(deal.terms)}
+          role={role}
+          ghostKey={role === "seller" ? ghostKey : undefined}
+        />
       )}
-      {deal && !deal.escrow && <p className="err">The server has no escrow address configured.</p>}
+      {deal && !deal.escrow && <p className="err">Trading isn't live yet: the server has no escrow address configured.</p>}
       {rfq.status === "accepted" && !deal && <p className="muted">Loading deal…</p>}
     </div>
   );

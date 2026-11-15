@@ -1,3 +1,4 @@
+import { getAddress } from "viem";
 import nacl from "tweetnacl";
 
 export const b64 = (u: Uint8Array) => btoa(String.fromCharCode(...u));
@@ -38,7 +39,34 @@ export function hashParams(): URLSearchParams {
   return new URLSearchParams(window.location.hash.slice(1));
 }
 
-/** What a seller puts inside the sealed box. All amounts in base units. */
+/** What a buyer puts inside the sealed box when answering a sell listing. Base units. */
+export interface BuyerBid {
+  amount: string;
+  price: string;
+  buyer: string;
+  message?: string;
+  /** Signature by `buyer` over answerMessage(...) */
+  sig?: string;
+}
+
+/**
+ * Text an answerer signs with the wallet named in their answer, so nobody can post a fake
+ * answer in someone else's name. Must match backend/src/sdk/client.ts exactly (a test checks).
+ */
+export function answerMessage(postingId: string, side: "buy" | "sell", address: string, amount: string, price: string) {
+  return [
+    "BlockOTC sealed answer",
+    `posting: ${postingId}`,
+    `role: ${side === "buy" ? "seller" : "buyer"}`,
+    `address: ${getAddress(address)}`,
+    `amount: ${amount}`,
+    `price: ${price}`,
+  ].join("\n");
+}
+
+export const sideOf = (r: { side?: "buy" | "sell" }) => r.side ?? "buy";
+
+/** What a seller puts inside the sealed box when answering a buy bid. All amounts in base units. */
 export interface Offer {
   amount: string;
   price: string;
@@ -47,4 +75,6 @@ export interface Offer {
   relayerFee: string;
   ghost: boolean;
   message?: string;
+  /** Signature by `seller` over answerMessage(...) */
+  sig?: string;
 }

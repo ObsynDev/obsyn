@@ -13,10 +13,12 @@ import {
   erc20Abi,
   formatUnits,
   getAddress,
+  isAddress,
   http,
   parseAbi,
   parseUnits,
   toHex,
+  verifyMessage,
   zeroAddress,
   type Address,
   type Hex,
@@ -36,6 +38,8 @@ interface ServerConfig {
 
 interface Rfq {
   id: string;
+  /** buy: a buyer posted it, sellers answer. sell: a seller posted it, buyers answer. */
+  side?: "buy" | "sell";
   token: Address;
   payToken: Address;
   amount: string | null;
@@ -55,12 +59,61 @@ export interface Offer {
   relayerFee: string;
   ghost: boolean;
   message?: string;
+  /** Signature by `seller` over answerMessage(...) */
+  sig?: Hex;
+}
+
+/** What a buyer puts inside the sealed box when answering a sell listing. Base units. */
+export interface BuyerBid {
+  amount: string;
+  price: string;
+  buyer: string;
+  message?: string;
+  /** Signature by `buyer` over answerMessage(...) */
+  sig?: Hex;
 }
 
 export interface State {
-  bids: Record<string, { manageToken: string; boxSecret: string; createdAt: number }>;
-  offers: Record<string, { quoteToken: string; rfqId: string; offer: Offer; ghostKey?: Hex; createdAt: number }>;
+  /** Things this agent posted: buy bids or sell listings (side defaults to "buy" for older state files). */
+  bids: Record<string, { manageToken: string; boxSecret: string; createdAt: number; side?: "buy" | "sell"; ghostKey?: Hex }>;
+  /** Answers this agent sent: seller offers on bids, or buyer bids on sell listings. */
+  offers: Record<string, { quoteToken: string; rfqId: string; offer: Offer | BuyerBid; side?: "buy" | "sell"; ghostKey?: Hex; createdAt: number }>;
 }
+
+const sideOf = (r: { side?: "buy" | "sell" }) => r.side ?? "buy";
+
+/**
+ * Text an answerer signs with the wallet named in their answer. The poster checks it, so nobody
+ * can post a fake answer in someone else's name. Must match web/src/lib/sealed.ts exactly.
+ */
+export function answerMessage(postingId: string, side: "buy" | "sell", address: string, amount: string, price: string) {
+  return [
+    "BlockOTC sealed answer",
+    `posting: ${postingId}`,
+    `role: ${side === "buy" ? "seller" : "buyer"}`,
+    `address: ${getAddress(address)}`,
+    `amount: ${amount}`,
+    `price: ${price}`,
+  ].join("\n");
+}
+
+async function verifyAnswer(pc: PublicClient, postingId: string, side: "buy" | "sell", who: Address, o: { amount: string; price: string; sig?: unknown }) {
+  if (typeof o.sig !== "string" || !/^0x[0-9a-fA-F]+$/.test(o.sig)) return false;
+  const message = answerMessage(postingId, side, who, o.amount, o.price);
+  const signature = o.sig as Hex;
+  try {
+    if (await verifyMessage({ address: who, message, signature })) return true; // plain wallets, offline
+  } catch {
+    /* fall through to the on-chain check */
+  }
+  try {
+    return await pc.verifyMessage({ address: who, message, signature }); // smart wallets (ERC-1271/6492)
+  } catch {
+    return false;
+  }
+}
+
+const isUint = (v: unknown): v is string => typeof v === "string" && /^\d{1,78}$/.test(v);
 
 export interface StateStore {
   load(): State;
@@ -222,6 +275,7 @@ export class OtcAgent {
         const [t, p] = await Promise.all([this.token(r.token).catch(() => null), this.token(r.payToken).catch(() => null)]);
         return {
           bidId: r.id,
+          side: sideOf(r),
           token: r.token,
           symbol: t?.symbol ?? null,
           amount: r.amount && t ? formatUnits(BigInt(r.amount), t.decimals) : null,
@@ -234,24 +288,35 @@ export class OtcAgent {
     );
   }
 
-  // ─────────────────────────── buyer ───────────────────────────
+  // ─────────────────────────── posting ───────────────────────────
 
-  async createBid(a: { token: string; amount: string; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string }) {
+  private async post(side: "buy" | "sell", a: { token: string; amount: string; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string }) {
     const tok = await this.token(getAddress(a.token));
     const amount = parseUnits(a.amount, tok.decimals);
     const keys = nacl.box.keyPair();
     const res = await this.api<{ id: string; manageToken: string; shareUrl: string; expiresAt: number }>("POST", "/rfqs", {
+      side,
       token: tok.address,
       payToken: a.payWith,
       amount: amount.toString(),
       replySeconds: Math.round(a.replyMinutes * 60),
-      buyerEncPubKey: b64(keys.publicKey),
+      encPubKey: b64(keys.publicKey),
       note: a.note,
     });
     const s = this.loadState();
-    s.bids[res.id] = { manageToken: res.manageToken, boxSecret: b64(keys.secretKey), createdAt: Date.now() };
+    s.bids[res.id] = { manageToken: res.manageToken, boxSecret: b64(keys.secretKey), createdAt: Date.now(), side };
     this.saveState(s);
-    return { bidId: res.id, token: tok.symbol, amount: a.amount, payWith: a.payWith, shareUrl: res.shareUrl, expiresAt: res.expiresAt };
+    return { bidId: res.id, side, token: tok.symbol, amount: a.amount, payWith: a.payWith, shareUrl: res.shareUrl, expiresAt: res.expiresAt };
+  }
+
+  /** Buyer posts first: sellers answer with sealed offers. */
+  createBid(a: { token: string; amount: string; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string }) {
+    return this.post("buy", a);
+  }
+
+  /** Seller posts first ("sell privately"): buyers answer with sealed bids. */
+  createListing(a: { token: string; amount: string; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string }) {
+    return this.post("sell", a);
   }
 
   private bid(bidId: string) {
@@ -260,9 +325,14 @@ export class OtcAgent {
     return b;
   }
 
+  /**
+   * Decrypt the sealed answers on something this agent posted.
+   * On a buy bid: seller offers, cheapest first. On a sell listing: buyer bids, highest first.
+   */
   async getOffers(bidId: string) {
     const b = this.bid(bidId);
     const rfq = await this.api<Rfq>("GET", `/rfqs/${bidId}`);
+    const side = sideOf(rfq);
     const quotes = await this.api<{ id: string; sellerEncPubKey: string; nonce: string; ciphertext: string; status: string }[]>(
       "GET",
       `/rfqs/${bidId}/quotes`,
@@ -272,105 +342,209 @@ export class OtcAgent {
     const [tok, pay] = await Promise.all([this.token(rfq.token), this.token(rfq.payToken)]);
     const secret = unb64(b.boxSecret);
     const amountWhole = rfq.amount ? Number(formatUnits(BigInt(rfq.amount), tok.decimals)) : NaN;
-    return quotes
-      .map((q) => {
-        const opened = nacl.box.open(unb64(q.ciphertext), unb64(q.nonce), unb64(q.sellerEncPubKey), secret);
-        if (!opened) return null;
-        let o: Offer;
+    const { pc } = await this.chain();
+    const rows = await Promise.all(
+      quotes.map(async (q) => {
+        let o: Offer & BuyerBid;
         try {
-          o = JSON.parse(new TextDecoder().decode(opened)) as Offer;
+          const opened = nacl.box.open(unb64(q.ciphertext), unb64(q.nonce), unb64(q.sellerEncPubKey), secret);
+          if (!opened) return null;
+          o = JSON.parse(new TextDecoder().decode(opened));
         } catch {
           return null;
         }
-        if (o.amount !== rfq.amount) return null; // offers for a different size are ignored
+        // Anyone can post an answer, so treat its contents as hostile: one malformed answer
+        // must never break reading the others.
+        if (!o || typeof o !== "object" || o.amount !== rfq.amount || !isUint(o.price)) return null;
+        if (side === "buy" && (!isAddress(String(o.seller)) || !isAddress(String(o.sellerPayout)) || !isUint(o.relayerFee))) return null;
+        if (side === "sell" && !isAddress(String(o.buyer))) return null;
+
+        const who = getAddress(side === "buy" ? o.seller : o.buyer);
+        // Signed by the wallet it names? Stops fake answers "from" someone else's wallet.
+        const verified = await verifyAnswer(pc, bidId, side, who, o);
+        // Can that wallet actually pay / deliver right now? (A ghost wallet is funded only after acceptance.)
+        const hasFunds =
+          side === "buy" && o.ghost
+            ? null
+            : await (side === "buy"
+                ? pc.readContract({ address: rfq.token, abi: erc20Abi, functionName: "balanceOf", args: [who] }).then((x) => x >= BigInt(o.amount))
+                : (rfq.payToken === zeroAddress
+                    ? pc.getBalance({ address: who })
+                    : pc.readContract({ address: rfq.payToken, abi: erc20Abi, functionName: "balanceOf", args: [who] })
+                  ).then((x) => x >= BigInt(o.price))
+              ).catch(() => null);
+
         const total = Number(formatUnits(BigInt(o.price), pay.decimals));
-        return {
+        const common = {
           offerId: q.id,
           totalPrice: formatUnits(BigInt(o.price), pay.decimals),
           payWith: pay.symbol,
           unitPrice: total / amountWhole,
-          seller: o.seller,
-          ghost: o.ghost,
-          relayerFee: formatUnits(BigInt(o.relayerFee), pay.decimals),
-          message: o.message ?? null,
+          verified,
+          hasFunds,
+          message: typeof o.message === "string" ? o.message.slice(0, 200) : null,
           status: q.status,
-          _offer: o,
         };
-      })
+        return side === "buy"
+          ? { ...common, seller: who, ghost: !!o.ghost, relayerFee: formatUnits(BigInt(o.relayerFee), pay.decimals), _offer: o as Offer }
+          : { ...common, buyer: who, _offer: o as BuyerBid };
+      }),
+    );
+    // Verified answers first, then best price.
+    return rows
       .filter((x) => x !== null)
-      .sort((x, y) => x.unitPrice - y.unitPrice);
+      .sort((x, y) => Number(y.verified) - Number(x.verified) || (side === "buy" ? x.unitPrice - y.unitPrice : y.unitPrice - x.unitPrice));
   }
 
-  async acceptOffer(a: { bidId: string; offerId: string; fundingMinutes: number; buyer?: string; referrer?: string }) {
+  /**
+   * Fix the deal with one answer.
+   * Buy bid: this agent is the buyer. Sell listing: this agent is the seller, and may choose
+   * a payout address and ghost mode (a one-time wallet + gasless relayed deposit).
+   */
+  async acceptOffer(a: {
+    bidId: string;
+    offerId: string;
+    fundingMinutes: number;
+    buyer?: string;
+    seller?: string;
+    payoutAddress?: string;
+    ghost?: boolean;
+    referrer?: string;
+    /** Accept an answer whose signature doesn't check out (not recommended). */
+    allowUnverified?: boolean;
+  }) {
     const b = this.bid(a.bidId);
     const rfq = await this.api<Rfq>("GET", `/rfqs/${a.bidId}`);
-    const offer = (await this.getOffers(a.bidId)).find((o) => o.offerId === a.offerId);
-    if (!offer) throw new Error("Offer not found or unreadable for this bid.");
-    const o = offer._offer;
-    const buyer = a.buyer ? getAddress(a.buyer) : this.requireAddress("Accepting");
-    const terms: Terms = {
-      buyer,
-      seller: getAddress(o.seller),
-      token: rfq.token,
-      amount: BigInt(o.amount),
-      payToken: rfq.payToken,
-      price: BigInt(o.price),
-      sellerPayout: getAddress(o.sellerPayout),
-      referrer: a.referrer ? getAddress(a.referrer) : zeroAddress,
-      relayerFee: BigInt(o.relayerFee),
-      deadline: BigInt(Math.floor(Date.now() / 1000) + Math.round(a.fundingMinutes * 60)),
-      salt: toHex(nacl.randomBytes(32)),
-    };
+    const side = sideOf(rfq);
+    const answer = (await this.getOffers(a.bidId)).find((o) => o.offerId === a.offerId);
+    if (!answer) throw new Error("Answer not found or unreadable for this posting.");
+    if (!answer.verified && !a.allowUnverified) {
+      throw new Error(
+        "This answer isn't signed by the wallet it names, so it may be fake (someone using another wallet's address to stall you). Pass allowUnverified=true to accept it anyway.",
+      );
+    }
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + Math.round(a.fundingMinutes * 60));
+    const referrer = a.referrer ? getAddress(a.referrer) : zeroAddress;
+
+    let terms: Terms;
+    if (side === "buy") {
+      const o = answer._offer as Offer;
+      terms = {
+        buyer: a.buyer ? getAddress(a.buyer) : this.requireAddress("Accepting"),
+        seller: getAddress(o.seller),
+        token: rfq.token,
+        amount: BigInt(o.amount),
+        payToken: rfq.payToken,
+        price: BigInt(o.price),
+        sellerPayout: getAddress(o.sellerPayout),
+        referrer,
+        relayerFee: BigInt(o.relayerFee),
+        deadline,
+        salt: toHex(nacl.randomBytes(32)),
+      };
+    } else {
+      const o = answer._offer as BuyerBid;
+      const cfg = await this.config();
+      let seller: Address;
+      let ghostKey: Hex | undefined;
+      if (a.ghost) {
+        if (!cfg.relayer.enabled) throw new Error("Ghost mode is unavailable: the relayer is offline.");
+        ghostKey = generatePrivateKey();
+        seller = privateKeyToAccount(ghostKey).address;
+      } else {
+        seller = a.seller ? getAddress(a.seller) : this.requireAddress("Accepting");
+      }
+      const payout = a.payoutAddress ? getAddress(a.payoutAddress) : this.address;
+      if (!payout) throw new Error("Give payoutAddress (where the payment should go).");
+      terms = {
+        buyer: getAddress(o.buyer),
+        seller,
+        token: rfq.token,
+        amount: BigInt(o.amount),
+        payToken: rfq.payToken,
+        price: BigInt(o.price),
+        sellerPayout: payout,
+        referrer,
+        relayerFee: a.ghost ? BigInt(rfq.payToken === zeroAddress ? cfg.relayer.minFee.eth : cfg.relayer.minFee.usdg) : 0n,
+        deadline,
+        salt: toHex(nacl.randomBytes(32)),
+      };
+      if (ghostKey) {
+        // keep the one-time key before telling the server, so it is never lost
+        const s = this.loadState();
+        s.bids[a.bidId] = { ...s.bids[a.bidId], ghostKey };
+        this.saveState(s);
+      }
+    }
     const res = await this.api<{ dealId: Hex }>("POST", `/rfqs/${a.bidId}/accept`, { quoteId: a.offerId, terms: termsToJson(terms) }, b.manageToken);
-    return { dealId: res.dealId, terms: termsToJson(terms), next: "Deposit the payment with otc_deposit." };
+    return {
+      dealId: res.dealId,
+      terms: termsToJson(terms),
+      ghostWallet: side === "sell" && a.ghost ? terms.seller : null,
+      next: side === "buy" ? "Deposit the payment with otc_deposit." : "Deposit the tokens with otc_deposit.",
+    };
   }
 
-  // ─────────────────────────── seller ───────────────────────────
+  // ─────────────────────────── answering ───────────────────────────
 
-  async sendOffer(a: { bidId: string; totalPrice: string; payoutAddress?: string; ghost?: boolean; message?: string; seller?: string }) {
+  /**
+   * Answer someone else's posting with a sealed price, encrypted to the poster.
+   * On a buy bid this is a seller offer (ghost mode available). On a sell listing it is a buyer bid.
+   */
+  async sendOffer(a: { bidId: string; totalPrice: string; payoutAddress?: string; ghost?: boolean; message?: string; seller?: string; buyer?: string }) {
     const cfg = await this.config();
-    const rfq = await this.api<Rfq>("GET", `/rfqs/${a.bidId}`);
-    if (!rfq.amount) throw new Error("This bid has no fixed size.");
+    const rfq = await this.api<Rfq & { encPubKey?: string }>("GET", `/rfqs/${a.bidId}`);
+    const side = sideOf(rfq);
+    if (!rfq.amount) throw new Error("This posting has no fixed size.");
     const pay = await this.token(rfq.payToken);
+    const price = parseUnits(a.totalPrice, pay.decimals).toString();
     let ghostKey: Hex | undefined;
-    let seller: Address;
-    if (a.ghost) {
-      if (!cfg.relayer.enabled) throw new Error("Ghost mode is unavailable: the relayer is offline.");
-      ghostKey = generatePrivateKey();
-      seller = privateKeyToAccount(ghostKey).address;
+    let payload: Offer | BuyerBid;
+    let who: Address;
+
+    if (side === "buy") {
+      if (a.ghost) {
+        if (!cfg.relayer.enabled) throw new Error("Ghost mode is unavailable: the relayer is offline.");
+        ghostKey = generatePrivateKey();
+        who = privateKeyToAccount(ghostKey).address;
+      } else {
+        who = a.seller ? getAddress(a.seller) : this.requireAddress("Offering");
+      }
+      const payout = a.payoutAddress ? getAddress(a.payoutAddress) : this.address;
+      if (!payout) throw new Error("Give payoutAddress (where the payment should go).");
+      const relayerFee = a.ghost ? BigInt(rfq.payToken === zeroAddress ? cfg.relayer.minFee.eth : cfg.relayer.minFee.usdg) : 0n;
+      payload = { amount: rfq.amount, price, seller: who, sellerPayout: payout, relayerFee: relayerFee.toString(), ghost: Boolean(a.ghost), message: a.message };
     } else {
-      seller = a.seller ? getAddress(a.seller) : this.requireAddress("Offering");
+      if (a.ghost) throw new Error("Ghost mode is for sellers. On a sell listing you are the buyer.");
+      who = a.buyer ? getAddress(a.buyer) : this.requireAddress("Bidding");
+      payload = { amount: rfq.amount, price, buyer: who, message: a.message };
     }
-    const payout = a.payoutAddress ? getAddress(a.payoutAddress) : this.address ?? (() => {
-      throw new Error("Give payoutAddress (where the payment should go).");
-    })();
-    const relayerFee = a.ghost ? BigInt(rfq.payToken === zeroAddress ? cfg.relayer.minFee.eth : cfg.relayer.minFee.usdg) : 0n;
-    const offer: Offer = {
-      amount: rfq.amount,
-      price: parseUnits(a.totalPrice, pay.decimals).toString(),
-      seller,
-      sellerPayout: payout,
-      relayerFee: relayerFee.toString(),
-      ghost: Boolean(a.ghost),
-      message: a.message,
-    };
+
+    // Prove the named wallet is ours. Without a key for it (an explicit seller/buyer address and
+    // no private key) the answer goes out unsigned and the poster sees it as unverified.
+    const signer = ghostKey ? privateKeyToAccount(ghostKey) : this.opts.privateKey ? privateKeyToAccount(this.opts.privateKey) : null;
+    if (signer && signer.address === who) {
+      payload.sig = await signer.signMessage({ message: answerMessage(a.bidId, side, who, rfq.amount, price) });
+    }
+
     const eph = nacl.box.keyPair();
     const nonce = nacl.randomBytes(24);
-    const box = nacl.box(new TextEncoder().encode(JSON.stringify(offer)), nonce, unb64(rfq.buyerEncPubKey), eph.secretKey);
+    const box = nacl.box(new TextEncoder().encode(JSON.stringify(payload)), nonce, unb64(rfq.encPubKey ?? rfq.buyerEncPubKey), eph.secretKey);
     const res = await this.api<{ quoteId: string; quoteToken: string }>("POST", `/rfqs/${a.bidId}/quotes`, {
       sellerEncPubKey: b64(eph.publicKey),
       nonce: b64(nonce),
       ciphertext: b64(box),
     });
     const s = this.loadState();
-    s.offers[res.quoteId] = { quoteToken: res.quoteToken, rfqId: a.bidId, offer, ghostKey, createdAt: Date.now() };
+    s.offers[res.quoteId] = { quoteToken: res.quoteToken, rfqId: a.bidId, offer: payload, side, ghostKey, createdAt: Date.now() };
     this.saveState(s);
     return {
       offerId: res.quoteId,
       sealed: true,
-      seller,
-      ghostWallet: a.ghost ? seller : null,
-      next: "Poll otc_deal_status with this offerId until the buyer accepts, then otc_deposit.",
+      as: side === "buy" ? "seller" : "buyer",
+      address: who,
+      ghostWallet: ghostKey ? who : null,
+      next: "Poll otc_deal_status with this offerId until it is accepted, then otc_deposit.",
     };
   }
 
@@ -382,37 +556,50 @@ export class OtcAgent {
 
   // ─────────────────────────── deals ───────────────────────────
 
-  /** Resolve the deal for a bid (buyer side) or an offer (seller side). */
+  /**
+   * Resolve the deal for something this agent posted (bidId) or answered (offerId).
+   * Role: posting a buy bid or answering a sell listing = buyer; the other two = seller.
+   */
   private async deal(ref: { bidId?: string; offerId?: string }) {
     if (ref.bidId) {
       const b = this.bid(ref.bidId);
+      const role = sideOf(b) === "buy" ? ("buyer" as const) : ("seller" as const);
       const d = await this.api<{ dealId: Hex; terms: Record<string, string> }>("GET", `/rfqs/${ref.bidId}/deal`, undefined, b.manageToken);
-      return { role: "buyer" as const, dealId: d.dealId, terms: termsFromJson(d.terms), ghostKey: undefined };
+      return { role, dealId: d.dealId, terms: termsFromJson(d.terms), ghostKey: role === "seller" ? b.ghostKey : undefined };
     }
     if (ref.offerId) {
       const rec = this.offer(ref.offerId);
+      const role = sideOf(rec) === "buy" ? ("seller" as const) : ("buyer" as const);
       const q = await this.api<{ status: string; dealId: Hex | null; terms: Record<string, string> | null }>(
         "GET",
         `/quotes/${ref.offerId}`,
         undefined,
         rec.quoteToken,
       );
-      if (q.status !== "accepted" || !q.terms || !q.dealId) return { role: "seller" as const, pending: q.status };
+      if (q.status !== "accepted" || !q.terms || !q.dealId) return { role, pending: q.status };
       const terms = termsFromJson(q.terms);
-      // The buyer wrote these terms. Refuse to proceed if they differ from what we offered.
-      const o = rec.offer;
-      const bad = [
-        terms.price !== BigInt(o.price) && "price",
-        terms.amount !== BigInt(o.amount) && "amount",
-        terms.seller !== getAddress(o.seller) && "seller",
-        terms.sellerPayout !== getAddress(o.sellerPayout) && "payout address",
-        terms.relayerFee !== BigInt(o.relayerFee) && "relayer fee",
-      ].filter(Boolean);
-      if (bad.length) throw new Error(`Accepted terms don't match our offer (${bad.join(", ")}). Do not deposit.`);
+      // The other side wrote these terms. Refuse to proceed if they differ from what we sent.
+      const sent = rec.offer as Partial<Offer & BuyerBid>;
+      const bad =
+        role === "seller"
+          ? [
+              terms.price !== BigInt(sent.price!) && "price",
+              terms.amount !== BigInt(sent.amount!) && "amount",
+              terms.seller !== getAddress(sent.seller!) && "seller",
+              terms.sellerPayout !== getAddress(sent.sellerPayout!) && "payout address",
+              terms.relayerFee !== BigInt(sent.relayerFee!) && "relayer fee",
+            ]
+          : [
+              terms.price !== BigInt(sent.price!) && "price",
+              terms.amount !== BigInt(sent.amount!) && "amount",
+              terms.buyer !== getAddress(sent.buyer!) && "buyer",
+            ];
+      const problems = bad.filter(Boolean);
+      if (problems.length) throw new Error(`Accepted terms don't match what we sent (${problems.join(", ")}). Do not deposit.`);
       if (computeDealId(terms) !== q.dealId) throw new Error("Deal id mismatch. Do not deposit.");
-      return { role: "seller" as const, dealId: q.dealId, terms, ghostKey: rec.ghostKey };
+      return { role, dealId: q.dealId, terms, ghostKey: rec.ghostKey };
     }
-    throw new Error("Pass bidId (buyer) or offerId (seller).");
+    throw new Error("Pass bidId (something you posted) or offerId (something you answered).");
   }
 
   async dealStatus(ref: { bidId?: string; offerId?: string }) {

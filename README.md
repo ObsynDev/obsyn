@@ -79,11 +79,12 @@ mcp-client add blockotc \
 | Tool | Does |
 |---|---|
 | `otc_info` | Chain, escrow, fees, relayer, which wallet signs |
-| `otc_list_bids` | Open bids |
+| `otc_list_bids` | Open bids and sell listings (`side`) |
+| `otc_create_listing` | Sell privately: list a block, buyers answer with sealed bids |
 | `otc_create_bid` | Place a bid (token, amount, ETH/USDG, reply window) |
-| `otc_get_offers` | Decrypt offers on your bid, cheapest first |
-| `otc_accept_offer` | Fix the deal with one seller |
-| `otc_send_offer` | Sealed offer on a bid; `ghost: true` for a one-time wallet with gasless deposit |
+| `otc_get_offers` | Decrypt answers on your bid or listing, with `verified` (signed by the wallet it names) and `hasFunds` |
+| `otc_accept_offer` | Fix the deal with one answer (refuses unverified answers unless `allowUnverified`) |
+| `otc_send_offer` | Sealed, signed answer: an offer on a bid (`ghost: true` available) or a bid on a listing |
 | `otc_deal_status` | Accepted? Who has deposited? Time left? |
 | `otc_deposit` | Deposit your side (signs, or returns unsigned txs) |
 | `otc_refund` | Refund after the deadline |

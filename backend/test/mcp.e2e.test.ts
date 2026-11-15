@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { serve, type ServerType } from "@hono/node-server";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import nacl from "tweetnacl";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createPublicClient, createWalletClient, erc20Abi, getAddress, http, parseAbi, type Abi, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
@@ -134,7 +135,7 @@ describe("MCP agents", { skip: !canRun && "anvil or forge build output missing" 
     const { tools } = await a.client.listTools();
     assert.deepEqual(
       tools.map((t) => t.name).sort(),
-      ["otc_accept_offer", "otc_create_bid", "otc_deal_status", "otc_deposit", "otc_get_offers", "otc_info", "otc_list_bids", "otc_price", "otc_refund", "otc_send_offer"],
+      ["otc_accept_offer", "otc_create_bid", "otc_create_listing", "otc_deal_status", "otc_deposit", "otc_get_offers", "otc_info", "otc_list_bids", "otc_price", "otc_refund", "otc_send_offer"],
     );
     const info = await a.call("otc_info");
     assert.equal(info.escrow, escrow);
@@ -213,6 +214,111 @@ describe("MCP agents", { skip: !canRun && "anvil or forge build output missing" 
     assert.equal(await pc.getBalance({ address: off.ghostWallet }), 0n, "one-time wallet never held ETH");
     // 1 ETH - 2.5% fee (stale-proof top tier under $10k) - 0.0001 ETH relayer fee
     assert.equal(await pc.getBalance({ address: payout }), 10n ** 18n - 25n * 10n ** 15n - 10n ** 14n);
+  });
+
+  it("sell privately: seller agent lists, buyer agents bid sealed, seller takes the highest", async () => {
+    const seller = await agentClient(KEYS.seller);
+    const buyerA = await agentClient(KEYS.buyer);
+    const buyerB = await agentClient(KEYS.deployer);
+    const buyerAddr = privateKeyToAccount(KEYS.buyer).address;
+    const payout = privateKeyToAccount(generatePrivateKey()).address;
+    const before = await bal(stock, buyerAddr);
+
+    const listing = await seller.call("otc_create_listing", { token: stock, amount: "40", payWith: "USDG", replyMinutes: 30 });
+    assert.equal(listing.side, "sell");
+    const seen = (await buyerA.call("otc_list_bids")).find((b: any) => b.bidId === listing.bidId);
+    assert.equal(seen.side, "sell");
+    assert.equal(seen.amount, "40");
+
+    const low = await buyerB.call("otc_send_offer", { bidId: listing.bidId, totalPrice: "9800" });
+    const high = await buyerA.call("otc_send_offer", { bidId: listing.bidId, totalPrice: "10000" });
+    assert.equal(high.as, "buyer");
+    await assert.rejects(buyerA.call("otc_send_offer", { bidId: listing.bidId, totalPrice: "1", ghost: true }), /Ghost mode is for sellers/);
+
+    const bids = await seller.call("otc_get_offers", { bidId: listing.bidId });
+    assert.equal(bids.length, 2);
+    assert.equal(bids[0].offerId, high.offerId, "highest bid first");
+    assert.equal(bids[0].buyer, buyerAddr);
+
+    await seller.call("otc_accept_offer", { bidId: listing.bidId, offerId: high.offerId, fundingMinutes: 60, payoutAddress: payout });
+    assert.equal((await buyerB.call("otc_deal_status", { offerId: low.offerId })).offer, "rejected");
+
+    // buyer (the answerer) pays, seller (the poster) delivers
+    const st = await buyerA.call("otc_deal_status", { offerId: high.offerId });
+    assert.equal(st.role, "buyer");
+    await buyerA.call("otc_deposit", { offerId: high.offerId });
+    await seller.call("otc_deposit", { bidId: listing.bidId });
+
+    assert.equal((await seller.call("otc_deal_status", { bidId: listing.bidId })).status, "settled");
+    assert.equal((await bal(stock, buyerAddr)) - before, 40n * 10n ** 18n);
+    assert.equal(await bal(usdg, payout), 9_800n * 10n ** 6n); // exactly $10k is in the 2% tier
+  });
+
+  it("sell privately in ghost mode: the seller picks ghost when accepting", async () => {
+    const seller = await agentClient(KEYS.seller);
+    const buyer = await agentClient(KEYS.buyer);
+    const payout = privateKeyToAccount(generatePrivateKey()).address;
+
+    const listing = await seller.call("otc_create_listing", { token: stock, amount: "5", payWith: "ETH", replyMinutes: 15 });
+    const bid = await buyer.call("otc_send_offer", { bidId: listing.bidId, totalPrice: "0.8" });
+    const acc = await seller.call("otc_accept_offer", { bidId: listing.bidId, offerId: bid.offerId, fundingMinutes: 60, payoutAddress: payout, ghost: true });
+    assert.ok(acc.ghostWallet);
+    assert.equal(acc.terms.seller, acc.ghostWallet, "buyer only ever sees the one-time wallet");
+
+    const early = await seller.call("otc_deposit", { bidId: listing.bidId }); // funds the one-time wallet, waits for buyer
+    assert.equal(early.done, false);
+    await buyer.call("otc_deposit", { offerId: bid.offerId });
+    const relayed = await seller.call("otc_deposit", { bidId: listing.bidId });
+    assert.equal(relayed.done, true);
+
+    assert.equal((await buyer.call("otc_deal_status", { offerId: bid.offerId })).status, "settled");
+    assert.equal(await pc.getBalance({ address: acc.ghostWallet }), 0n);
+    assert.equal(await pc.getBalance({ address: payout }), 8n * 10n ** 17n - 2n * 10n ** 16n - 10n ** 14n); // 0.8 - 2.5% - relayer fee
+  });
+
+  it("hostile answers: malformed ones are skipped, forged ones are flagged and refused", async () => {
+    const seller = await agentClient(KEYS.seller);
+    const buyer = await agentClient(KEYS.buyer);
+    const whale = privateKeyToAccount(KEYS.deployer).address; // someone the attacker pretends to be
+
+    const listing = await seller.call("otc_create_listing", { token: stock, amount: "7", payWith: "USDG", replyMinutes: 15 });
+    const pub = (await (await fetch(`${apiUrl}/rfqs/${listing.bidId}`)).json()) as { encPubKey: string; amount: string };
+    const sealRaw = async (payload: unknown) => {
+      const eph = nacl.box.keyPair();
+      const nonce = nacl.randomBytes(24);
+      const box = nacl.box(new TextEncoder().encode(JSON.stringify(payload)), nonce, new Uint8Array(Buffer.from(pub.encPubKey, "base64")), eph.secretKey);
+      const res = await fetch(`${apiUrl}/rfqs/${listing.bidId}/quotes`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sellerEncPubKey: Buffer.from(eph.publicKey).toString("base64"), nonce: Buffer.from(nonce).toString("base64"), ciphertext: Buffer.from(box).toString("base64") }),
+      });
+      return ((await res.json()) as { quoteId: string }).quoteId;
+    };
+
+    // 1. junk that used to crash reading: bad numbers, bad address, not even JSON-shaped
+    await sealRaw({ amount: pub.amount, price: "not-a-number", buyer: whale });
+    await sealRaw({ amount: pub.amount, price: "1", buyer: "0xnope" });
+    await sealRaw(["array", "instead", "of", "object"]);
+    // 2. forged: a huge bid "from" the whale, but signed by nobody
+    const forged = await sealRaw({ amount: pub.amount, price: "999999000000", buyer: whale, sig: "0x1234" });
+    // 3. honest bid, signed by its own wallet
+    const honest = await buyer.call("otc_send_offer", { bidId: listing.bidId, totalPrice: "1700" });
+
+    const answers = await seller.call("otc_get_offers", { bidId: listing.bidId });
+    assert.equal(answers.length, 2, "junk answers are dropped instead of breaking the list");
+    assert.equal(answers[0].offerId, honest.offerId, "verified answers come first, even below a bigger forged one");
+    assert.equal(answers[0].verified, true);
+    assert.equal(answers[0].hasFunds, true);
+    assert.equal(answers[1].offerId, forged);
+    assert.equal(answers[1].verified, false);
+    assert.equal(answers[1].hasFunds, false, "the whale holds no USDG here");
+
+    await assert.rejects(
+      seller.call("otc_accept_offer", { bidId: listing.bidId, offerId: forged, fundingMinutes: 30 }),
+      /isn't signed by the wallet it names/,
+    );
+    // the honest one goes through
+    await seller.call("otc_accept_offer", { bidId: listing.bidId, offerId: honest.offerId, fundingMinutes: 30 });
   });
 
   it("without a wallet key, deposit returns unsigned transactions", async () => {

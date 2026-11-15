@@ -13,6 +13,7 @@ import {
   type EIP1193Provider,
   type Hex,
   type PublicClient,
+  verifyMessage,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { OtcEscrowAbi } from "../abi/OtcEscrow.ts";
@@ -266,3 +267,24 @@ export async function ghostDeposit(escrow: Address, t: Terms, ghostKey: Hex) {
 
 export const explorerTx = (h: Hex) => `https://robinhoodchain.blockscout.com/tx/${h}`;
 export const explorerAddr = (a: Address) => `https://robinhoodchain.blockscout.com/address/${a}`;
+
+/** Is this answer signed by the wallet it names? Plain wallets offline, smart wallets on-chain. */
+export async function verifyAnswerSig(address: Address, message: string, sig: unknown): Promise<boolean> {
+  if (typeof sig !== "string" || !/^0x[0-9a-fA-F]+$/.test(sig)) return false;
+  try {
+    if (await verifyMessage({ address, message, signature: sig as Hex })) return true;
+  } catch {
+    /* fall through */
+  }
+  try {
+    return await (await publicClient()).verifyMessage({ address, message, signature: sig as Hex });
+  } catch {
+    return false;
+  }
+}
+
+/** Balance of ETH (address(0)) or an ERC-20. */
+export async function balanceOfAsset(asset: Address, who: Address): Promise<bigint> {
+  const c = await publicClient();
+  return asset === zeroAddress ? c.getBalance({ address: who }) : c.readContract({ address: asset, abi: erc20Abi, functionName: "balanceOf", args: [who] });
+}
