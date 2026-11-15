@@ -12,9 +12,11 @@ import { SellerOffer } from "./pages/SellerOffer.tsx";
 import { SellerStatus } from "./pages/SellerStatus.tsx";
 import { MyLinks, Terminal } from "./pages/Terminal.tsx";
 import { Otc } from "./pages/Otc.tsx";
+import { Roadmap } from "./pages/Roadmap.tsx";
+import { Docs } from "./pages/Docs.tsx";
 
 /** Marketing pages get the site header; everything else is the app. */
-const SITE_PAGES = new Set(["/", "/how", "/developers", "/security"]);
+const SITE_PAGES = new Set(["/", "/how", "/developers", "/security", "/roadmap", "/docs"]);
 
 function route(path: string) {
   let m: RegExpExecArray | null;
@@ -36,6 +38,10 @@ function route(path: string) {
       return <Developers />;
     case "/security":
       return <Security />;
+    case "/roadmap":
+      return <Roadmap />;
+    case "/docs":
+      return <Docs />;
   }
   return (
     <div className="narrow">
@@ -82,8 +88,9 @@ function LiveBadge() {
 const SITE_NAV: [string, string][] = [
   ["/otc", "OTC desk"],
   ["/how", "How it works"],
+  ["/docs", "Docs"],
+  ["/roadmap", "Roadmap"],
   ["/developers", "Developers"],
-  ["/security", "Security"],
 ];
 const APP_NAV: [string, string][] = [
   ["/otc", "OTC desk"],
@@ -143,6 +150,8 @@ export function App() {
         <div className="fcol">
           <h4>LEARN</h4>
           <Link to="/how">How it works</Link>
+          <Link to="/docs">Docs</Link>
+          <Link to="/roadmap">Roadmap</Link>
           <Link to="/security">Security</Link>
         </div>
         <div className="fcol">
