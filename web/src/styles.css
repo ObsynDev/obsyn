@@ -4869,7 +4869,7 @@ body {
 }
 .ask-term { display: grid; gap: 12px; }
 .ask-btns { display: flex; flex-wrap: wrap; gap: 10px; }
-.ask-art { position: relative; display: grid; place-items: center; min-height: 320px; }
+.ask-art { position: relative; display: grid; place-items: center; min-height: 320px; min-width: 0; overflow: hidden; }
 .ask-glow {
   position: absolute;
   left: 50%;
@@ -4891,7 +4891,21 @@ body {
 .tbar-pct { color: var(--copper); font-size: 12px; }
 .chat-line.ok { color: var(--copper); }
 @media (max-width: 860px) {
-  .ask-grid { grid-template-columns: 1fr; }
+  .ask-grid { grid-template-columns: minmax(0, 1fr); }
   .ask-art { min-height: 220px; order: -1; }
   .tbar-label { display: none; }
+}
+
+/* keep the page grid from growing to its widest child on phones */
+.l3 { grid-template-columns: minmax(0, 1fr); }
+canvas.ascii3d { max-width: 100%; height: auto !important; }
+.l3-sect { grid-template-columns: minmax(0, 1fr); }
+.l3-sect.two-col { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+.pxp-log { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 900px) {
+  .l3-sect.two-col { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 860px) {
+  .pxp-row, .pxp-branches { grid-template-columns: minmax(0, 1fr); }
+  .pxp-log { white-space: normal; }
 }
