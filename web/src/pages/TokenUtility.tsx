@@ -37,7 +37,7 @@ export function TokenUtility() {
     <div className="tk">
       <div className="tk-grid">
         {/* buy-and-burn loop */}
-        <div className="tk-loop">
+        <div className="tk-loop" data-spot>
           <span className="tk-label mono">BUY-AND-BURN · IN THE CONTRACT</span>
           <ol>
             {LOOP.map((s, n) => (
@@ -59,7 +59,7 @@ export function TokenUtility() {
         </div>
 
         {/* holder discount */}
-        <div className="tk-disc">
+        <div className="tk-disc" data-spot>
           <span className="tk-label mono">HOLDER DISCOUNT</span>
           <h3>
             Hold ${T}, pay <span>0.5% less</span> on every deal.

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./lib/api.ts";
 import { BRAND, Wordmark } from "./lib/brand.tsx";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { CursorRing } from "./lib/motion.tsx";
 import { Link, short, usePath } from "./lib/ui.tsx";
 import { BuyerBid } from "./pages/BuyerBid.tsx";
 import { Developers } from "./pages/Developers.tsx";
@@ -125,6 +126,7 @@ export function App() {
 
   return (
     <>
+      <CursorRing />
       <header className={`top ${site ? "site" : "app"}`}>
         <Link to="/" className="brand" aria-label={`${BRAND.name} home`}>
           <Wordmark />

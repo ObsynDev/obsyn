@@ -136,6 +136,7 @@ function CandleChart({ candles, range, prevClose }: { candles: Candle[]; range: 
       </div>
       {W > 0 && (
         <svg
+          key={`${candles[0].t}-${candles.length}`}
           width={W}
           height={H}
           onPointerMove={(e) => {
@@ -168,7 +169,12 @@ function CandleChart({ candles, range, prevClose }: { candles: Candle[]; range: 
             const bh = Math.max(1, Math.abs(y(c.o) - y(c.c)));
             const vh = maxV ? (c.v / maxV) * (VOL - 6) : 0;
             return (
-              <g key={c.t} className={up ? "up" : "down"} opacity={hover == null || hover === i ? 1 : 0.55}>
+              <g
+                key={c.t}
+                className={`cdl ${up ? "up" : "down"}`}
+                opacity={hover == null || hover === i ? 1 : 0.55}
+                style={{ animationDelay: `${Math.min(900, i * 9)}ms` }}
+              >
                 <line x1={x} x2={x} y1={y(c.h)} y2={y(c.l)} className="wick" />
                 <rect x={x - bw / 2} y={top} width={bw} height={bh} rx={0.6} className="body" />
                 <rect x={x - bw / 2} y={H - 22 - vh} width={bw} height={vh} className="vol" />

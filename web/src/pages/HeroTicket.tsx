@@ -18,7 +18,10 @@ export function HeroTicket() {
   const [i, setI] = useState(0);
   const [rows, setRows] = useState<MarketRow[] | null>(null);
   useEffect(() => {
-    api.markets().then(setRows, () => {});
+    const load = () => api.markets().then(setRows, () => {});
+    load();
+    const id = window.setInterval(load, 60_000);
+    return () => clearInterval(id);
   }, []);
   useEffect(() => {
     if (reducedMotion()) return;
@@ -55,7 +58,7 @@ export function HeroTicket() {
           </div>
           <div>
             <span>Reference</span>
-            <b className="mono">
+            <b className="mono ht-price" key={`${c.sym}-${ref?.price ?? "x"}`}>
               {ref ? `$${ref.price.toFixed(2)}` : "…"}
               {ref?.changePct != null && (
                 <i className={ref.changePct >= 0 ? "up" : "down"}>
