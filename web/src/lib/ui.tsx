@@ -18,11 +18,22 @@ export function navigate(to: string) {
   window.scrollTo(0, 0);
 }
 
-export function Link({ to, children, className }: { to: string; children: ReactNode; className?: string }) {
+export function Link({
+  to,
+  children,
+  className,
+  onPointerEnter,
+}: {
+  to: string;
+  children: ReactNode;
+  className?: string;
+  onPointerEnter?: () => void;
+}) {
   return (
     <a
       href={to}
       className={className}
+      onPointerEnter={onPointerEnter}
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey) return;
         e.preventDefault();

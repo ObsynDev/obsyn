@@ -4909,3 +4909,10 @@ canvas.ascii3d { max-width: 100%; height: auto !important; }
   .pxp-row, .pxp-branches { grid-template-columns: minmax(0, 1fr); }
   .pxp-log { white-space: normal; }
 }
+
+/* ───── full-width layout: no boxed container, fluid gutter ───── */
+:root { --gut: clamp(16px, 4.5vw, 88px); }
+main.site-main { max-width: none; padding-left: var(--gut); padding-right: var(--gut); }
+.top.site { padding-left: var(--gut); padding-right: var(--gut); }
+.site-foot { max-width: none; padding-left: var(--gut); padding-right: var(--gut); }
+.rm, .docs { max-width: none; }
