@@ -4,6 +4,8 @@ import { BRAND } from "../lib/brand.tsx";
 import { Reveal } from "../lib/motion.tsx";
 import { Copy, Link, navigate, short } from "../lib/ui.tsx";
 import { AsciiSlabs } from "./AsciiSlabs.tsx";
+import { DotWave } from "./DotWave.tsx";
+import { TokenAvatar } from "./Terminal.tsx";
 
 function useServer() {
   const [escrow, setEscrow] = useState<string | null | undefined>(undefined);
@@ -131,6 +133,31 @@ function WhoSees() {
   );
 }
 
+// ───────────────────────── section meta row ─────────────────────────
+
+/** "NO. 1 · TRADE ────────── 01 / 05" */
+function SectMeta({ label, idx, total = 5, tone = "green" }: { label: string; idx: number; total?: number; tone?: "green" | "copper" }) {
+  return (
+    <div className={`sect-meta mono ${tone}`}>
+      <span>{label}</span>
+      <i aria-hidden="true" />
+      <span className="dim">
+        {String(idx).padStart(2, "0")} / {String(total).padStart(2, "0")}
+      </span>
+    </div>
+  );
+}
+
+const EXAMPLE_TOKENS: [string, string, string][] = [
+  ["TSLAx", "Tesla xStock", "0x7a3c5f10aa00000000000000000000000000c01d"],
+  ["NVDAx", "Nvidia xStock", "0xc0ffee0000000000000000000000000000beef42"],
+  ["PONS", "Pons", "0x39dbed3a2bd333467115de45665cc57f813c4571"],
+  ["AAPLx", "Apple xStock", "0x8a791620dd6260079bf849dc5567adc3f2fdc318"],
+  ["AMZNx", "Amazon xStock", "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6"],
+  ["METAx", "Meta xStock", "0xb7f8bc63bbcad18155201308c8f3540b07f84f5e"],
+  ["USDG", "Global Dollar", "0x5fc5360d0400a0fd4f2af552add042d716f1d168"],
+];
+
 // ───────────────────────── page ─────────────────────────
 
 const FAQ = [
@@ -167,18 +194,26 @@ export function Landing() {
             <br />
             <span className="copper">Stay private.</span>
           </h1>
-          <p className="kicker mono">PRIVATE OTC DESK. BUILT ON ROBINHOOD CHAIN.</p>
+          <p className="kicker mono">
+            PRIVATE OTC DESK. BUILT ON ROBINHOOD CHAIN.<span className="cursor" aria-hidden="true">_</span>
+          </p>
           <p className="l3-lede">
             Post a block you want to buy or sell. Get prices sealed so only you can read them. Settle both sides in one escrow
             transaction, without touching the chart.
           </p>
-          <div className="btn-group">
-            <Link to="/how" className="sq ghost">
-              HOW IT WORKS <span aria-hidden="true">→</span>
-            </Link>
-            <Link to="/app" className="sq go">
-              OPEN THE DESK <span className="key">ENTER ↵</span>
-            </Link>
+          <div className="btn-wrap">
+            <div className="ticks" aria-hidden="true">
+              <span />
+              <span />
+            </div>
+            <div className="btn-group">
+              <Link to="/how" className="sq ghost">
+                HOW IT WORKS <span aria-hidden="true">→</span>
+              </Link>
+              <Link to="/app" className="sq go">
+                OPEN THE DESK <span className="key">ENTER ↵</span>
+              </Link>
+            </div>
           </div>
           <div className="ca-row mono">
             <span className="ca-k">ESCROW</span>
@@ -198,6 +233,29 @@ export function Landing() {
         <div className="l3-hero-art">
           <AsciiSlabs />
         </div>
+        <DotWave />
+      </section>
+
+      {/* token strip (meridian) */}
+      <section className="tok-strip" aria-label="Example tokens">
+        <span className="tok-label mono">ANY ERC-20 ON ROBINHOOD CHAIN · FOR EXAMPLE</span>
+        <div className="tok-viewport">
+          <div className="tok-track">
+            {[0, 1].map((k) => (
+              <div key={k} className="tok-set" aria-hidden={k === 1}>
+                {EXAMPLE_TOKENS.map(([sym, name, addr]) => (
+                  <div key={sym} className="tok">
+                    <TokenAvatar address={addr as `0x${string}`} symbol={sym} size={30} />
+                    <span>
+                      <b>{sym}</b>
+                      <i>{name}</i>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* product preview */}
@@ -210,7 +268,7 @@ export function Landing() {
       {/* NO. 1 trade */}
       <section className="l3-sect">
         <Reveal className="no">
-          <span className="no-label mono">NO. 1 · TRADE</span>
+          <SectMeta label="NO. 1 · TRADE" idx={1} />
           <h2>
             Move size <span className="green">without moving the price.</span>
           </h2>
@@ -234,9 +292,9 @@ export function Landing() {
       {/* NO. 2 privacy */}
       <section className="l3-sect">
         <Reveal className="no">
-          <span className="no-label mono copper">NO. 2 · PRIVACY</span>
+          <SectMeta label="NO. 2 · PRIVACY" idx={2} tone="copper" />
           <h2>
-            Your price, your wallet, your intent. <span className="copper">Out of sight.</span>
+            Your price, your wallet, your intent. <span className="copper sweep">Out of sight.</span>
           </h2>
         </Reveal>
         <div className="l3-points priv">
@@ -258,7 +316,7 @@ export function Landing() {
       {/* NO. 3 who sees what */}
       <section className="l3-sect two-col">
         <Reveal className="no">
-          <span className="no-label mono">NO. 3 · WHO SEES WHAT</span>
+          <SectMeta label="NO. 3 · WHO SEES WHAT" idx={3} tone="copper" />
           <h2>Switch the viewer.</h2>
           <p className="muted">
             Everything sealed stays sealed until the deal settles. Private, not anonymous: settlement transfers are public on-chain like
@@ -273,7 +331,7 @@ export function Landing() {
       {/* NO. 4 how */}
       <section className="l3-sect">
         <Reveal className="no">
-          <span className="no-label mono">NO. 4 · HOW A BLOCK TRADES</span>
+          <SectMeta label="NO. 4 · HOW A BLOCK TRADES" idx={4} />
           <h2>Six steps. One settlement.</h2>
         </Reveal>
         <ol className="l3-steps">
@@ -297,7 +355,7 @@ export function Landing() {
       {/* NO. 5 agents */}
       <section className="l3-sect">
         <Reveal className="no">
-          <span className="no-label mono">NO. 5 · AGENTS & BUILDERS</span>
+          <SectMeta label="NO. 5 · AGENTS & BUILDERS" idx={5} />
           <h2>
             Your agent can <span className="green">work the desk.</span>
           </h2>

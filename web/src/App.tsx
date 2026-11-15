@@ -123,21 +123,37 @@ export function App() {
       <main key={path} className={path === "/app" ? "wide" : site ? "site-main" : ""}>
         {route(path)}
       </main>
-      <footer>
-        <div className="foot-brand">
+      <footer className="site-foot">
+        <div className="fcol fbrand">
           <Wordmark />
-          <span>{BRAND.description}</span>
+          <p>Trade size. Stay private. Sealed OTC block trades on Robinhood Chain.</p>
         </div>
-        <div className="foot-links">
-          <Link to="/app">App</Link>
+        <div className="fcol">
+          <h4>PRODUCT</h4>
+          <Link to="/app">Desk</Link>
+          <Link to="/app?new=buy">Post a bid</Link>
+          <Link to="/app?new=sell">Sell privately</Link>
+          <Link to="/mine">My blocks</Link>
+        </div>
+        <div className="fcol">
+          <h4>LEARN</h4>
           <Link to="/how">How it works</Link>
-          <Link to="/developers">Developers</Link>
           <Link to="/security">Security</Link>
+        </div>
+        <div className="fcol">
+          <h4>BUILD</h4>
+          <Link to="/developers">Developers</Link>
           <a href="/api/openapi.json" target="_blank" rel="noreferrer">
-            API
+            OpenAPI
+          </a>
+          <a href="/api/sdk/blockotc.mjs" target="_blank" rel="noreferrer">
+            SDK
           </a>
         </div>
-        <span className="foot-fine">Trades settle on-chain and are final. Not a regulated venue. Not investment advice. Not audited yet.</span>
+        <div className="fine-row">
+          <span>© {new Date().getFullYear()} {BRAND.name}</span>
+          <span>Trades settle on-chain and are final. Not a regulated venue. Not investment advice. Not audited yet.</span>
+        </div>
       </footer>
     </>
   );
