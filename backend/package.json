@@ -1,0 +1,29 @@
+{
+  "name": "blockotc-backend",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node src/server.ts",
+    "dev": "node --watch src/server.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "mcp": "node src/mcp/stdio.ts",
+    "build:sdk": "esbuild src/sdk/index.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=dist/sdk/blockotc.mjs --legal-comments=none --minify"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@hono/node-server": "^2.1.8",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "hono": "^4.13.18",
+    "tweetnacl": "^1.0.3",
+    "viem": "^2.57.19",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  "private": true
+}
