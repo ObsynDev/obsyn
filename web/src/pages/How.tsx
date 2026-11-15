@@ -1,23 +1,47 @@
 export function How() {
   return (
     <div className="narrow prose">
-      <h1>How it works</h1>
+      <span className="label">How it works</span>
+      <h1>
+        Size moves. <span className="serif">The chart doesn't.</span>
+      </h1>
 
-      <h2>1. Bid</h2>
+      <div className="steps-grid">
+        <div className="step-card">
+          <span className="num">01 · POST</span>
+          <h3>Bid or list a block</h3>
+          <p>Name the token, the size and ETH or USDG. No account: you get a private link.</p>
+        </div>
+        <div className="step-card">
+          <span className="num">02 · SEAL</span>
+          <h3>Get sealed answers</h3>
+          <p>The other side answers with a price encrypted to you and signed by their wallet.</p>
+        </div>
+        <div className="step-card">
+          <span className="num">03 · SETTLE</span>
+          <h3>Swap in one transaction</h3>
+          <p>Both sides deposit into the escrow. The second deposit swaps both, or everyone is refunded.</p>
+        </div>
+      </div>
+
+      <h2>1. Post a bid or a listing</h2>
       <p>
-        A buyer names a token, a size, and whether they pay in ETH or USDG, then picks how long sellers can reply (15 minutes to
-        24 hours). There's no account: you get a private link. The bid shows up in the open-bids list so holders can find it.
+        A buyer posts a bid, or a seller lists a block ("sell privately"): token, size, ETH or USDG, and how long the other side can
+        reply (15 minutes to 24 hours). There's no account: you get a private link. Open postings show up in the terminal so the
+        other side can find them.
       </p>
 
-      <h2>2. Sealed offers</h2>
+      <h2>2. Sealed answers</h2>
       <p>
-        Sellers answer with a price. The offer is encrypted in the seller's browser to a key only the buyer's link holds. Our
-        server stores ciphertext and can't read it. Other sellers can't see it, so there's nothing to front-run.
+        The other side answers with a price: sellers send offers on a bid, buyers send bids on a listing. The answer is encrypted
+        in their browser to a key only the poster's link holds, and signed by the wallet it names, so nobody can fake an answer
+        in someone else's name. Our server stores ciphertext and can't read it. Other answerers can't see it, so there's nothing
+        to front-run.
       </p>
 
       <h2>3. Escrow swap</h2>
       <p>
-        The buyer accepts one offer, which fixes the deal terms. Both sides deposit into the escrow contract. Whichever deposit
+        The poster accepts one answer, which fixes the deal terms. Both sides deposit into the escrow contract. Whichever deposit
         lands second swaps both sides in that same transaction. If the funding deadline passes first, anyone can trigger
         refunds and each side gets back exactly what it put in.
       </p>

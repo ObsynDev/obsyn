@@ -35,6 +35,7 @@ const Rfq = {
     note: { type: ["string", "null"] },
     encPubKey: { type: "string", description: "Poster's base64 NaCl box public key; encrypt answers to this" },
     buyerEncPubKey: { type: "string", deprecated: true, description: "Same as encPubKey" },
+    createdAt: { type: "integer", description: "Unix seconds" },
     expiresAt: { type: "integer", description: "Unix seconds; offers close after this" },
     status: { enum: ["open", "accepted", "cancelled"] },
     quoteCount: { type: "integer" },

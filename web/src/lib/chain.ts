@@ -110,22 +110,33 @@ export async function connectWallet() {
 export interface TokenInfo {
   address: Address;
   symbol: string;
+  name: string;
   decimals: number;
 }
 
 const tokenCache = new Map<string, Promise<TokenInfo>>();
 
 export function tokenInfo(address: Address): Promise<TokenInfo> {
-  if (address === zeroAddress) return Promise.resolve({ address, symbol: "ETH", decimals: 18 });
+  if (address === zeroAddress) return Promise.resolve({ address, symbol: "ETH", name: "Ether", decimals: 18 });
   let p = tokenCache.get(address);
   if (!p) {
     p = (async () => {
+      // Ask our server first: it reads the chain for us, so this works even when the
+      // visitor's own RPC is blocked (some ISPs block Robinhood Chain's RPC).
+      try {
+        const t = await api.token(address);
+        if (t.isContract && t.symbol && t.decimals !== null) return { address, symbol: t.symbol, name: t.name ?? t.symbol, decimals: t.decimals };
+        if (!t.isContract) throw new Error("No token contract at this address on Robinhood Chain.");
+      } catch (e) {
+        if ((e as Error).message.startsWith("No token contract")) throw e;
+      }
       const c = await publicClient();
-      const [symbol, decimals] = await Promise.all([
+      const [symbol, name, decimals] = await Promise.all([
         c.readContract({ address, abi: erc20Abi, functionName: "symbol" }),
+        c.readContract({ address, abi: erc20Abi, functionName: "name" }).catch(() => ""),
         c.readContract({ address, abi: erc20Abi, functionName: "decimals" }),
       ]);
-      return { address, symbol, decimals };
+      return { address, symbol, name: name || symbol, decimals };
     })();
     p.catch(() => tokenCache.delete(address));
     tokenCache.set(address, p);

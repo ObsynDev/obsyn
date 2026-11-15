@@ -22,6 +22,7 @@ export interface Rfq {
   /** Poster's key: encrypt answers to this. */
   encPubKey?: string;
   buyerEncPubKey: string;
+  createdAt?: number;
   expiresAt: number;
   status: "open" | "accepted" | "cancelled";
   quoteCount: number;
@@ -99,6 +100,11 @@ export const api = {
       `/quotes/${id}`,
       undefined,
       t,
+    ),
+  token: (address: string) =>
+    req<{ address: Address; isContract: boolean; name: string | null; symbol: string | null; decimals: number | null; permit: boolean }>(
+      "GET",
+      `/token/${address}`,
     ),
   relayDeposit: (body: unknown) => req<{ txHash: Hex; dealId: Hex }>("POST", "/relay/deposit", body),
 };

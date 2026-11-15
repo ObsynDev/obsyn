@@ -32,10 +32,11 @@ export function createSite(api: Hono, webDist: string | null) {
 
   const root = webDist ? resolve(webDist) : null;
   if (!root || !existsSync(join(root, "index.html"))) {
-    site.get("/", (c) => c.text("BlockOTC API is running at /api. Web app not built."));
+    site.get("/", (c) => c.text("API is running at /api. Web app not built."));
     return site;
   }
-  const index = readFileSync(join(root, "index.html"));
+  // Read per request (it is tiny) so a rebuilt dist never serves a stale index pointing at deleted assets.
+  const index = () => readFileSync(join(root, "index.html"));
 
   site.get("*", (c) => {
     const rel = decodeURIComponent(new URL(c.req.url).pathname);
@@ -48,7 +49,7 @@ export function createSite(api: Hono, webDist: string | null) {
         "cache-control": immutable ? "public, max-age=31536000, immutable" : "public, max-age=300",
       });
     }
-    return c.body(index, 200, { "content-type": TYPES[".html"], "cache-control": "no-cache" });
+    return c.body(index(), 200, { "content-type": TYPES[".html"], "cache-control": "no-cache" });
   });
 
   return site;

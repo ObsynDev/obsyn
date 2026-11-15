@@ -45,6 +45,7 @@ function publicRfq(r: RfqRow, quoteCount: number) {
     encPubKey: r.buyer_enc_pubkey,
     /** @deprecated same as encPubKey (kept for older clients) */
     buyerEncPubKey: r.buyer_enc_pubkey,
+    createdAt: r.created_at,
     expiresAt: r.expires_at,
     status: r.status,
     quoteCount,
