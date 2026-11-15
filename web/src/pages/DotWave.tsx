@@ -39,7 +39,7 @@ export function DotWave({ height = 220 }: { height?: number }) {
           const y = h * 0.25 + depth * h * 0.7 + wave * (0.4 + depth * 0.6);
           if (y < 0 || y > h) continue;
           const a = 0.14 + depth * 0.7 * (0.6 + 0.4 * Math.sin(x * 0.01 + t * 0.0006));
-          ctx.fillStyle = `rgba(155,240,212,${a.toFixed(3)})`;
+          ctx.fillStyle = `rgba(143,211,255,${a.toFixed(3)})`;
           const s = 0.7 + depth * 1.1;
           ctx.fillRect(x, y, s, s);
         }

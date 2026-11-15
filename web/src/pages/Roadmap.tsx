@@ -34,7 +34,6 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Notifications", d: "Telegram and email alerts when an answer arrives or the other side deposits.", s: "next", size: "S" },
       { t: "Deal receipts", d: "A public, shareable page per settled deal, read live from the contract.", s: "planned", size: "S" },
       { t: "Token list with logos", d: "Curated Robinhood Chain tokens in the picker, with verified contract addresses.", s: "planned", size: "S" },
-      { t: "Bahasa Indonesia", d: "Full site and app in Indonesian alongside English.", s: "planned", size: "S" },
       { t: "Export / import private links", d: "Back up the keys to your bids and offers across devices.", s: "planned", size: "S" },
     ],
   },

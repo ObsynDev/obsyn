@@ -135,11 +135,11 @@ function PixelIcon({ icon, color, small }: { icon: keyof typeof ICONS; color: st
 }
 
 const STAGES = [
-  { key: "POST", icon: "post", color: "#7fdcff", text: "Bid to buy or list to sell. A private link, no account.", log: "buyer posts 250,000 TSLAx · pays in USDG · reply window 1h" },
-  { key: "SEALED_BOX", icon: "seal", color: "#9bf0d4", text: "Answers are encrypted to the poster. We store ciphertext.", log: "3 offers arrive sealed · the server can't read the prices" },
-  { key: "SIGNATURE_CHECK", icon: "sign", color: "#8b7cff", text: "Each answer is signed by its wallet. Pass or flag.", log: "2 signed by their wallet · 1 unverified, ranked last" },
+  { key: "POST", icon: "post", color: "#f5c98a", text: "Bid to buy or list to sell. A private link, no account.", log: "buyer posts 250,000 TSLAx · pays in USDG · reply window 1h" },
+  { key: "SEALED_BOX", icon: "seal", color: "#8fd3ff", text: "Answers are encrypted to the poster. We store ciphertext.", log: "3 offers arrive sealed · the server can't read the prices" },
+  { key: "SIGNATURE_CHECK", icon: "sign", color: "#ff6a2b", text: "Each answer is signed by its wallet. Pass or flag.", log: "2 signed by their wallet · 1 unverified, ranked last" },
   { key: "ESCROW", icon: "escrow", color: "#f2f2f0", text: "Payment locks first. Then the tokens. No admin key.", log: "best offer accepted · payment locked · seller deposits gasless" },
-  { key: "ROBINHOOD_CHAIN", icon: "chain", color: "#6a5cc4", text: "Both sides swap in one transaction. A receipt on chain.", log: "settled in 1 transaction · receipt on Robinhood Chain" },
+  { key: "ROBINHOOD_CHAIN", icon: "chain", color: "#c2410c", text: "Both sides swap in one transaction. A receipt on chain.", log: "settled in 1 transaction · receipt on Robinhood Chain" },
 ] as const;
 
 export function PixelPipeline() {
@@ -168,7 +168,7 @@ export function PixelPipeline() {
       <div className="pxp-branches">
         <div className="pxp-branch b-sign">
           <span className="pxp-drop" aria-hidden="true" />
-          <PixelIcon icon="reject" color="#ffb547" small />
+          <PixelIcon icon="reject" color="#ff5277" small />
           <div>
             <span className="pxp-key mono amber">UNVERIFIED</span>
             <p>Not signed by its wallet. Ranked last; accepting it needs your explicit OK.</p>
@@ -176,7 +176,7 @@ export function PixelPipeline() {
         </div>
         <div className="pxp-branch b-escrow">
           <span className="pxp-drop" aria-hidden="true" />
-          <PixelIcon icon="refund" color="#ffb547" small />
+          <PixelIcon icon="refund" color="#ff5277" small />
           <div>
             <span className="pxp-key mono amber">REFUND</span>
             <p>Deadline passes before both sides fund: everyone gets their deposit back.</p>
