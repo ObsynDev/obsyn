@@ -22,7 +22,7 @@ export class RelayError extends Error {
 }
 
 export interface Relayer {
-  info(): { enabled: boolean; address: Address | null; minFee: { eth: string; usdg: string } };
+  info(): { enabled: boolean; address: Address | null; problem: string | null; minFee: { eth: string; usdg: string } };
   relayDeposit(terms: Terms, permit: Permit, sellerSig: Hex): Promise<{ txHash: Hex; dealId: Hex }>;
 }
 
@@ -50,6 +50,7 @@ export function createRelayer(cfg: Config): Relayer {
     info: () => ({
       enabled,
       address: relayerAddress,
+      problem: cfg.relayerKeyProblem ?? (cfg.relayerKey && !cfg.escrow ? "waiting for ESCROW_ADDRESS" : null),
       minFee: { eth: cfg.relayerMinFee.eth.toString(), usdg: cfg.relayerMinFee.usdg.toString() },
     }),
 

@@ -22,7 +22,7 @@ let clock = 1_800_000_000;
 let relayCalls = 0;
 
 const fakeRelayer: Relayer = {
-  info: () => ({ enabled: true, address: "0x5555555555555555555555555555555555555555", minFee: { eth: "1", usdg: "1" } }),
+  info: () => ({ enabled: true, address: "0x5555555555555555555555555555555555555555", problem: null, minFee: { eth: "1", usdg: "1" } }),
   async relayDeposit(terms) {
     relayCalls++;
     if (terms.relayerFee === 0n) throw new RelayError(400, "relayerFee below minimum 1");
@@ -265,7 +265,13 @@ describe("config", () => {
     assert.equal(loadConfig({ RELAYER_PRIVATE_KEY: `0x${k}` }).relayerKey, `0x${k}`);
     assert.equal(loadConfig({ RELAYER_PRIVATE_KEY: ` "${k}" ` }).relayerKey, `0x${k}`);
   });
-  it("rejects malformed keys without echoing them", () => {
-    assert.throws(() => loadConfig({ RELAYER_PRIVATE_KEY: "abc123" }), (e: Error) => !e.message.includes("abc123"));
+  it("a malformed key disables the relayer without crashing or echoing it", () => {
+    const bad = loadConfig({ RELAYER_PRIVATE_KEY: "abc123" });
+    assert.equal(bad.relayerKey, null);
+    assert.ok(bad.relayerKeyProblem && !bad.relayerKeyProblem.includes("abc123"));
+    const addr = loadConfig({ RELAYER_PRIVATE_KEY: "0x2222222222222222222222222222222222222222" });
+    assert.equal(addr.relayerKey, null);
+    assert.match(addr.relayerKeyProblem!, /ADDRESS/);
+    assert.equal(loadConfig({ RELAYER_PRIVATE_KEY: ` ${k}\n` }).relayerKey, `0x${k}`); // stray whitespace/newline from pasting
   });
 });

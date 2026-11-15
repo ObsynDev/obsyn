@@ -25,6 +25,7 @@ const api = createApp({
 });
 const site = createSite(api, process.env.WEB_DIST ?? fileURLToPath(new URL("../../web/dist", import.meta.url)));
 
+if (cfg.relayerKeyProblem) console.warn(cfg.relayerKeyProblem);
 if (!cfg.escrow) console.warn("ESCROW_ADDRESS not set: accepted deals will have no escrow address, relayer disabled");
 
 const server = serve({ fetch: site.fetch, port: cfg.port, hostname: "0.0.0.0" }, (info) => {
