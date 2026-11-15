@@ -7,7 +7,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { openapi } from "./openapi.ts";
 import type { Config } from "./config.ts";
 import type { QuoteRow, RfqRow } from "./db.ts";
-import { parseSource, type PriceQuote, type PriceSource } from "./price.ts";
+import { parseSource, type PriceQuote, type PriceSource, type TokenInfo } from "./price.ts";
 import { NO_PERMIT, RelayError, type Relayer } from "./relayer.ts";
 import { hashToken, isB64, newId, newToken, tokenMatches } from "./secrets.ts";
 import { dealId, termsToJson, TermsSchema } from "./terms.ts";
@@ -17,6 +17,7 @@ export interface Deps {
   db: DatabaseSync;
   relayer: Relayer;
   readPrice: (token: Address, src: PriceSource) => Promise<PriceQuote>;
+  readToken?: (token: Address) => Promise<TokenInfo>;
   now?: () => number; // unix seconds, injectable for tests
 }
 
@@ -322,6 +323,18 @@ export function createApp(deps: Deps) {
   });
 
   // ─────────────────────────── on-chain reference price ───────────────────────────
+
+  /** ERC-20 facts read on-chain by the server (useful when a client's own RPC is blocked). */
+  app.get("/token/:address", async (c) => {
+    const a = c.req.param("address");
+    if (!isAddress(a)) return c.json({ error: "invalid address" }, 400);
+    if (!deps.readToken) return c.json({ error: "token reads not configured" }, 503);
+    try {
+      return c.json(await deps.readToken(getAddress(a)));
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 502);
+    }
+  });
 
   app.get("/price/:token", async (c) => {
     const token = c.req.param("token");

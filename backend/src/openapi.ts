@@ -177,6 +177,13 @@ export const openapi = {
         responses: { 202: ok("Submitted", { type: "object", properties: { txHash: { type: "string" }, dealId: { type: "string" } } }), 400: err("Rejected"), 409: err("Deal not ready") },
       },
     },
+    "/token/{address}": {
+      get: {
+        summary: "ERC-20 facts read on-chain: code present, name, symbol, decimals, supply, EIP-2612 permit",
+        parameters: [{ name: "address", in: "path", required: true, schema: address }],
+        responses: { 200: ok("Token info", { type: "object" }), 400: err("Bad address"), 502: err("Read failed") },
+      },
+    },
     "/price/{token}": {
       get: {
         summary: "On-chain spot price",

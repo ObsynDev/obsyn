@@ -79,3 +79,49 @@ export async function readPrice(client: PublicClient, token: Address, src: Price
   const price = (Number(quoteReserve) / 10 ** dq) / (Number(tokenReserve) / 10 ** dt);
   return { token, quote: native ? "ETH" : pair, price, source: `pons:${src.address}`, blockNumber: blockNumber.toString() };
 }
+
+const permitProbeAbi = parseAbi([
+  "function nonces(address) view returns (uint256)",
+  "function DOMAIN_SEPARATOR() view returns (bytes32)",
+]);
+
+export interface TokenInfo {
+  address: Address;
+  isContract: boolean;
+  name: string | null;
+  symbol: string | null;
+  decimals: number | null;
+  totalSupply: string | null;
+  /** Has EIP-2612 permit (needed for gasless ghost-mode deposits). */
+  permit: boolean;
+  blockNumber: string;
+}
+
+/** Basic ERC-20 facts read from chain, for checking an address before trusting it. */
+export async function readTokenInfo(client: PublicClient, address: Address): Promise<TokenInfo> {
+  address = getAddress(address);
+  const blockNumber = await client.getBlockNumber();
+  const code = await client.getCode({ address, blockNumber });
+  const isContract = !!code && code !== "0x";
+  const read = <T>(p: Promise<T>) => p.then((v) => v, () => null);
+  const [name, symbol, dec, supply, nonce, sep] = isContract
+    ? await Promise.all([
+        read(client.readContract({ address, abi: erc20Abi, functionName: "name", blockNumber })),
+        read(client.readContract({ address, abi: erc20Abi, functionName: "symbol", blockNumber })),
+        read(client.readContract({ address, abi: erc20Abi, functionName: "decimals", blockNumber })),
+        read(client.readContract({ address, abi: erc20Abi, functionName: "totalSupply", blockNumber })),
+        read(client.readContract({ address, abi: permitProbeAbi, functionName: "nonces", args: [address], blockNumber })),
+        read(client.readContract({ address, abi: permitProbeAbi, functionName: "DOMAIN_SEPARATOR", blockNumber })),
+      ])
+    : [null, null, null, null, null, null];
+  return {
+    address,
+    isContract,
+    name,
+    symbol,
+    decimals: dec,
+    totalSupply: supply === null ? null : supply.toString(),
+    permit: nonce !== null && sep !== null,
+    blockNumber: blockNumber.toString(),
+  };
+}

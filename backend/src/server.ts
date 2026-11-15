@@ -4,7 +4,7 @@ import { createApp } from "./app.ts";
 import { clients } from "./chain.ts";
 import { loadConfig } from "./config.ts";
 import { openDb } from "./db.ts";
-import { readPrice } from "./price.ts";
+import { readPrice, readTokenInfo } from "./price.ts";
 import { createRelayer } from "./relayer.ts";
 import { createSite } from "./site.ts";
 
@@ -21,6 +21,7 @@ const api = createApp({
   db: openDb(cfg.dbPath),
   relayer: createRelayer(cfg),
   readPrice: (token, src) => readPrice(publicClient, token, src),
+  readToken: (token) => readTokenInfo(publicClient, token),
 });
 const site = createSite(api, process.env.WEB_DIST ?? fileURLToPath(new URL("../../web/dist", import.meta.url)));
 

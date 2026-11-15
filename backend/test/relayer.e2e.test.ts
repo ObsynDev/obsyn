@@ -21,6 +21,7 @@ import { foundry } from "viem/chains";
 import { OtcEscrowAbi } from "../src/abi/OtcEscrow.ts";
 import { loadConfig } from "../src/config.ts";
 import { createRelayer, depositTypedData } from "../src/relayer.ts";
+import { readTokenInfo } from "../src/price.ts";
 import { dealId, type Terms } from "../src/terms.ts";
 
 const OUT = new URL("../../contracts/out/", import.meta.url);
@@ -78,6 +79,16 @@ it("relays a gasless ghost deposit that settles the deal", { skip: !canRun && "a
   const feed = await deploy("Mocks.sol", "MockFeed", []);
   const treasury = privateKeyToAccount(generatePrivateKey()).address;
   const escrow = await deploy("OtcEscrow.sol", "OtcEscrow", [usdg, feed, treasury]);
+
+  // token check used to vet addresses (e.g. USDG) before they go into immutable config
+  const info = await readTokenInfo(pc as any, usdg);
+  assert.equal(info.isContract, true);
+  assert.equal(info.symbol, "USDG");
+  assert.equal(info.decimals, 6);
+  assert.equal(info.permit, true);
+  const eoa = await readTokenInfo(pc as any, treasury);
+  assert.equal(eoa.isContract, false);
+  assert.equal(eoa.symbol, null);
 
   // ghost wallet: holds the stock tokens, has zero ETH, never sends a transaction
   const ghost = privateKeyToAccount(generatePrivateKey());
