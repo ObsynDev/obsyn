@@ -112,7 +112,7 @@ function BlockCard({ r, now }: { r: Rfq; now: number }) {
           </span>
           <Copy text={`${window.location.origin}/rfq/${r.id}`} label="⧉" />
           <Link to={`/rfq/${r.id}`} className={`go ${side}`}>
-            ⚡ {side === "buy" ? "Sell into" : "Buy block"}
+            {side === "buy" ? "Sell into" : "Buy block"}
           </Link>
         </div>
       </div>
@@ -271,7 +271,7 @@ export function Terminal() {
         <div className="strip-copy">
           <span className="label">Private OTC · Robinhood Chain</span>
           <h1>
-            Big blocks. <span className="serif">Zero</span> chart noise.
+            Trade size. <span className="copper">Stay private.</span>
           </h1>
           <p>Post a block. Get sealed answers only you can read. Settle both sides in one escrow transaction.</p>
           <EscrowChip />
@@ -292,10 +292,10 @@ export function Terminal() {
         </div>
         <div className="strip-actions">
           <button className="cta buy" onClick={() => setSheet("buy")}>
-            ⚡ Buy big
+            BUY A BLOCK
           </button>
           <button className="cta sell" onClick={() => setSheet("sell")}>
-            ⚡ Sell quiet
+            SELL PRIVATELY
           </button>
         </div>
       </section>

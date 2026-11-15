@@ -150,7 +150,7 @@ export function NewBlock({ initialSide, onClose }: { initialSide: "buy" | "sell"
 
         <Err msg={submit.error} />
         <button className={`cta ${side}`} disabled={submit.busy}>
-          ⚡ {submit.busy ? "Creating…" : side === "buy" ? "Create private bid" : "Create private listing"}
+          {submit.busy ? "Creating…" : side === "buy" ? "Create private bid" : "Create private listing"}
         </button>
       </form>
     </div>

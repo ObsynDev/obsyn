@@ -1,8 +1,8 @@
 /** Change the product name here; every page, the logo wordmark and the tab title follow it. */
 export const BRAND = {
   name: "SLAB",
-  tagline: "Big blocks. Zero chart noise.",
-  description: "Private OTC block trades on Robinhood Chain",
+  tagline: "Trade size. Stay private.",
+  description: "Private OTC block trades and a privacy layer on Robinhood Chain",
 };
 
 /** Logo mark: three offset slabs on a dark tile. Neon green is the brand accent. */
