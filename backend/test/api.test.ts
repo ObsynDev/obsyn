@@ -257,3 +257,15 @@ describe("relay + price endpoints", () => {
 });
 
 export type { Address };
+
+describe("config", () => {
+  const k = "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"; // anvil test key
+  it("accepts relayer keys with or without 0x, and quoted", () => {
+    assert.equal(loadConfig({ RELAYER_PRIVATE_KEY: k }).relayerKey, `0x${k}`);
+    assert.equal(loadConfig({ RELAYER_PRIVATE_KEY: `0x${k}` }).relayerKey, `0x${k}`);
+    assert.equal(loadConfig({ RELAYER_PRIVATE_KEY: ` "${k}" ` }).relayerKey, `0x${k}`);
+  });
+  it("rejects malformed keys without echoing them", () => {
+    assert.throws(() => loadConfig({ RELAYER_PRIVATE_KEY: "abc123" }), (e: Error) => !e.message.includes("abc123"));
+  });
+});
