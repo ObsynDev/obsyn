@@ -190,10 +190,10 @@ function Column({ title, hint, rows, now, empty, onNew }: { title: string; hint:
 
 // ───────────────────────── strip extras ─────────────────────────
 
-function Marquee({ open, answers }: { open: number; answers: number }) {
+function Marquee({ open, answers, live }: { open: number; answers: number; live: boolean }) {
   const items = [
     <>
-      <b>Live</b> on Robinhood Chain
+      {live ? <b>Live</b> : <b>Preview</b>} on Robinhood Chain{live ? "" : " · settlement opens soon"}
     </>,
     <>
       <b>{open}</b> open blocks
@@ -257,11 +257,16 @@ export function Terminal() {
   const bids = all.filter((r) => sideOf(r) === "buy");
   const listings = all.filter((r) => sideOf(r) === "sell");
   const answers = all.reduce((n, r) => n + r.quoteCount, 0);
+  // "Live" only once the escrow is configured; before that, say preview.
+  const [live, setLive] = useState(false);
+  useEffect(() => {
+    api.config().then((c) => setLive(!!c.escrow), () => setLive(false));
+  }, []);
   const mine = saved.bids().length + saved.offers().length;
 
   return (
     <div className="terminal">
-      <Marquee open={all.length} answers={answers} />
+      <Marquee open={all.length} answers={answers} live={live} />
       <section className="strip">
         <div className="strip-copy">
           <span className="label">Private OTC · Robinhood Chain</span>
