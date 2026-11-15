@@ -678,6 +678,10 @@ export class OtcAgent {
     }
 
     if (sellerFunded) return { done: true, message: "Tokens already deposited." };
+    // Payment locks first: never put the seller's tokens in before the buyer has paid in.
+    if (!buyerFunded) {
+      return { done: false, message: "Payment locks first: waiting for the buyer to deposit. Call otc_deposit again once otc_deal_status shows buyerFunded." };
+    }
     const allowance = await pc.readContract({ address: t.token, abi: erc20Abi, functionName: "allowance", args: [t.seller, escrow] });
     if (allowance < t.amount) txs.push(this.approveTx(t.token, escrow, t.amount));
     txs.push({

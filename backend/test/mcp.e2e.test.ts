@@ -298,6 +298,14 @@ describe("MCP agents", { skip: !canRun && "anvil or forge build output missing" 
     assert.equal(o.verified, true, "signature covers the seller's own amount");
 
     await buyer.call("otc_accept_offer", { bidId: bid.bidId, offerId: off.offerId, fundingMinutes: 30 });
+
+    // payment locks first: the seller can't put tokens in before the buyer has paid
+    const sellerBal = await bal(stock, privateKeyToAccount(KEYS.seller).address);
+    const early = await seller.call("otc_deposit", { offerId: off.offerId });
+    assert.equal(early.done, false);
+    assert.match(early.message, /Payment locks first/);
+    assert.equal(await bal(stock, privateKeyToAccount(KEYS.seller).address), sellerBal, "no tokens moved");
+
     await buyer.call("otc_deposit", { bidId: bid.bidId });
     await seller.call("otc_deposit", { offerId: off.offerId });
     assert.equal((await buyer.call("otc_deal_status", { bidId: bid.bidId })).status, "settled");

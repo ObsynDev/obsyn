@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { getAddress, isAddress, parseUnits, type Address } from "viem";
-import { api } from "../lib/api.ts";
+import { api, type Rfq } from "../lib/api.ts";
 import { tokenInfo, type TokenInfo } from "../lib/chain.ts";
-import { newBoxKeys, toUrl } from "../lib/sealed.ts";
+import { newBoxKeys, sideOf, toUrl } from "../lib/sealed.ts";
 import { saved } from "../lib/store.ts";
-import { Err, navigate, useAction } from "../lib/ui.tsx";
+import { Err, Link, navigate, useAction } from "../lib/ui.tsx";
 import { DotWave } from "./DotWave.tsx";
-import { TokenAvatar } from "./Terminal.tsx";
+import { compact, TokenAvatar } from "./Terminal.tsx";
 
 const WINDOWS = [
   { label: "15 min", s: 900 },
@@ -111,6 +111,214 @@ function TokenPicker({ onPick, onClose }: { onPick: (t: TokenInfo) => void; onCl
   );
 }
 
+// ───────────────────────── atmosphere (bull-style floating coins) ─────────────────────────
+
+const BOKEH: { sym: string; addr: string; x: number; y: number; s: number; blur: number; d: number }[] = [
+  { sym: "TS", addr: "0x7a3c5f10aa00000000000000000000000000c01d", x: 9, y: 22, s: 54, blur: 6, d: 0 },
+  { sym: "NV", addr: "0xc0ffee0000000000000000000000000000beef42", x: 84, y: 14, s: 72, blur: 2, d: -3 },
+  { sym: "PO", addr: "0x39dbed3a2bd333467115de45665cc57f813c4571", x: 22, y: 64, s: 40, blur: 3, d: -6 },
+  { sym: "AA", addr: "0x8a791620dd6260079bf849dc5567adc3f2fdc318", x: 88, y: 58, s: 46, blur: 8, d: -2 },
+  { sym: "ME", addr: "0xb7f8bc63bbcad18155201308c8f3540b07f84f5e", x: 74, y: 82, s: 34, blur: 4, d: -8 },
+  { sym: "AM", addr: "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6", x: 4, y: 84, s: 62, blur: 10, d: -5 },
+];
+
+function Bokeh() {
+  return (
+    <div className="bokeh" aria-hidden="true">
+      {BOKEH.map((b) => (
+        <span key={b.sym} style={{ left: `${b.x}%`, top: `${b.y}%`, filter: `blur(${b.blur}px)`, animationDelay: `${b.d}s` }}>
+          <TokenAvatar address={b.addr as Address} symbol={b.sym} size={b.s} />
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ───────────────────────── below the fold (bull /otc) ─────────────────────────
+
+function OtcSections({ onBuy, onSell }: { onBuy: () => void; onSell: () => void }) {
+  const [open, setOpen] = useState<Rfq[] | null>(null);
+  const [toks, setToks] = useState<Record<string, TokenInfo>>({});
+  useEffect(() => {
+    api.listRfqs().then(
+      (r) => {
+        const live = r.filter((x) => x.expiresAt > Date.now() / 1000);
+        setOpen(live);
+        for (const a of new Set(live.map((x) => x.token))) tokenInfo(a).then((t) => setToks((s) => ({ ...s, [a]: t })), () => {});
+      },
+      () => setOpen([]),
+    );
+  }, []);
+
+  return (
+    <div className="otc-more">
+      {/* move size */}
+      <section className="om-sect om-move">
+        <div>
+          <h2>
+            Move size.
+            <br />
+            <span className="copper">Not the price.</span>
+          </h2>
+          <p className="muted">SLAB brings buyers, sellers, teams and agents together for private block trades on Robinhood Chain.</p>
+          <div className="om-ctas">
+            <button className="sq go sm" onClick={onBuy}>
+              PLACE A BID →
+            </button>
+            <button className="sq ghost sm" onClick={onSell}>
+              SELL PRIVATELY →
+            </button>
+          </div>
+        </div>
+        <div className="om-offers">
+          {[
+            ["NVDAx", "10,000,000", "$480,000"],
+            ["TSLAx", "2,500,000", "$96,000"],
+            ["PONS", "750,000", "$18,400"],
+          ].map(([s, a, v], i) => (
+            <div key={s} className="om-offer" style={{ animationDelay: `${i * 0.12}s` }}>
+              <TokenAvatar address={BOKEH[i].addr as Address} symbol={s} size={34} />
+              <b>{s}</b>
+              <span className="mono">{a}</span>
+              <span className="mono om-price">{v}</span>
+              <span className="redact-mini" />
+            </div>
+          ))}
+          <p className="fine">Example · sealed offers · only the buyer can read them</p>
+        </div>
+      </section>
+
+      {/* where demand is forming */}
+      <section className="om-sect">
+        <div className="om-head">
+          <h2>Where demand is forming.</h2>
+          <span className="mono dim small">Robinhood Chain · open blocks, live</span>
+        </div>
+        <div className="om-demand">
+          {open === null && <p className="muted">Loading…</p>}
+          {open && open.length === 0 && (
+            <div className="om-empty">
+              <p>No open blocks right now. Post the first one.</p>
+              <button className="sq go sm" onClick={onBuy}>
+                PLACE A BID →
+              </button>
+            </div>
+          )}
+          {open?.slice(0, 12).map((r) => {
+            const t = toks[r.token];
+            const side = sideOf(r);
+            return (
+              <Link key={r.id} to={`/rfq/${r.id}`} className="om-row">
+                <TokenAvatar address={r.token} symbol={t?.symbol} size={30} />
+                <b>{t?.symbol ?? `${r.token.slice(0, 6)}…`}</b>
+                <span className="dim small">{t?.name}</span>
+                <span className="mono">{r.amount && t ? compact(r.amount, t.decimals) : r.sizeUsd ? `~$${compact(BigInt(Math.round(r.sizeUsd)), 0)}` : ""}</span>
+                <span className={`side-chip ${side === "buy" ? "buy" : "sell"}`}>{side === "buy" ? "BID" : "FOR SALE"}</span>
+                <span className="om-act">{side === "buy" ? "Sell into →" : "Bid →"}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* bid. offer. swap. */}
+      <section className="om-sect">
+        <div className="om-head">
+          <h2>
+            Bid. Offer. <span className="green">Swap.</span>
+          </h2>
+        </div>
+        <div className="om-cards">
+          <div className="om-card">
+            <span className="mono green">01</span>
+            <b>Buyer demand</b>
+            <p>Set your size. Sellers come to you.</p>
+            <div className="om-chips mono">
+              <span>$250K</span>
+              <span>$1M</span>
+              <span>$5M</span>
+              <span className="dim">+ your size</span>
+            </div>
+            <button className="text-link" onClick={onBuy}>
+              Place a bid →
+            </button>
+          </div>
+          <div className="om-card">
+            <span className="mono green">02</span>
+            <b>Private offers</b>
+            <p>One buyer sees it. Nobody else.</p>
+            <div className="om-sealed mono">
+              Offer <span className="copper">••••••</span> <i className="dim">visible to the buyer only</i>
+            </div>
+            <button className="text-link" onClick={onSell}>
+              Sell OTC →
+            </button>
+          </div>
+          <div className="om-card">
+            <span className="mono green">03</span>
+            <b>Contract escrow</b>
+            <p>One transaction swaps both sides. Or everyone gets their funds back.</p>
+            <div className="om-steps mono small">
+              <span>payment locks</span>
+              <i>→</i>
+              <span>tokens in</span>
+              <i>→</i>
+              <span className="green">swap</span>
+            </div>
+            <Link to="/how" className="text-link">
+              How it works →
+            </Link>
+          </div>
+          <div className="om-card">
+            <span className="mono copper">04</span>
+            <b>Ghost mode</b>
+            <p>Sell from a one-time wallet. Gas paid for you.</p>
+            <div className="om-sealed mono">
+              0x7a…c01d <span className="copper">→</span> 0x9b…07fa
+            </div>
+            <Link to="/security" className="text-link">
+              Privacy details →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* nothing links back to you */}
+      <section className="om-sect om-ghost">
+        <div className="om-head">
+          <h2>
+            Nothing links back to <span className="copper">you.</span>
+          </h2>
+          <p className="muted">Sell from a one-time wallet. Get paid to a fresh address. The buyer never sees your main wallet.</p>
+        </div>
+        <div className="ghost-flow">
+          <div className="gf-node">
+            <span className="mono dim small">SELLER</span>
+            <b>one-time wallet</b>
+            <i className="mono">tokens →</i>
+          </div>
+          <div className="gf-line" />
+          <div className="gf-node core">
+            <span className="mono dim small">ESCROW</span>
+            <b>smart contract</b>
+            <i className="mono">no owner · no admin key</i>
+          </div>
+          <div className="gf-line" />
+          <div className="gf-node">
+            <span className="mono dim small">BUYER</span>
+            <b>tokens arrive</b>
+            <i className="mono">one atomic swap</i>
+          </div>
+          <div className="gf-pay mono">
+            payment → <span className="copper">fresh payout address</span>
+          </div>
+        </div>
+        <p className="fine">Private, not anonymous: moving tokens into the one-time wallet is still a public transfer. It is not a mixer.</p>
+      </section>
+    </div>
+  );
+}
+
 // ───────────────────────── page ─────────────────────────
 
 export function Otc() {
@@ -159,6 +367,8 @@ export function Otc() {
   return (
     <div className="otc">
       <DotWave height={260} />
+      <Bokeh />
+      <div className="otc-glow" aria-hidden="true" />
       <div className="otc-head">
         <h1>
           Private block trades. <span className="copper">Sealed until settled.</span>
@@ -264,6 +474,27 @@ export function Otc() {
       <p className="otc-foot">
         <span className="green">Non-custodial.</span> Settled on-chain in one transaction. <span className="copper">Prices sealed to you.</span>
       </p>
+
+      {/* what happens next (bull /trade) */}
+      <ol className="next-steps">
+        {[
+          ["Post your size", "Token and size. No account; you get a private link."],
+          [side === "buy" ? "Sellers quote privately" : "Buyers bid privately", "Only you can read the answers. No public order book."],
+          ["Settle in one transaction", "Payment locks in escrow first. The swap completes atomically or not at all."],
+        ].map(([t, d], i) => (
+          <li key={t}>
+            <span className="mono">{i + 1}</span>
+            <div>
+              <b>{t}</b>
+              <p>{d}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      <div className="scroll-hint mono">SCROLL TO LEARN MORE ↓</div>
+
+      <OtcSections onBuy={() => (window.scrollTo({ top: 0, behavior: "smooth" }), setSide("buy"))} onSell={() => (window.scrollTo({ top: 0, behavior: "smooth" }), setSide("sell"))} />
 
       {picking && (
         <TokenPicker

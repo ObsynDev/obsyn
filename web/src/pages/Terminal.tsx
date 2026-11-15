@@ -37,7 +37,8 @@ export function TokenAvatar({ address, symbol, size = 52, side }: { address: Add
       style={{
         width: size,
         height: size,
-        background: `linear-gradient(135deg, hsl(${h} 80% 55%), hsl(${h2} 85% 35%))`,
+        // a lit coin: highlight top-left, body colour, darker rim
+        background: `radial-gradient(circle at 32% 26%, hsl(${h} 95% 78%) 0%, hsl(${h} 78% 52%) 34%, hsl(${h2} 82% 30%) 78%, hsl(${h2} 85% 18%) 100%)`,
         fontSize: size * 0.36,
       }}
       aria-hidden="true"

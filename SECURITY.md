@@ -55,7 +55,7 @@ Anyone can post an answer to a bid or listing, so the poster treats every decryp
 
 - Malformed answers (bad numbers, bad addresses, wrong shape) are dropped one by one; they can't break reading the rest.
 - Every answer is signed (EIP-191) by the wallet it names, over the posting id, role, address, amount and price. Unsigned or mis-signed answers show as **unverified**, rank below verified ones, and need an explicit override to accept (`allowUnverified` in the SDK/MCP, a confirm dialog in the web app). This stops fake answers "from" someone else's wallet that would tie up the poster's deposit until the deadline.
-- The poster also sees whether the named wallet currently holds enough to pay or deliver. A signed answer from an empty wallet can still stall a deal, so the side that posted should prefer to deposit after the other side has.
+- The poster also sees whether the named wallet currently holds enough to pay or deliver. Payment locks first: the web app and the SDK/MCP only let the seller deposit after the buyer has paid in, so a buyer who never pays can't tie up the seller's tokens. (The contract itself accepts either order; this rule is enforced in the clients.)
 
 ## Client side
 

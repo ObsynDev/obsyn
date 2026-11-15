@@ -133,6 +133,83 @@ function WhoSees() {
   );
 }
 
+// ───────────────────────── glint-style live simulation ─────────────────────────
+
+const STAGES = [
+  ["POSTING", "Buyer posts 250,000 TSLAx · pay in USDG · reply window 1h", "Bid to buy or list to sell. A private link, no account."],
+  ["SEALED_BOX", "3 offers arrive as ciphertext · server can't read them", "Answers are encrypted to the poster's key in the sender's browser."],
+  ["SIGNATURE_CHECK", "2 signed by their wallet · 1 unverified, ranked last", "Every answer is signed by the wallet it names. Fakes are flagged."],
+  ["ACCEPT", "Best offer accepted · terms fixed · deal id 0xa91f…", "The poster picks one. The terms can't change after this."],
+  ["ESCROW", "Payment locked first · seller deposits gasless", "No owner, no admin key. Funds only move to settle or refund."],
+  ["ROBINHOOD_CHAIN", "Swapped in one transaction · receipt on chain", "Tokens to the buyer, payment to the seller. Or everyone is refunded."],
+] as const;
+
+function Pipeline() {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setI((x) => (x + 1) % STAGES.length), 1800);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="pipe">
+      <div className="pipe-nodes">
+        {STAGES.map(([k, , d], n) => (
+          <div key={k} className={`pipe-node ${n === i ? "on" : n < i ? "done" : ""}`}>
+            <span className="mono">{k}</span>
+            <p>{d}</p>
+          </div>
+        ))}
+      </div>
+      <div className="pipe-log mono">
+        <span className="dim">&gt;</span> {STAGES[i][1]}
+        <span className="cursor" aria-hidden="true">
+          _
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const CHAT: [string, string][] = [
+  ["you", "sell 50,000 PONS privately, paid in USDG, open for 1 hour"],
+  ["sys", "listing posted · private link saved locally"],
+  ["sys", "3 sealed bids · 2 signed by their wallet · best 2,450 USDG"],
+  ["you", "accept the best one, ghost mode on"],
+  ["sys", "one-time wallet funded · buyer paid in · deposited gasless"],
+  ["ok", "settled in 1 transaction ✓"],
+];
+
+function AgentChat() {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setN((x) => (x >= CHAT.length + 2 ? 0 : x + 1)), 1100);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="chat mono" aria-label="Example agent session">
+      <div className="chat-bar">
+        <span className="dots">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="dim small">agent · slab mcp</span>
+      </div>
+      {CHAT.slice(0, Math.min(n, CHAT.length)).map(([who, line], k) => (
+        <div key={k} className={`chat-line ${who}`}>
+          <span className="who">{who === "you" ? ">" : who === "ok" ? "✓" : "·"}</span> {line}
+        </div>
+      ))}
+      {n < CHAT.length && (
+        <div className="chat-line you">
+          <span className="who">&gt;</span>
+          <span className="cursor">_</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ───────────────────────── section meta row ─────────────────────────
 
 /** "NO. 1 · TRADE ────────── 01 / 05" */
@@ -332,24 +409,14 @@ export function Landing() {
       <section className="l3-sect">
         <Reveal className="no">
           <SectMeta label="NO. 4 · HOW A BLOCK TRADES" idx={4} />
-          <h2>Six steps. One settlement.</h2>
+          <h2>
+            You decide. <span className="green">Code settles.</span>
+          </h2>
+          <p className="muted">One block, from the post to a settlement on chain. A live simulation.</p>
         </Reveal>
-        <ol className="l3-steps">
-          {[
-            ["Post", "Bid to buy, or list to sell. You get a private link."],
-            ["Seal", "Answers arrive encrypted to you."],
-            ["Sign", "Each answer is signed by the wallet it names."],
-            ["Accept", "Pick one. The terms are fixed."],
-            ["Deposit", "Both sides fund the escrow before the deadline."],
-            ["Settle", "The second deposit swaps both. Or everyone is refunded."],
-          ].map(([t, d], i) => (
-            <Reveal as="li" key={t} delay={i * 50}>
-              <span className="mono step-n">{String(i + 1).padStart(2, "0")}</span>
-              <b>{t}</b>
-              <span className="muted">{d}</span>
-            </Reveal>
-          ))}
-        </ol>
+        <Reveal>
+          <Pipeline />
+        </Reveal>
       </section>
 
       {/* NO. 5 agents */}
@@ -363,6 +430,9 @@ export function Landing() {
         <Reveal className="cmdline">
           <code className="mono">{mcp}</code>
           <Copy text={mcp} />
+        </Reveal>
+        <Reveal>
+          <AgentChat />
         </Reveal>
         <div className="link-row">
           <a className="sq ghost sm" href="/api/openapi.json" target="_blank" rel="noreferrer">

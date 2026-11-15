@@ -142,9 +142,14 @@ export function DealPanel({
         </button>
       )}
 
-      {s && s.status !== "settled" && s.status !== "refunded" && !expired && !myFunded && role === "seller" && !ghost && (
+      {/* Payment locks first: the seller only deposits once the buyer has paid in, so a buyer who
+          never pays can't tie up the seller's tokens until the deadline. */}
+      {s && s.status !== "settled" && s.status !== "refunded" && !expired && !myFunded && role === "seller" && !ghost && !s.buyerFunded && (
+        <p className="muted">Waiting for the buyer to lock the payment. You deposit after that, and the swap settles in the same transaction.</p>
+      )}
+      {s && s.status !== "settled" && s.status !== "refunded" && !expired && !myFunded && role === "seller" && !ghost && s.buyerFunded && (
         <button className="btn primary" disabled={act.busy} onClick={() => act.run("sell")}>
-          {act.busy ? "Confirm in wallet…" : `Deposit ${tok ? fmtAmount(terms.amount, tok.decimals) : ""} ${tok?.symbol ?? ""}`}
+          {act.busy ? "Confirm in wallet…" : `Payment locked. Deposit ${tok ? fmtAmount(terms.amount, tok.decimals) : ""} ${tok?.symbol ?? ""} to settle`}
         </button>
       )}
 
