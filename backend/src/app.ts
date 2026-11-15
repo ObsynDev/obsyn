@@ -8,6 +8,7 @@ import { openapi } from "./openapi.ts";
 import type { Config } from "./config.ts";
 import type { QuoteRow, RfqRow } from "./db.ts";
 import { parseSource, type PriceQuote, type PriceSource, type TokenInfo } from "./price.ts";
+import { createReferencePrices, findMarket, MARKETS, RANGES, type Range, type RefQuote } from "./markets.ts";
 import { NO_PERMIT, RelayError, type Relayer } from "./relayer.ts";
 import { hashToken, isB64, newId, newToken, tokenMatches } from "./secrets.ts";
 import { dealId, termsToJson, TermsSchema } from "./terms.ts";
@@ -18,6 +19,8 @@ export interface Deps {
   relayer: Relayer;
   readPrice: (token: Address, src: PriceSource) => Promise<PriceQuote>;
   readToken?: (token: Address) => Promise<TokenInfo>;
+  /** delayed reference price of a market's underlying listing (defaults to a cached Yahoo reader) */
+  refQuote?: (ticker: string, range: Range) => Promise<RefQuote>;
   now?: () => number; // unix seconds, injectable for tests
 }
 
@@ -366,6 +369,75 @@ export function createApp(deps: Deps) {
     }
     try {
       return c.json(await deps.readPrice(getAddress(token), src));
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 502);
+    }
+  });
+
+  // ─────────────────────────── market board ───────────────────────────
+
+  const refQuote = deps.refQuote ?? createReferencePrices();
+  const openByToken = db.prepare(
+    "SELECT token, side, COUNT(*) AS n FROM rfqs WHERE status = 'open' AND expires_at > ? GROUP BY token, side",
+  );
+  const deskCounts = () => {
+    const out = new Map<string, { buy: number; sell: number }>();
+    for (const r of openByToken.all(now()) as unknown as { token: string; side: string; n: number }[]) {
+      const k = getAddress(r.token);
+      const v = out.get(k) ?? { buy: 0, sell: 0 };
+      if (r.side === "sell") v.sell += Number(r.n);
+      else v.buy += Number(r.n);
+      out.set(k, v);
+    }
+    return out;
+  };
+
+  /** Featured markets: reference price + 5-day sparkline, and how many blocks are open on this desk. */
+  app.get("/markets", async (c) => {
+    const desk = deskCounts();
+    const refs = await Promise.allSettled(MARKETS.map((m) => (m.ref ? refQuote(m.ref, "5d") : Promise.reject(new Error("no reference listing")))));
+    c.header("cache-control", "public, max-age=30");
+    return c.json(
+      MARKETS.map((m, i) => {
+        const r = refs[i];
+        const d = desk.get(m.address) ?? { buy: 0, sell: 0 };
+        return {
+          symbol: m.symbol,
+          name: m.name,
+          address: m.address,
+          kind: m.kind,
+          ref:
+            r.status === "fulfilled"
+              ? {
+                  source: r.value.source,
+                  ticker: r.value.ticker,
+                  exchange: r.value.exchange,
+                  currency: r.value.currency,
+                  price: r.value.price,
+                  prevClose: r.value.prevClose,
+                  changePct: r.value.changePct,
+                  weekChangePct: r.value.rangeChangePct,
+                  time: r.value.time,
+                  spark: r.value.candles.map((k) => k.c),
+                }
+              : null,
+          desk: { open: d.buy + d.sell, buy: d.buy, sell: d.sell },
+        };
+      }),
+    );
+  });
+
+  /** OHLC candles of a market's reference listing. range: 1d | 5d | 1mo | 6mo | 1y */
+  app.get("/markets/:symbol/chart", async (c) => {
+    const m = findMarket(c.req.param("symbol"));
+    if (!m) return c.json({ error: "unknown market" }, 404);
+    if (!m.ref) return c.json({ error: "this market has no reference listing" }, 404);
+    const range = (c.req.query("range") ?? "1d") as Range;
+    if (!(range in RANGES)) return c.json({ error: "range must be one of " + Object.keys(RANGES).join(", ") }, 400);
+    try {
+      const q = await refQuote(m.ref, range);
+      c.header("cache-control", "public, max-age=30");
+      return c.json({ symbol: m.symbol, range, ...q });
     } catch (e) {
       return c.json({ error: (e as Error).message }, 502);
     }

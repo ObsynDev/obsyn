@@ -71,11 +71,55 @@ async function req<T>(method: string, path: string, body?: unknown, token?: stri
   return json as T;
 }
 
+export interface MarketRow {
+  symbol: string;
+  name: string;
+  address: Address;
+  kind: "stock" | "etf" | "crypto";
+  /** delayed reference price of the underlying listing; null when the source is unavailable */
+  ref: {
+    source: string;
+    ticker: string;
+    exchange: string | null;
+    currency: string;
+    price: number;
+    prevClose: number | null;
+    changePct: number | null;
+    weekChangePct: number | null;
+    time: number;
+    spark: number[];
+  } | null;
+  desk: { open: number; buy: number; sell: number };
+}
+export type ChartRange = "1d" | "5d" | "1mo" | "6mo" | "1y";
+export interface Candle {
+  t: number;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  v: number;
+}
+export interface MarketChart {
+  symbol: string;
+  range: ChartRange;
+  exchange: string | null;
+  currency: string;
+  price: number;
+  prevClose: number | null;
+  changePct: number | null;
+  rangeChangePct: number | null;
+  time: number;
+  candles: Candle[];
+}
+
 let cfgPromise: Promise<ServerConfig> | null = null;
 
 export const api = {
   config: () => (cfgPromise ??= req<ServerConfig>("GET", "/health")),
   listRfqs: () => req<Rfq[]>("GET", "/rfqs"),
+  markets: () => req<MarketRow[]>("GET", "/markets"),
+  marketChart: (symbol: string, range: ChartRange) => req<MarketChart>("GET", `/markets/${symbol}/chart?range=${range}`),
   getRfq: (id: string) => req<Rfq>("GET", `/rfqs/${id}`),
   createRfq: (body: {
     side: "buy" | "sell";

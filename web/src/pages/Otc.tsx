@@ -327,6 +327,11 @@ export function Otc() {
   const [amount, setAmount] = useState("");
   const [pay, setPay] = useState<"ETH" | "USDG">("USDG");
   const [token, setToken] = useState<TokenInfo | null>(null);
+  // /otc?token=0x… (from the market board) preselects the token
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("token");
+    if (t && isAddress(t)) tokenInfo(getAddress(t)).then(setToken, () => {});
+  }, []);
   const [win, setWin] = useState(86400);
   const [picking, setPicking] = useState(false);
 

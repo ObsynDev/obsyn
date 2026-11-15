@@ -7,7 +7,8 @@ import { AsciiSlabs } from "./AsciiSlabs.tsx";
 import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { PixelPipeline } from "./PixelPipeline.tsx";
 import { ZeroSlippage } from "./PixelStat.tsx";
-import { DotWave } from "./DotWave.tsx";
+import { HeroTicket } from "./HeroTicket.tsx";
+import { MarketBoard } from "./Markets.tsx";
 import { TokenAvatar } from "./Terminal.tsx";
 import { MARKETS, market } from "../lib/tokens.ts";
 
@@ -250,14 +251,14 @@ export function Landing() {
       {/* hero */}
       <section className="l3-hero">
         <div className="l3-hero-copy">
+          <span className="chain-pill mono">
+            <i aria-hidden="true" /> On Robinhood Chain<span className="cid"> · chain 4663</span> · {MARKETS.length} markets
+          </span>
           <h1>
             Trade size.
             <br />
             <span className="copper">Stay private.</span>
           </h1>
-          <p className="kicker mono">
-            PRIVATE OTC DESK. BUILT ON ROBINHOOD CHAIN.<span className="cursor" aria-hidden="true">_</span>
-          </p>
           <p className="l3-lede">
             Post a block you want to buy or sell. Get prices sealed so only you can read them. Settle both sides in one escrow
             transaction, without touching the chart.
@@ -288,9 +289,8 @@ export function Landing() {
           </div>
         </div>
         <div className="l3-hero-art">
-          <AsciiSlabs />
+          <HeroTicket />
         </div>
-        <DotWave />
       </section>
 
       {/* token strip (meridian) */}
@@ -319,6 +319,22 @@ export function Landing() {
             </div>
           </div>
         ))}
+      </section>
+
+      {/* market board */}
+      <section className="l3-sect mk-sect">
+        <Reveal className="no">
+          <SectMeta label="MARKETS" idx={0} />
+          <div className="mk-sect-head">
+            <h2>
+              Pick a market. <span className="tone">Keep your price.</span>
+            </h2>
+            <SlotButton to="/markets">ALL MARKETS</SlotButton>
+          </div>
+        </Reveal>
+        <Reveal>
+          <MarketBoard />
+        </Reveal>
       </section>
 
       {/* product preview */}

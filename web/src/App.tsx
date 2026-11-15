@@ -13,10 +13,11 @@ import { SellerStatus } from "./pages/SellerStatus.tsx";
 import { MyLinks, Terminal } from "./pages/Terminal.tsx";
 import { Otc } from "./pages/Otc.tsx";
 import { Roadmap } from "./pages/Roadmap.tsx";
+import { Markets } from "./pages/Markets.tsx";
 import { Docs } from "./pages/Docs.tsx";
 
 /** Marketing pages get the site header; everything else is the app. */
-const SITE_PAGES = new Set(["/", "/how", "/developers", "/security", "/roadmap", "/docs"]);
+const SITE_PAGES = new Set(["/", "/markets", "/how", "/developers", "/security", "/roadmap", "/docs"]);
 
 function route(path: string) {
   let m: RegExpExecArray | null;
@@ -40,6 +41,8 @@ function route(path: string) {
       return <Security />;
     case "/roadmap":
       return <Roadmap />;
+    case "/markets":
+      return <Markets />;
     case "/docs":
       return <Docs />;
   }
@@ -86,6 +89,7 @@ function LiveBadge() {
 }
 
 const SITE_NAV: [string, string][] = [
+  ["/markets", "Markets"],
   ["/otc", "OTC desk"],
   ["/how", "How it works"],
   ["/docs", "Docs"],
@@ -142,6 +146,7 @@ export function App() {
         </div>
         <div className="fcol">
           <h4>PRODUCT</h4>
+          <Link to="/markets">Markets</Link>
           <Link to="/app">Desk</Link>
           <Link to="/app?new=buy">Post a bid</Link>
           <Link to="/app?new=sell">Sell privately</Link>

@@ -201,6 +201,23 @@ export const openapi = {
         responses: { 200: ok("Price", { type: "object" }), 400: err("Bad source"), 502: err("Read failed") },
       },
     },
+    "/markets": {
+      get: {
+        summary:
+          "Featured markets: verified token address, delayed reference price of the underlying listing with a 5-day sparkline (null when unavailable), and blocks open on this desk",
+        responses: { 200: ok("Markets", { type: "array", items: { type: "object" } }) },
+      },
+    },
+    "/markets/{symbol}/chart": {
+      get: {
+        summary: "OHLC candles of a market's reference listing (delayed)",
+        parameters: [
+          { name: "symbol", in: "path", required: true, schema: { type: "string", example: "TSLA" } },
+          { name: "range", in: "query", required: false, schema: { type: "string", enum: ["1d", "5d", "1mo", "6mo", "1y"], default: "1d" } },
+        ],
+        responses: { 200: ok("Candles", { type: "object" }), 400: err("Bad range"), 404: err("Unknown market or no reference listing"), 502: err("Reference source failed") },
+      },
+    },
     "/openapi.json": { get: { summary: "This document", responses: { 200: ok("OpenAPI", { type: "object" }) } } },
     "/sdk/blockotc.mjs": { get: { summary: "Bundled JavaScript SDK (ES module)", responses: { 200: { description: "JavaScript" }, 404: err("Not built") } } },
   },
