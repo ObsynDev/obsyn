@@ -103,7 +103,15 @@ export function createApp(deps: Deps) {
   };
 
   app.get("/health", (c) =>
-    c.json({ ok: true, chainId: cfg.chainId, rpcUrl: cfg.rpcUrl, escrow: cfg.escrow, usdg: cfg.usdg, relayer: relayer.info() }),
+    c.json({
+      ok: true,
+      chainId: cfg.chainId,
+      rpcUrl: cfg.rpcUrl,
+      escrow: cfg.escrow,
+      usdg: cfg.usdg,
+      walletConnectProjectId: cfg.walletConnectProjectId,
+      relayer: relayer.info(),
+    }),
   );
 
   // ─────────────────────────── RFQs (buyer bids) ───────────────────────────

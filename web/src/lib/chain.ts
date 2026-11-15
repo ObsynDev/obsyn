@@ -19,11 +19,8 @@ import { privateKeyToAccount } from "viem/accounts";
 import { OtcEscrowAbi } from "../abi/OtcEscrow.ts";
 import { api, type ServerConfig, type TermsJson } from "./api.ts";
 
-declare global {
-  interface Window {
-    ethereum?: EIP1193Provider;
-  }
-}
+// window.ethereum is typed by the wallet SDKs RainbowKit pulls in; narrow it where we use it.
+const injected = (): EIP1193Provider | undefined => (window as { ethereum?: EIP1193Provider }).ethereum;
 
 export interface Terms {
   buyer: Address;
@@ -74,37 +71,15 @@ export async function publicClient(): Promise<PublicClient> {
   const cfg = await api.config();
   reader = createPublicClient({
     chain: chainFor(cfg),
-    transport: window.ethereum ? custom(window.ethereum) : http(cfg.rpcUrl),
+    transport: injected() ? custom(injected()!) : http(cfg.rpcUrl),
   }) as PublicClient;
   return reader;
 }
 
+/** Connect through the RainbowKit modal (see lib/wallet.tsx); returns a wallet client on the desk's chain. */
 export async function connectWallet() {
-  const eth = window.ethereum;
-  if (!eth) throw new Error("No browser wallet found. Install MetaMask, Rabby or similar.");
-  const cfg = await api.config();
-  const chain = chainFor(cfg);
-  const [account] = (await eth.request({ method: "eth_requestAccounts" })) as Address[];
-  const hexId = `0x${cfg.chainId.toString(16)}` as const;
-  try {
-    await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hexId }] });
-  } catch (e: any) {
-    if (e?.code !== 4902) throw e;
-    await eth.request({
-      method: "wallet_addEthereumChain",
-      params: [
-        {
-          chainId: hexId,
-          chainName: chain.name,
-          nativeCurrency: chain.nativeCurrency,
-          rpcUrls: [cfg.rpcUrl],
-          blockExplorerUrls: [chain.blockExplorers!.default.url],
-        },
-      ],
-    });
-  }
-  const wallet = createWalletClient({ chain, account: getAddress(account), transport: custom(eth) });
-  return { wallet, account: getAddress(account) };
+  const { connectWithKit } = await import("./wallet.tsx");
+  return connectWithKit();
 }
 
 export interface TokenInfo {

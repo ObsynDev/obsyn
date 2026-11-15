@@ -7,6 +7,8 @@ export interface ServerConfig {
   rpcUrl: string;
   escrow: Address | null;
   usdg: Address | null;
+  /** public WalletConnect / Reown project id; null = browser wallets only */
+  walletConnectProjectId?: string | null;
   relayer: { enabled: boolean; address: Address | null; minFee: { eth: string; usdg: string } };
 }
 

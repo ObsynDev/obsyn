@@ -5300,3 +5300,8 @@ main.site-main { max-width: none; padding-left: var(--gut); padding-right: var(-
 }
 @media (prefers-reduced-motion: reduce) { .tk-k { transition: none; } }
 .tk-loop li b { transition: color 0.35s; }
+
+/* wallet button states (RainbowKit) */
+.wallet-btn.wrong { color: var(--red); border-color: rgb(255 82 119 / 0.5); }
+.wallet-btn.wrong .dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+[data-rk] { --rk-fonts-body: "Geist", system-ui, sans-serif; }

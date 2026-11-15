@@ -6,6 +6,8 @@ export interface Config {
   dbPath: string;
   chainId: number;
   rpcUrl: string;
+  /** public WalletConnect / Reown project id for the web wallet modal (not a secret) */
+  walletConnectProjectId: string | null;
   escrow: Address | null;
   usdg: Address | null;
   relayerKey: Hex | null;
@@ -40,6 +42,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     dbPath: env.DB_PATH ?? "./data/blockotc.db",
     chainId: Number(env.CHAIN_ID ?? 4663),
     rpcUrl: env.RPC_URL ?? "https://rpc.mainnet.chain.robinhood.com",
+    walletConnectProjectId: env.WALLETCONNECT_PROJECT_ID?.trim() || null,
     escrow: addr(env.ESCROW_ADDRESS),
     usdg: addr(env.USDG_ADDRESS),
     relayerKey: key,

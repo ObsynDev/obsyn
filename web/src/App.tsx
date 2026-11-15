@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./lib/api.ts";
 import { BRAND, Wordmark } from "./lib/brand.tsx";
-import { connectWallet } from "./lib/chain.ts";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Link, short, usePath } from "./lib/ui.tsx";
 import { BuyerBid } from "./pages/BuyerBid.tsx";
 import { Developers } from "./pages/Developers.tsx";
@@ -55,22 +55,34 @@ function route(path: string) {
 }
 
 function WalletButton() {
-  const [acct, setAcct] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
   return (
-    <button
-      className="wallet-btn"
-      title={err ?? undefined}
-      onClick={() =>
-        connectWallet().then(
-          (r) => (setAcct(r.account), setErr(null)),
-          (e) => setErr(e?.shortMessage ?? e?.message),
-        )
-      }
-    >
-      <span className={`dot ${acct ? "on" : ""}`} />
-      {acct ? short(acct) : err ? "Wallet error" : "Connect"}
-    </button>
+    <ConnectButton.Custom>
+      {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
+        const ready = mounted;
+        if (!ready || !account) {
+          return (
+            <button className="wallet-btn" onClick={openConnectModal} aria-hidden={!ready} style={ready ? undefined : { opacity: 0 }}>
+              <span className="dot" />
+              Connect
+            </button>
+          );
+        }
+        if (chain?.unsupported) {
+          return (
+            <button className="wallet-btn wrong" onClick={openChainModal}>
+              <span className="dot" />
+              Wrong network
+            </button>
+          );
+        }
+        return (
+          <button className="wallet-btn" onClick={openAccountModal} title={account.address}>
+            <span className="dot on" />
+            {account.ensName ?? short(account.address)}
+          </button>
+        );
+      }}
+    </ConnectButton.Custom>
   );
 }
 
