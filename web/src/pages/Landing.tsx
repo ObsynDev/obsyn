@@ -7,6 +7,7 @@ import { AsciiSlabs } from "./AsciiSlabs.tsx";
 import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { PixelPipeline } from "./PixelPipeline.tsx";
 import { EmberField } from "./EmberField.tsx";
+import { PixelField } from "./PixelField.tsx";
 import { HeroTicket } from "./HeroTicket.tsx";
 import { TokenUtility } from "./TokenUtility.tsx";
 import { MarketBoard } from "./Markets.tsx";
@@ -231,6 +232,7 @@ export function Landing() {
     <div className="l3">
       {/* hero */}
       <section className="l3-hero">
+        <PixelField />
         <span className="hero-aura" aria-hidden="true">
           <i />
           <i />
@@ -382,7 +384,7 @@ export function Landing() {
             </div>
             <AgentChat />
             <div className="ask-btns">
-              <SlotButton to="/developers">10 MCP TOOLS</SlotButton>
+              <SlotButton to="/developers">11 MCP TOOLS</SlotButton>
               <SlotButton onClick={() => window.open("/api/sdk/blockotc.mjs", "_blank", "noreferrer")}>SDK</SlotButton>
               <SlotButton onClick={() => window.open("/api/openapi.json", "_blank", "noreferrer")}>OPENAPI</SlotButton>
             </div>
