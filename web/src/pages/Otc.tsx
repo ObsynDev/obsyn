@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { MARKETS, market } from "../lib/tokens.ts";
 import { getAddress, isAddress, parseUnits, type Address } from "viem";
 import { api, type Rfq } from "../lib/api.ts";
 import { tokenInfo, type TokenInfo } from "../lib/chain.ts";
@@ -17,7 +18,7 @@ const WINDOWS = [
 ];
 
 /** Known real tokens on Robinhood Chain, plus whatever is being traded on the desk right now. */
-const KNOWN: Address[] = ["0x39dBED3a2bd333467115dE45665cC57F813C4571"]; // PONS
+const KNOWN: Address[] = MARKETS.map((m) => m.address);
 
 // ───────────────────────── token picker ─────────────────────────
 
@@ -114,13 +115,13 @@ function TokenPicker({ onPick, onClose }: { onPick: (t: TokenInfo) => void; onCl
 
 // ───────────────────────── atmosphere (bull-style floating coins) ─────────────────────────
 
-const BOKEH: { sym: string; addr: string; x: number; y: number; s: number; blur: number; d: number }[] = [
-  { sym: "TS", addr: "0x7a3c5f10aa00000000000000000000000000c01d", x: 9, y: 22, s: 54, blur: 6, d: 0 },
-  { sym: "NV", addr: "0xc0ffee0000000000000000000000000000beef42", x: 84, y: 14, s: 72, blur: 2, d: -3 },
-  { sym: "PO", addr: "0x39dbed3a2bd333467115de45665cc57f813c4571", x: 22, y: 64, s: 40, blur: 3, d: -6 },
-  { sym: "AA", addr: "0x8a791620dd6260079bf849dc5567adc3f2fdc318", x: 88, y: 58, s: 46, blur: 8, d: -2 },
-  { sym: "ME", addr: "0xb7f8bc63bbcad18155201308c8f3540b07f84f5e", x: 74, y: 82, s: 34, blur: 4, d: -8 },
-  { sym: "AM", addr: "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6", x: 4, y: 84, s: 62, blur: 10, d: -5 },
+const BOKEH: { sym: string; x: number; y: number; s: number; blur: number; d: number }[] = [
+  { sym: "TSLA", x: 9, y: 22, s: 54, blur: 6, d: 0 },
+  { sym: "NVDA", x: 84, y: 14, s: 72, blur: 2, d: -3 },
+  { sym: "PONS", x: 22, y: 64, s: 40, blur: 3, d: -6 },
+  { sym: "AAPL", x: 88, y: 58, s: 46, blur: 8, d: -2 },
+  { sym: "META", x: 74, y: 82, s: 34, blur: 4, d: -8 },
+  { sym: "COIN", x: 4, y: 84, s: 62, blur: 10, d: -5 },
 ];
 
 function Bokeh() {
@@ -128,7 +129,7 @@ function Bokeh() {
     <div className="bokeh" aria-hidden="true">
       {BOKEH.map((b) => (
         <span key={b.sym} style={{ left: `${b.x}%`, top: `${b.y}%`, filter: `blur(${b.blur}px)`, animationDelay: `${b.d}s` }}>
-          <TokenAvatar address={b.addr as Address} symbol={b.sym} size={b.s} />
+          <TokenAvatar address={market(b.sym).address} symbol={b.sym} size={b.s} />
         </span>
       ))}
     </div>
@@ -171,12 +172,12 @@ function OtcSections({ onBuy, onSell }: { onBuy: () => void; onSell: () => void 
         </div>
         <div className="om-offers">
           {[
-            ["NVDAx", "10,000,000", "$480,000"],
-            ["TSLAx", "2,500,000", "$96,000"],
-            ["PONS", "750,000", "$18,400"],
+            ["NVDA", "4,000", "sealed"],
+            ["TSLA", "2,500", "sealed"],
+            ["PONS", "750,000", "sealed"],
           ].map(([s, a, v], i) => (
             <div key={s} className="om-offer" style={{ animationDelay: `${i * 0.12}s` }}>
-              <TokenAvatar address={BOKEH[i].addr as Address} symbol={s} size={34} />
+              <TokenAvatar address={market(s).address} symbol={s} size={34} />
               <b>{s}</b>
               <span className="mono">{a}</span>
               <span className="mono om-price">{v}</span>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { knownToken, type TokenIcon } from "../lib/tokens.ts";
 import { formatUnits, zeroAddress, type Address } from "viem";
 import { api, type Rfq } from "../lib/api.ts";
 import { tokenInfo, type TokenInfo } from "../lib/chain.ts";
@@ -28,6 +29,8 @@ function timeLeft(sec: number) {
 
 /** Deterministic avatar: hue from the contract address, initials from the symbol. */
 export function TokenAvatar({ address, symbol, size = 52, side }: { address: Address; symbol?: string; size?: number; side?: "buy" | "sell" }) {
+  const known = knownToken(address);
+  if (known) return <LogoAvatar icon={known.icon} size={size} side={side} />;
   const h = parseInt(address.slice(2, 8), 16) % 360;
   const h2 = (h + 50) % 360;
   const label = address === zeroAddress ? "Ξ" : (symbol ?? "?").replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase() || "?";
@@ -44,6 +47,42 @@ export function TokenAvatar({ address, symbol, size = 52, side }: { address: Add
       aria-hidden="true"
     >
       {label}
+    </span>
+  );
+}
+
+/** The token's real logo on its brand colour. */
+function LogoAvatar({ icon, size, side }: { icon: TokenIcon; size: number; side?: "buy" | "sell" }) {
+  return (
+    <span className={`avatar logo ${side ?? ""}`} style={{ width: size, height: size, background: icon.bg, color: icon.fg }} aria-hidden="true">
+      {icon.img ? (
+        <img src={icon.img} alt="" width={size} height={size} loading="lazy" decoding="async" />
+      ) : icon.text ? (
+        <span className="logo-text" style={{ fontSize: size * (icon.text.length > 3 ? 0.24 : 0.28) }}>
+          {icon.text}
+        </span>
+      ) : (
+        <svg viewBox="0 0 24 24" width={size * 0.56} height={size * 0.56}>
+          {icon.mark === "microsoft" ? (
+            <>
+              <rect x="1" y="1" width="10.5" height="10.5" fill="#F25022" />
+              <rect x="12.5" y="1" width="10.5" height="10.5" fill="#7FBA00" />
+              <rect x="1" y="12.5" width="10.5" height="10.5" fill="#00A4EF" />
+              <rect x="12.5" y="12.5" width="10.5" height="10.5" fill="#FFB900" />
+            </>
+          ) : icon.mark === "amazon" ? (
+            <>
+              <text x="12" y="14.5" textAnchor="middle" fontSize="17" fontWeight="700" fontFamily="Arial, Helvetica, sans-serif" fill="#ffffff">
+                a
+              </text>
+              <path d="M4.5 17.2c4.6 2.9 10.4 2.9 15 0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              <path d="M17.6 15.6l2.3 1.4-1.1 2.4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </>
+          ) : (
+            <path d={icon.path} fill="currentColor" />
+          )}
+        </svg>
+      )}
     </span>
   );
 }

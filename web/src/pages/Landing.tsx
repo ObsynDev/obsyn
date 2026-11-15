@@ -9,6 +9,7 @@ import { PixelPipeline } from "./PixelPipeline.tsx";
 import { ZeroSlippage } from "./PixelStat.tsx";
 import { DotWave } from "./DotWave.tsx";
 import { TokenAvatar } from "./Terminal.tsx";
+import { MARKETS, market } from "../lib/tokens.ts";
 
 function useServer() {
   const [escrow, setEscrow] = useState<string | null | undefined>(undefined);
@@ -24,9 +25,9 @@ function useServer() {
 
 const DEMO_BLOCKS = [
   { side: "sell", sym: "PONS", size: "12.5M", pay: "ETH", n: 5, left: "3h 10m", on: true },
-  { side: "buy", sym: "TSLAx", size: "250K", pay: "USDG", n: 3, left: "42m" },
-  { side: "buy", sym: "NVDAx", size: "40K", pay: "USDG", n: 1, left: "12m" },
-  { side: "sell", sym: "AAPLx", size: "8K", pay: "USDG", n: 0, left: "4h" },
+  { side: "buy", sym: "TSLA", size: "2,500", pay: "USDG", n: 3, left: "42m" },
+  { side: "buy", sym: "NVDA", size: "4,000", pay: "USDG", n: 1, left: "12m" },
+  { side: "sell", sym: "AAPL", size: "800", pay: "USDG", n: 0, left: "4h" },
 ];
 const DEMO_BIDS = [
   { price: "6.10 ETH", unit: "0.000000488", who: "0x4f2a…91c0", ok: true, funds: true },
@@ -47,6 +48,7 @@ function AppPreview() {
           {DEMO_BLOCKS.map((b) => (
             <div key={b.sym} className={`pv-block ${b.on ? "on" : ""}`}>
               <span className={`side-chip ${b.side}`}>{b.side === "buy" ? "BUY" : "SELL"}</span>
+              <TokenAvatar address={market(b.sym).address} symbol={b.sym} size={22} />
               <b>{b.sym}</b>
               <span className="mono">{b.size}</span>
               <span className="mono dim">{b.left}</span>
@@ -216,15 +218,6 @@ function SectMeta({ label, idx, total = 5, tone = "green" }: { label: string; id
   );
 }
 
-const EXAMPLE_TOKENS: [string, string, string][] = [
-  ["TSLAx", "Tesla xStock", "0x7a3c5f10aa00000000000000000000000000c01d"],
-  ["NVDAx", "Nvidia xStock", "0xc0ffee0000000000000000000000000000beef42"],
-  ["PONS", "Pons", "0x39dbed3a2bd333467115de45665cc57f813c4571"],
-  ["AAPLx", "Apple xStock", "0x8a791620dd6260079bf849dc5567adc3f2fdc318"],
-  ["AMZNx", "Amazon xStock", "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6"],
-  ["METAx", "Meta xStock", "0xb7f8bc63bbcad18155201308c8f3540b07f84f5e"],
-  ["USDG", "Global Dollar", "0x5fc5360d0400a0fd4f2af552add042d716f1d168"],
-];
 
 // ───────────────────────── page ─────────────────────────
 
@@ -303,22 +296,22 @@ export function Landing() {
       {/* token strip (meridian) */}
       <section className="tok-strip" aria-label="Example tokens">
         <div className="tok-labels mono">
-          <span>ANY ERC-20 ON ROBINHOOD CHAIN</span>
-          <span>FOR EXAMPLE · PAY IN ETH OR USDG</span>
+          <span>{MARKETS.length} MARKETS · OR ANY ERC-20 ON ROBINHOOD CHAIN</span>
+          <span>PAY IN ETH OR USDG</span>
         </div>
         {[false, true].map((rev) => (
           <div key={String(rev)} className="tok-viewport">
             <div className={`tok-track ${rev ? "rev" : ""}`}>
               {[0, 1].map((k) => (
                 <div key={k} className="tok-set" aria-hidden={k === 1}>
-                  {(rev ? [...EXAMPLE_TOKENS].reverse() : EXAMPLE_TOKENS).map(([sym, name, addr]) => (
-                    <div key={sym} className="tok">
-                      <TokenAvatar address={addr as `0x${string}`} symbol={sym} size={30} />
+                  {(rev ? [...MARKETS].reverse() : MARKETS).map((t) => (
+                    <div key={t.symbol} className="tok">
+                      <TokenAvatar address={t.address} symbol={t.symbol} size={30} />
                       <span>
-                        <b>{sym}</b>
-                        <i>{name}</i>
+                        <b>{t.symbol}</b>
+                        <i>{t.name}</i>
                       </span>
-                      <em className="mono">OTC</em>
+                      <em className="mono">{t.kind === "etf" ? "ETF" : t.kind === "stock" ? "STOCK" : "TOKEN"}</em>
                     </div>
                   ))}
                 </div>

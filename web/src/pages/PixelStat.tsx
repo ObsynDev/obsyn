@@ -1,5 +1,5 @@
-import type { Address } from "viem";
 import { TokenAvatar } from "./Terminal.tsx";
+import { market } from "../lib/tokens.ts";
 
 /** Glint-style giant pixel numerals (5×7 font drawn as squares). */
 const FONT: Record<string, string[]> = {
@@ -42,10 +42,10 @@ export function PixelText({ text, accentFrom = 1 }: { text: string; accentFrom?:
 }
 
 const CARDS = [
-  { tag: "SELL LISTING", sym: "PONS", name: "Pons", size: "12.5M", n: 5, addr: "0x39dbed3a2bd333467115de45665cc57f813c4571", bars: [3, 4, 4, 5, 6, 6, 7, 8, 8, 9] },
-  { tag: "BUY BID", sym: "TSLAx", name: "Tesla xStock", size: "250K", n: 3, addr: "0x7a3c5f10aa00000000000000000000000000c01d", bars: [4, 3, 5, 6, 5, 7, 8, 7, 9, 9] },
-  { tag: "BUY BID", sym: "NVDAx", name: "Nvidia xStock", size: "~$480K", n: 7, addr: "0xc0ffee0000000000000000000000000000beef42", bars: [8, 8, 9, 8, 9, 9, 9, 8, 9, 9] },
-];
+  { tag: "SELL LISTING", sym: "PONS", size: "12.5M", n: 5, bars: [3, 4, 4, 5, 6, 6, 7, 8, 8, 9] },
+  { tag: "BUY BID", sym: "TSLA", size: "2,500", n: 3, bars: [4, 3, 5, 6, 5, 7, 8, 7, 9, 9] },
+  { tag: "BUY BID", sym: "NVDA", size: "$480K of", n: 7, bars: [8, 8, 9, 8, 9, 9, 9, 8, 9, 9] },
+].map((c) => ({ ...c, token: market(c.sym) }));
 
 /** "0%" slippage block: pixel numerals, two-tone headline, fanned example cards, feature pills. */
 export function ZeroSlippage() {
@@ -63,12 +63,12 @@ export function ZeroSlippage() {
               <span>EXAMPLE</span>
             </div>
             <div className="fan-title">
-              <TokenAvatar address={c.addr as Address} symbol={c.sym} size={30} />
+              <TokenAvatar address={c.token.address} symbol={c.sym} size={30} />
               <b>
                 {c.size} {c.sym}
               </b>
             </div>
-            <span className="mono dim small">{c.name}</span>
+            <span className="mono dim small">{c.token.name}</span>
             <div className="fan-bars" aria-hidden="true">
               {c.bars.map((b, k) => (
                 <i key={k} style={{ height: `${b * 9}%` }} />

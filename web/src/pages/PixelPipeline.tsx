@@ -135,7 +135,7 @@ function PixelIcon({ icon, color, small }: { icon: keyof typeof ICONS; color: st
 }
 
 const STAGES = [
-  { key: "POST", icon: "post", color: "#f5c98a", text: "Bid to buy or list to sell. A private link, no account.", log: "buyer posts 250,000 TSLAx · pays in USDG · reply window 1h" },
+  { key: "POST", icon: "post", color: "#f5c98a", text: "Bid to buy or list to sell. A private link, no account.", log: "buyer bids for 2,500 TSLA · pays in USDG · reply window 1h" },
   { key: "SEALED_BOX", icon: "seal", color: "#8fd3ff", text: "Answers are encrypted to the poster. We store ciphertext.", log: "3 offers arrive sealed · the server can't read the prices" },
   { key: "SIGNATURE_CHECK", icon: "sign", color: "#ff6a2b", text: "Each answer is signed by its wallet. Pass or flag.", log: "2 signed by their wallet · 1 unverified, ranked last" },
   { key: "ESCROW", icon: "escrow", color: "#f2f2f0", text: "Payment locks first. Then the tokens. No admin key.", log: "best offer accepted · payment locked · seller deposits gasless" },
