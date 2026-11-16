@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BRAND } from "../lib/brand.tsx";
 import { api, type ServerConfig } from "../lib/api.ts";
 import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { explorerAddr } from "../lib/chain.ts";
@@ -170,6 +171,12 @@ export function Security() {
 
       <section className="dx-end">
         <h2>Read it yourself.</h2>
+        <p className="sec-src">
+          Every line is public: contracts, backend and this site.{" "}
+          <a href={BRAND.github} target="_blank" rel="noreferrer">
+            github.com/ObsynDev/obsyn ↗
+          </a>
+        </p>
         <div className="btn-group">
           <SlotButton to="/docs#privacy">PRIVACY MODEL</SlotButton>
           <KeyButton to="/otc">OPEN THE DESK</KeyButton>
