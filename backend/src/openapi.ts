@@ -191,6 +191,14 @@ export const openapi = {
         responses: { 200: ok("Token info", { type: "object" }), 400: err("Bad address"), 502: err("Read failed") },
       },
     },
+    "/token/{address}/market": {
+      get: {
+        summary:
+          "DEX market snapshot (reference only, deals settle at the sealed price): USD price, market cap, liquidity, 24h change and logo from the deepest Robinhood Chain pool, plus ETH/USD",
+        parameters: [{ name: "address", in: "path", required: true, schema: address }],
+        responses: { 200: ok("Market snapshot", { type: "object" }), 400: err("Bad address"), 502: err("Market data unavailable") },
+      },
+    },
     "/price/{token}": {
       get: {
         summary: "On-chain spot price",

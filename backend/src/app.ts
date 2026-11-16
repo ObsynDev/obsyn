@@ -9,6 +9,7 @@ import { openapi } from "./openapi.ts";
 import type { Config } from "./config.ts";
 import type { QuoteRow, RfqRow } from "./db.ts";
 import { parseSource, type PriceQuote, type PriceSource, type TokenInfo } from "./price.ts";
+import { createTokenMarkets, type TokenMarket } from "./dexmarket.ts";
 import { createReferencePrices, findMarket, MARKETS, RANGES, type Range, type RefQuote } from "./markets.ts";
 import { NO_PERMIT, RelayError, type Relayer } from "./relayer.ts";
 import { hashToken, isB64, newId, newToken, tokenMatches } from "./secrets.ts";
@@ -22,6 +23,8 @@ export interface Deps {
   readToken?: (token: Address) => Promise<TokenInfo>;
   /** delayed reference price of a market's underlying listing (defaults to a cached Yahoo reader) */
   refQuote?: (ticker: string, range: Range) => Promise<RefQuote>;
+  /** DEX market snapshot of any token (defaults to cached DexScreener lookups) */
+  tokenMarket?: (token: Address) => Promise<TokenMarket>;
   now?: () => number; // unix seconds, injectable for tests
 }
 
@@ -423,6 +426,17 @@ export function createApp(deps: Deps) {
   // ─────────────────────────── market board ───────────────────────────
 
   const refQuote = deps.refQuote ?? createReferencePrices();
+  const tokenMarket = deps.tokenMarket ?? createTokenMarkets();
+
+  // Price, market cap and logo of any token for the trade page, plus ETH/USD to size ETH payments.
+  // Reference only: deals settle at the sealed price.
+  app.get("/token/:address/market", async (c) => {
+    const a = c.req.param("address");
+    if (!isAddress(a)) return c.json({ error: "invalid address" }, 400);
+    const [m, eth] = await Promise.allSettled([tokenMarket(getAddress(a)), refQuote("ETH-USD", "5d")]);
+    if (m.status === "rejected") return c.json({ error: (m.reason as Error).message }, 502);
+    return c.json({ ...m.value, ethUsd: eth.status === "fulfilled" ? eth.value.price : null });
+  });
   const openByToken = db.prepare(
     "SELECT token, side, COUNT(*) AS n FROM rfqs WHERE status = 'open' AND expires_at > ? GROUP BY token, side",
   );

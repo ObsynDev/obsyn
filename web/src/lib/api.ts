@@ -93,7 +93,22 @@ export interface MarketRow {
   } | null;
   desk: { open: number; buy: number; sell: number };
 }
-export type ChartRange = "1d" | "5d" | "1mo" | "6mo" | "1y";
+/** DEX snapshot of any token (reference only; deals settle at the sealed price) */
+export interface TokenMarket {
+  address: Address;
+  symbol: string | null;
+  name: string | null;
+  priceUsd: number | null;
+  marketCap: number | null;
+  liquidityUsd: number | null;
+  change24h: number | null;
+  volume24h: number | null;
+  imageUrl: string | null;
+  pairUrl: string | null;
+  pools: number;
+  ethUsd: number | null;
+}
+export type ChartRange ="1d" | "5d" | "1mo" | "6mo" | "1y";
 export interface Candle {
   t: number;
   o: number;
@@ -152,5 +167,6 @@ export const api = {
       "GET",
       `/token/${address}`,
     ),
+  tokenMarket: (address: string) => req<TokenMarket>("GET", `/token/${address}/market`),
   relayDeposit: (body: unknown) => req<{ txHash: Hex; dealId: Hex }>("POST", "/relay/deposit", body),
 };

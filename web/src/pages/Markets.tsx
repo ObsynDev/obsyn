@@ -377,10 +377,10 @@ export function MarketBoard({ initial = "TSLA" }: { initial?: string }) {
             </li>
           </ol>
           <div className="mb-cta">
-            <KeyButton to={`/otc?side=buy&token=${m.address}`} block glyph="↵">
+            <KeyButton to={`/trade?ca=${m.address}`} block glyph="↵">
               BID FOR {m.symbol}
             </KeyButton>
-            <SlotButton to={`/otc?side=sell&token=${m.address}`}>SELL {m.symbol}</SlotButton>
+            <SlotButton to={`/trade?side=sell&ca=${m.address}`}>SELL {m.symbol}</SlotButton>
           </div>
           <p className="mono dim small">Max fee 2.5%, set in the contract. Reference price only; your block settles at the price you accept.</p>
         </aside>

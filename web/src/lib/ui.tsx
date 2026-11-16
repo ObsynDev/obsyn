@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { formatUnits } from "viem";
 
 // ── tiny router: path-based, no dependency ──
@@ -23,16 +23,22 @@ export function Link({
   children,
   className,
   onPointerEnter,
+  style,
+  tabIndex,
 }: {
   to: string;
   children: ReactNode;
   className?: string;
   onPointerEnter?: () => void;
+  style?: CSSProperties;
+  tabIndex?: number;
 }) {
   return (
     <a
       href={to}
       className={className}
+      style={style}
+      tabIndex={tabIndex}
       onPointerEnter={onPointerEnter}
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey) return;

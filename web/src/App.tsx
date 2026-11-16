@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { api } from "./lib/api.ts";
 import { BRAND, Wordmark } from "./lib/brand.tsx";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
@@ -12,6 +12,7 @@ import { SellerOffer } from "./pages/SellerOffer.tsx";
 import { SellerStatus } from "./pages/SellerStatus.tsx";
 import { MyLinks, Terminal } from "./pages/Terminal.tsx";
 import { Otc } from "./pages/Otc.tsx";
+import { Trade } from "./pages/Trade.tsx";
 import { Roadmap } from "./pages/Roadmap.tsx";
 import { Markets } from "./pages/Markets.tsx";
 import { Docs } from "./pages/Docs.tsx";
@@ -31,6 +32,8 @@ function route(path: string) {
       return <Terminal />;
     case "/otc":
       return <Otc />;
+    case "/trade":
+      return <Trade />;
     case "/mine":
       return <MyLinks />;
     case "/how":
@@ -90,6 +93,7 @@ function WalletButton() {
 const SITE_NAV: [string, string][] = [
   ["/markets", "Markets"],
   ["/otc", "OTC desk"],
+  ["/trade", "Trade"],
   ["/how", "How it works"],
   ["/docs", "Docs"],
   ["/roadmap", "Roadmap"],
@@ -97,6 +101,7 @@ const SITE_NAV: [string, string][] = [
 ];
 const APP_NAV: [string, string][] = [
   ["/otc", "OTC desk"],
+  ["/trade", "Trade"],
   ["/app", "Terminal"],
   ["/mine", "My blocks"],
   ["/how", "How it works"],
@@ -106,13 +111,22 @@ export function App() {
   const path = usePath();
   const site = SITE_PAGES.has(path);
   useEffect(() => {
-    document.title = path === "/" ? `${BRAND.name} · ${BRAND.description}` : path === "/app" ? `${BRAND.name} · Terminal` : path === "/otc" ? `${BRAND.name} · OTC desk` : BRAND.name;
+    document.title = path === "/" ? `${BRAND.name} · ${BRAND.description}` : path === "/app" ? `${BRAND.name} · Terminal` : path === "/otc" ? `${BRAND.name} · OTC desk` : path === "/trade" ? `${BRAND.name} · Trade` : BRAND.name;
   }, [path]);
   const nav = site ? SITE_NAV : APP_NAV;
+  // the phone menu: closes on navigation and Escape
+  const [menu, setMenu] = useState(false);
+  useEffect(() => setMenu(false), [path]);
+  useEffect(() => {
+    if (!menu) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenu(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menu]);
 
   return (
     <>
-      <header className={`top ${site ? "site" : "app"}`}>
+      <header className={`top ${site ? "site" : "app"}${menu ? " menu-open" : ""}`}>
         <Link to="/" className="brand" aria-label={`${BRAND.name} home`}>
           <Wordmark />
         </Link>
@@ -133,7 +147,39 @@ export function App() {
             <WalletButton />
           </>
         )}
+        <button
+          type="button"
+          className="burger"
+          aria-label={menu ? "Close menu" : "Open menu"}
+          aria-expanded={menu}
+          aria-controls="mnav"
+          onClick={() => setMenu((m) => !m)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        <div id="mnav" className="mnav" aria-hidden={!menu}>
+          <div className="mnav-inner">
+            {nav.map(([to, label], i) => (
+              <Link key={to} to={to} className={path === to ? "on" : ""} style={{ ["--i" as string]: i } as CSSProperties} tabIndex={menu ? 0 : -1}>
+                {label}
+                <span aria-hidden="true">→</span>
+              </Link>
+            ))}
+            {site ? (
+              <Link to="/app" className="mnav-cta" style={{ ["--i" as string]: nav.length } as CSSProperties} tabIndex={menu ? 0 : -1}>
+                Launch app
+              </Link>
+            ) : (
+              <Link to="/" className="mnav-sub" style={{ ["--i" as string]: nav.length } as CSSProperties} tabIndex={menu ? 0 : -1}>
+                ← Back to site
+              </Link>
+            )}
+          </div>
+        </div>
       </header>
+      {menu && <div className="mnav-scrim" onClick={() => setMenu(false)} aria-hidden="true" />}
       <main key={path} className={path === "/app" ? "wide" : site ? "site-main" : ""}>
         {route(path)}
       </main>

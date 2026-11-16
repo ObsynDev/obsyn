@@ -50,6 +50,12 @@ ${faqHtml}`,
     description: "Post a private bid or listing for a block of any Robinhood Chain token. Size in USD or tokens, pay in ETH or USDG, minimum $5.",
     body: `<h1>Private block trades. Sealed until settled.</h1><p>Choose buy or sell, pick a token or paste any ERC-20 address on Robinhood Chain, set the size in USD or tokens and the reply window. Posting is free and gives you a private link that controls the block.</p>`,
   },
+  "/trade": {
+    title: "Trade OTC · Obsyn",
+    description:
+      "Buy or sell any Robinhood Chain token in size, privately. Paste a contract address, set your size, and get sealed answers only you can read. Settles in one contract transaction.",
+    body: `<h1>Buy or sell OTC, privately</h1><p>Paste any token's contract address on Robinhood Chain, see its price and market cap, set your size and post a sealed bid or listing. Sellers or buyers answer with prices only you can read. Pick one, both sides deposit into the contract, and it swaps in one transaction.</p><p>Connect your wallet to see your tokens and sell them privately in one click, or sell straight into a buyer's open bid.</p>`,
+  },
   "/markets": {
     title: "Markets · Obsyn",
     description: "Reference prices and charts for the Robinhood Chain markets you can trade in blocks on Obsyn: stock tokens, ETFs and PONS.",
