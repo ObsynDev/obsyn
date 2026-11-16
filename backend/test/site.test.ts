@@ -10,7 +10,7 @@ function setup() {
   const dir = mkdtempSync(join(tmpdir(), "web-"));
   const dist = join(dir, "dist");
   mkdirSync(join(dist, "assets"), { recursive: true });
-  writeFileSync(join(dist, "index.html"), "<!doctype html><title>BlockOTC</title>");
+  writeFileSync(join(dist, "index.html"), "<!doctype html><title>Obsyn</title>");
   writeFileSync(join(dist, "assets", "app-abc.js"), "console.log(1)");
   writeFileSync(join(dir, "secret.txt"), "do not serve");
   const api = new Hono();
@@ -31,7 +31,7 @@ it("serves built assets with long cache and the right type", async () => {
 
 it("falls back to index.html for client routes", async () => {
   const res = await setup().request("/bid/xyz");
-  assert.match(await res.text(), /<title>BlockOTC<\/title>/);
+  assert.match(await res.text(), /<title>Obsyn<\/title>/);
   assert.equal(res.headers.get("referrer-policy"), "no-referrer");
 });
 

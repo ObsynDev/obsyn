@@ -321,7 +321,7 @@ export function BuyerBid({ id }: { id: string }) {
           ghostKey={role === "seller" ? ghostKey : undefined}
         />
       )}
-      {deal && !deal.escrow && <p className="err">Trading isn't live yet: the server has no escrow address configured.</p>}
+      {deal && !deal.escrow && <p className="err">Trading isn't live yet: the server has no contract address configured.</p>}
       {rfq.status === "accepted" && !deal && <p className="muted">Loading deal…</p>}
     </div>
   );

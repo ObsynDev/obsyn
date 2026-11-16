@@ -46,5 +46,5 @@ Service → **Settings → Networking → Generate Domain** (or add your own). T
 
 ## Agents and SDK against the deployed API
 
-- MCP: `BLOCKOTC_API=https://<domain>/api`
-- SDK: `import { BlockOtc } from "https://<domain>/api/sdk/blockotc.mjs"` and `new BlockOtc({ apiUrl: "https://<domain>/api" })`
+- MCP: `OBSYN_API=https://<domain>/api`
+- SDK: `import { BlockOtc } from "https://<domain>/api/sdk/obsyn.mjs"` and `new BlockOtc({ apiUrl: "https://<domain>/api" })`

@@ -28,12 +28,12 @@ const ROUTES: [string, string][] = [
 export function Developers() {
   const origin = window.location.origin;
   const mcp = `mcp-client add ${BRAND.name.toLowerCase()} \\
-  -e BLOCKOTC_API=${origin}/api \\
-  -e BLOCKOTC_PRIVATE_KEY=0x... \\
+  -e OBSYN_API=${origin}/api \\
+  -e OBSYN_PRIVATE_KEY=0x... \\
   -- node backend/src/mcp/stdio.ts`;
-  const sdk = `import { BlockOtc } from "${origin}/api/sdk/blockotc.mjs";
+  const sdk = `import { Obsyn } from "${origin}/api/sdk/obsyn.mjs";
 
-const otc = new BlockOtc({ apiUrl: "${origin}/api", privateKey }); // key optional
+const otc = new Obsyn({ apiUrl: "${origin}/api", privateKey }); // key optional
 
 // buy side
 const bid = await otc.createBid({ token, amount: "25000", payWith: "USDG", replyMinutes: 60 });
@@ -59,8 +59,8 @@ const listing = await otc.createListing({ token, amount: "50000", payWith: "ETH"
         <a className="pill info" href="/api/openapi.json" target="_blank" rel="noreferrer">
           openapi.json
         </a>
-        <a className="pill info" href="/api/sdk/blockotc.mjs" target="_blank" rel="noreferrer">
-          blockotc.mjs
+        <a className="pill info" href="/api/sdk/obsyn.mjs" target="_blank" rel="noreferrer">
+          obsyn.mjs
         </a>
         <a className="pill info" href="/api/health" target="_blank" rel="noreferrer">
           /api/health

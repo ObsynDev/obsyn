@@ -55,7 +55,7 @@ export interface BuyerBid {
  */
 export function answerMessage(postingId: string, side: "buy" | "sell", address: string, amount: string, price: string) {
   return [
-    "BlockOTC sealed answer",
+    "Obsyn sealed answer",
     `posting: ${postingId}`,
     `role: ${side === "buy" ? "seller" : "buyer"}`,
     `address: ${getAddress(address)}`,

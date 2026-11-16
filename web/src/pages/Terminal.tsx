@@ -242,7 +242,7 @@ function Marquee({ open, answers, live }: { open: number; answers: number; live:
       <b>{answers}</b> sealed answers
     </>,
     <>Offers encrypted in your browser</>,
-    <>One-transaction escrow settlement</>,
+    <>One-transaction contract settlement</>,
     <>No owner · no admin key · no pause</>,
     <>Pay in ETH or USDG</>,
     <>Ghost mode for sellers</>,
@@ -268,7 +268,7 @@ function EscrowChip() {
   if (escrow === undefined) return null;
   return (
     <span className="ca">
-      Escrow{" "}
+      Contract{" "}
       {escrow ? (
         <>
           <b>{short(escrow)}</b>
@@ -297,7 +297,7 @@ export function Terminal() {
   const bids = all.filter((r) => sideOf(r) === "buy");
   const listings = all.filter((r) => sideOf(r) === "sell");
   const answers = all.reduce((n, r) => n + r.quoteCount, 0);
-  // "Live" only once the escrow is configured; before that, say preview.
+  // "Live" only once the contract is configured; before that, say preview.
   const [live, setLive] = useState(false);
   useEffect(() => {
     api.config().then((c) => setLive(!!c.escrow), () => setLive(false));
@@ -313,7 +313,7 @@ export function Terminal() {
           <h1>
             Trade size. <span className="copper">Stay private.</span>
           </h1>
-          <p>Post a block. Get sealed answers only you can read. Settle both sides in one escrow transaction.</p>
+          <p>Post a block. Get sealed answers only you can read. Settle both sides in one contract transaction.</p>
           <EscrowChip />
         </div>
         <div className="strip-stats">

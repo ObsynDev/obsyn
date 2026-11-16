@@ -373,7 +373,7 @@ export function MarketBoard({ initial = "TSLA" }: { initial?: string }) {
               <b>Read sealed answers.</b> Prices are encrypted to you.
             </li>
             <li>
-              <b>Settle once.</b> Both sides swap in one escrow transaction.
+              <b>Settle once.</b> Both sides swap in one contract transaction.
             </li>
           </ol>
           <div className="mb-cta">

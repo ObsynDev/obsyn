@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { BRAND } from "../lib/brand.tsx";
 import { MARKETS, market } from "../lib/tokens.ts";
 import { getAddress, isAddress, parseUnits, type Address } from "viem";
 import { api, type Rfq } from "../lib/api.ts";
@@ -162,7 +163,7 @@ function OtcSections({ onBuy, onSell }: { onBuy: () => void; onSell: () => void 
             <br />
             <span className="copper">Not the price.</span>
           </h2>
-          <p className="muted">SLAB brings buyers, sellers, teams and agents together for private block trades on Robinhood Chain.</p>
+          <p className="muted">{BRAND.name} brings buyers, sellers, teams and agents together for private block trades on Robinhood Chain.</p>
           <div className="om-ctas">
             <KeyButton onClick={onBuy} glyph="↵">
               PLACE A BID
@@ -256,7 +257,7 @@ function OtcSections({ onBuy, onSell }: { onBuy: () => void; onSell: () => void 
           </div>
           <div className="om-card">
             <span className="mono green">03</span>
-            <b>Contract escrow</b>
+            <b>Settlement contract</b>
             <p>One transaction swaps both sides. Or everyone gets their funds back.</p>
             <div className="om-steps mono small">
               <span>payment locks</span>
@@ -299,7 +300,7 @@ function OtcSections({ onBuy, onSell }: { onBuy: () => void; onSell: () => void 
           </div>
           <div className="gf-line" />
           <div className="gf-node core">
-            <span className="mono dim small">ESCROW</span>
+            <span className="mono dim small">CONTRACT</span>
             <b>smart contract</b>
             <i className="mono">no owner · no admin key</i>
           </div>
@@ -485,7 +486,7 @@ export function Otc() {
         {[
           ["Post your size", "Token and size. No account; you get a private link."],
           [side === "buy" ? "Sellers quote privately" : "Buyers bid privately", "Only you can read the answers. No public order book."],
-          ["Settle in one transaction", "Payment locks in escrow first. The swap completes atomically or not at all."],
+          ["Settle in one transaction", "Payment locks in the contract first. The swap completes atomically or not at all."],
         ].map(([t, d], i) => (
           <li key={t}>
             <span className="mono">{i + 1}</span>

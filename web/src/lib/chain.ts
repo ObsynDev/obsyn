@@ -232,7 +232,7 @@ export async function ghostDeposit(escrow: Address, t: Terms, ghostKey: Hex) {
   });
   const id = await c.readContract({ address: escrow, abi: OtcEscrowAbi, functionName: "dealId", args: [t] });
   const sellerSig = await ghost.signTypedData({
-    domain: { name: "BlockOTC", version: "1", chainId: cfg.chainId, verifyingContract: escrow },
+    domain: { name: "Obsyn", version: "1", chainId: cfg.chainId, verifyingContract: escrow },
     types: { Deposit: [{ name: "dealId", type: "bytes32" }, { name: "relayer", type: "address" }] },
     primaryType: "Deposit",
     message: { dealId: id, relayer },

@@ -30,7 +30,7 @@ const DOCS: Doc[] = [
       "Stablecoins only at first. Stock tokens have a freeze authority, which makes pooling them unsafe.",
     ],
     impact: [
-      { who: "Traders", text: "Settlement stops being the weak point. Today the escrow transfers are public; with the pool, they can't be tied to your main wallet." },
+      { who: "Traders", text: "Settlement stops being the weak point. Today the contract transfers are public; with the pool, they can't be tied to your main wallet." },
       { who: "Projects", text: "Treasuries and funds can buy their own token without broadcasting it." },
       { who: BRAND.name, text: "Turns 'private, not anonymous' into private end to end. The biggest step on the privacy half." },
     ],
@@ -41,10 +41,10 @@ const DOCS: Doc[] = [
     title: "Platform token, buy-and-burn, holder discount",
     status: "Planned",
     half: "trade",
-    what: "A fixed-supply token launched on a Pons bonding curve. Every escrow fee, paid in ETH or USDG, is used to buy the token and send it to the burn address. Holding it lowers your fees.",
+    what: "A fixed-supply token launched on a Pons bonding curve. Every fee, paid in ETH or USDG, is used to buy the token and send it to the burn address. Holding it lowers your fees.",
     how: [
       "Launch on Pons; after the curve sells out, liquidity moves to a locked Uniswap v4 pool.",
-      "The fee vault (already deployed with the escrow) is pointed at the token once; that switch can never be changed.",
+      "The fee vault (already deployed with the contract) is pointed at the token once; that switch can never be changed.",
       "A keeper spends accumulated fees on the token and burns it, with a minimum-out check on every buy.",
       "Wallets holding the threshold amount get 0.5% off the fee, read on-chain at settlement.",
     ],
@@ -60,18 +60,18 @@ const DOCS: Doc[] = [
     title: "Locked-token OTC for teams",
     status: "Planned",
     half: "trade",
-    what: "Sell tokens that are still vesting or locked, to a buyer who agrees to the same unlock schedule. The escrow releases them to the buyer only as they unlock.",
+    what: "Sell tokens that are still vesting or locked, to a buyer who agrees to the same unlock schedule. The contract releases them to the buyer only as they unlock.",
     how: [
       "The seller lists a locked position with its unlock schedule.",
       "Buyers bid privately, usually at a discount to spot.",
-      "On acceptance, the escrow holds the tokens and streams them to the buyer on the schedule; the buyer's payment settles up front or in tranches.",
+      "On acceptance, the contract holds the tokens and streams them to the buyer on the schedule; the buyer's payment settles up front or in tranches.",
     ],
     impact: [
       { who: "Teams and early holders", text: "Get liquidity without dumping on the chart when tokens unlock." },
       { who: "Buyers", text: "Access discounted, long-term positions that never reach a DEX." },
       { who: BRAND.name, text: "Owns a market that public exchanges can't serve: size that must stay quiet and locked." },
     ],
-    risks: "Needs a new, audited escrow with time-based release. Only works for tokens that can be held by a contract.",
+    risks: "Needs a new, audited contract with time-based release. Only works for tokens that can be held by a contract.",
   },
   {
     id: "partial-fills",
@@ -82,7 +82,7 @@ const DOCS: Doc[] = [
     how: [
       "A buyer posts a bid for, say, $1M of a token.",
       "Sellers offer any slice. The buyer picks a set of offers that adds up to the size, best prices first.",
-      "Each slice settles as its own escrow deal, so one failed slice never blocks the others.",
+      "Each slice settles as its own contract deal, so one failed slice never blocks the others.",
     ],
     impact: [
       { who: "Buyers", text: "Fill sizes that no single holder can, at a blended price." },
@@ -100,7 +100,7 @@ const DOCS: Doc[] = [
     how: [
       "Teams verify a wallet as the project's official contact.",
       "A buyer sends a sealed request with size and terms; only the team can read it.",
-      "If both agree, it settles through the same escrow.",
+      "If both agree, it settles through the same contract.",
     ],
     impact: [
       { who: "Projects", text: "Raise from serious buyers without a public sale moving the price." },
@@ -170,7 +170,7 @@ const DOCS: Doc[] = [
     what: "Anyone can run a ghost-mode relayer by bonding the platform token. Relayers earn the relayer fee; one that misbehaves loses part of its bond.",
     how: [
       "Relayers stake the token to join.",
-      "Sellers pick a relayer; the escrow already binds each deposit signature to one relayer.",
+      "Sellers pick a relayer; the contract already binds each deposit signature to one relayer.",
       "Provable misbehaviour (e.g. front-running a deposit) is slashed.",
     ],
     impact: [
@@ -188,7 +188,7 @@ const SECTIONS = [
   ["start", "Getting started"],
   ["post", "Posting a block"],
   ["sealed", "Sealed answers"],
-  ["settle", "Settlement and escrow"],
+  ["settle", "Settlement and the contract"],
   ["markets", "Markets and prices"],
   ["fees", `Fees and $${PLATFORM_TOKEN.symbol}`],
   ["agents", "For agents: MCP, SDK, API"],
@@ -201,7 +201,7 @@ const SECTIONS = [
 const DOC_FAQ: [string, string][] = [
   ["Do I need an account?", "No. Posting gives you a private link that controls the block. Keep it like a password: whoever holds it can read the answers and accept one."],
   ["Who can read the prices?", "Only the side that posted the block. Answers are encrypted in the sender's browser to the poster's key before they leave it, and our server only ever stores ciphertext."],
-  ["Can you take my funds?", "No. The escrow has no owner, no admin key, no pause and no upgrade. Funds only move to settle a deal or to refund a side after the deadline."],
+  ["Can you take my funds?", "No. The contract has no owner, no admin key, no pause and no upgrade. Funds only move to settle a deal or to refund a side after the deadline."],
   ["Is it audited?", "Not yet. There's an internal review and a full test suite, no professional audit. Start with sizes you're comfortable with."],
   ["Is it anonymous?", "No, it's private. Prices stay sealed while you negotiate. Once a side deposits, the deal is public on-chain like any transaction."],
   ["What happens if the other side never deposits?", "Nothing moves until both sides are in. After the deadline, whoever deposited takes their own funds back with a refund call."],
@@ -294,7 +294,7 @@ export function Docs() {
           <div>
             <span className="mono">ADMIN KEYS</span>
             <b className="mono">0</b>
-            <i>on the escrow. No pause, no upgrade</i>
+            <i>on the contract. No pause, no upgrade</i>
           </div>
           <div>
             <span className="mono">SETTLEMENT</span>
@@ -327,7 +327,7 @@ export function Docs() {
           <Sect id="start" n={1} title="Getting started">
             <p className="dx-p">
               {name} is a private OTC desk on Robinhood Chain. You post a block you want to buy or sell, the other side answers with
-              sealed prices only you can read, and the deal settles in one escrow transaction. No order book, so size never moves the
+              sealed prices only you can read, and the deal settles in one contract transaction. No order book, so size never moves the
               chart.
             </p>
             <div className="dx-cards">
@@ -402,18 +402,18 @@ export function Docs() {
             </div>
           </Sect>
 
-          <Sect id="settle" n={4} title="Settlement and escrow">
+          <Sect id="settle" n={4} title="Settlement and the contract">
             <ol className="dx-steps">
               <li>
                 <b>Accept.</b> You pick an answer. The terms (both wallets, token, amount, price, deadline) are fixed and hashed into a
                 deal id.
               </li>
               <li>
-                <b>Payment locks first.</b> The buyer deposits ETH or USDG into the escrow. The seller only deposits once the payment is
+                <b>Payment locks first.</b> The buyer deposits ETH or USDG into the contract. The seller only deposits once the payment is
                 in, so nobody can be griefed into locking tokens for nothing.
               </li>
               <li>
-                <b>The second deposit settles.</b> When the seller's tokens arrive, the escrow swaps both sides in the same
+                <b>The second deposit settles.</b> When the seller's tokens arrive, the contract swaps both sides in the same
                 transaction: tokens to the buyer, payment minus the fee to the seller.
               </li>
               <li>
@@ -435,7 +435,7 @@ export function Docs() {
               </div>
             </div>
             <p className="dx-note">
-              Escrow contract:{" "}
+              Contract:{" "}
               {escrow ? (
                 <span className="mono">
                   {short(escrow)} <Copy text={escrow} />
@@ -511,10 +511,10 @@ export function Docs() {
               would send.
             </p>
             <h3 className="dx-h3">MCP server (11 tools)</h3>
-            <Code>{`mcp-client add ${name.toLowerCase()} -e BLOCKOTC_API=${origin}/api -- node backend/src/mcp/stdio.ts`}</Code>
+            <Code>{`mcp-client add ${name.toLowerCase()} -e OBSYN_API=${origin}/api -- node backend/src/mcp/stdio.ts`}</Code>
             <h3 className="dx-h3">JavaScript SDK</h3>
-            <Code>{`import { BlockOtc } from "${origin}/api/sdk/blockotc.mjs";
-const otc = new BlockOtc({ apiUrl: "${origin}/api", privateKey }); // key optional`}</Code>
+            <Code>{`import { Obsyn } from "${origin}/api/sdk/obsyn.mjs";
+const otc = new Obsyn({ apiUrl: "${origin}/api", privateKey }); // key optional`}</Code>
             <h3 className="dx-h3">REST API</h3>
             <Code>{`GET  ${origin}/api/markets
 GET  ${origin}/api/markets/{symbol}/chart?range=1d|5d|1mo|6mo|1y
@@ -570,7 +570,7 @@ GET  ${origin}/api/openapi.json         the full spec`}</Code>
           <Sect id="safety" n={9} title="Safety">
             <div className="dx-cards">
               {[
-                ["No admin keys", "The escrow has no owner, pause or upgrade. Only the deal's own rules move funds."],
+                ["No admin keys", "The contract has no owner, pause or upgrade. Only the deal's own rules move funds."],
                 ["Refunds can't be blocked", "Each side can always take its deposit back after the deadline."],
                 ["Not audited yet", "Internal review and a full test suite, no professional audit. Start small."],
                 ["Never your seed phrase", "Signing an answer is a plain message, not a transaction. We never ask for keys."],

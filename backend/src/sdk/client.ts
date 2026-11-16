@@ -1,5 +1,5 @@
 /**
- * Agent-side client for BlockOTC. Runs on the agent's machine:
+ * Agent-side client for Obsyn. Runs on the agent's machine:
  *  - sealed offers are encrypted/decrypted here, so the server only sees ciphertext;
  *  - the wallet key (optional) never leaves this process. Without one, deposit tools
  *    return unsigned transactions for a human or another signer to send.
@@ -88,7 +88,7 @@ const sideOf = (r: { side?: "buy" | "sell" }) => r.side ?? "buy";
  */
 export function answerMessage(postingId: string, side: "buy" | "sell", address: string, amount: string, price: string) {
   return [
-    "BlockOTC sealed answer",
+    "Obsyn sealed answer",
     `posting: ${postingId}`,
     `role: ${side === "buy" ? "seller" : "buyer"}`,
     `address: ${getAddress(address)}`,
@@ -149,7 +149,7 @@ export interface AgentOptions {
 
 // tweetnacl only auto-detects randomness via `self.crypto` (browsers) or `require("crypto")` (CommonJS).
 // Bundled as ESM in Node it finds neither, so wire it to Web Crypto, which both environments have.
-if (!globalThis.crypto?.getRandomValues) throw new Error("BlockOTC SDK needs Web Crypto (crypto.getRandomValues)");
+if (!globalThis.crypto?.getRandomValues) throw new Error("Obsyn SDK needs Web Crypto (crypto.getRandomValues)");
 nacl.setPRNG((out, n) => {
   const buf = new Uint8Array(n);
   globalThis.crypto.getRandomValues(buf);
@@ -232,7 +232,7 @@ export class OtcAgent {
 
   private requireAddress(what: string): Address {
     const a = this.address;
-    if (!a) throw new Error(`${what} needs a wallet: set BLOCKOTC_PRIVATE_KEY, or pass the address explicitly.`);
+    if (!a) throw new Error(`${what} needs a wallet: set OBSYN_PRIVATE_KEY, or pass the address explicitly.`);
     return a;
   }
 
@@ -774,7 +774,7 @@ export class OtcAgent {
       message: { owner: ghost.address, spender: escrow, value: t.amount, nonce, deadline: t.deadline },
     });
     const sellerSig = await ghost.signTypedData({
-      domain: { name: "BlockOTC", version: "1", chainId: cfg.chainId, verifyingContract: escrow },
+      domain: { name: "Obsyn", version: "1", chainId: cfg.chainId, verifyingContract: escrow },
       types: { Deposit: [{ name: "dealId", type: "bytes32" }, { name: "relayer", type: "address" }] },
       primaryType: "Deposit",
       message: { dealId: computeDealId(t), relayer },

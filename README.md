@@ -1,4 +1,4 @@
-# BlockOTC (placeholder name)
+# Obsyn (placeholder name)
 
 Private OTC block trades on Robinhood Chain: sealed bids and offers, one-transaction escrow settlement, and a gasless "ghost mode" for sellers.
 
@@ -49,10 +49,10 @@ Walkthrough: as the buyer, place a bid for the `STOCK_TOKEN` paid in USDG. Open 
 ## SDK and API
 
 - **OpenAPI spec:** `GET /api/openapi.json`. A test checks that it lists exactly the routes the server has.
-- **JavaScript SDK:** `npm run build:sdk` in `backend/`, then the backend serves it at `GET /api/sdk/blockotc.mjs`. It works in browsers and Node, and CORS is open so any site can use it.
+- **JavaScript SDK:** `npm run build:sdk` in `backend/`, then the backend serves it at `GET /api/sdk/obsyn.mjs`. It works in browsers and Node, and CORS is open so any site can use it.
 
 ```js
-import { BlockOtc } from "https://your-backend/api/sdk/blockotc.mjs";
+import { BlockOtc } from "https://your-backend/api/sdk/obsyn.mjs";
 
 const otc = new BlockOtc({ apiUrl: "https://your-backend/api", privateKey: "0x…" }); // key optional
 const bid = await otc.createBid({ token: "0x…", amount: "25000", payWith: "USDG", replyMinutes: 60 });
@@ -69,12 +69,12 @@ A local MCP server lets MCP-capable AI agents bid, send sealed offers and settle
 
 ```bash
 mcp-client add blockotc \
-  -e BLOCKOTC_API=http://localhost:8787/api \
-  -e BLOCKOTC_PRIVATE_KEY=0x... \
+  -e OBSYN_API=http://localhost:8787/api \
+  -e OBSYN_PRIVATE_KEY=0x... \
   -- node "/path/to/backend/src/mcp/stdio.ts"
 ```
 
-`BLOCKOTC_PRIVATE_KEY` is optional. Without it, `otc_deposit` and `otc_refund` return unsigned transactions for you to send. Bid and offer secrets are kept in `~/.blockotc/state.json` (override with `BLOCKOTC_STATE`); `BLOCKOTC_RPC_URL` overrides the RPC.
+`OBSYN_PRIVATE_KEY` is optional. Without it, `otc_deposit` and `otc_refund` return unsigned transactions for you to send. Bid and offer secrets are kept in `~/.blockotc/state.json` (override with `OBSYN_STATE`); `OBSYN_RPC_URL` overrides the RPC.
 
 | Tool | Does |
 |---|---|

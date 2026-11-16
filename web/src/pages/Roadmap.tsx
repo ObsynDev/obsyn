@@ -14,7 +14,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
   {
     n: "00",
     title: "Live today",
-    blurb: "The core desk runs in preview: everything up to settlement works, and settlement switches on when the escrow is deployed.",
+    blurb: "The core desk runs in preview: everything up to settlement works, and settlement switches on when the contract is deployed.",
     items: [
       { t: "Sealed bids and listings", d: "Post a bid to buy or list a block to sell. Answers are encrypted to you in the sender's browser.", s: "live", size: "L" },
       { t: "OTC desk", d: "Swap-style widget: size in USD or tokens, ETH or USDG, reply window.", s: "live", size: "M" },
@@ -29,7 +29,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     title: "Small: polish the desk",
     blurb: "Quick wins that make deals faster and easier to trust.",
     items: [
-      { t: "Escrow on mainnet", d: "Deploy the escrow and fee vault on Robinhood Chain so deals settle for real.", s: "next", size: "S" },
+      { t: "Contract on mainnet", d: "Deploy the contract and fee vault on Robinhood Chain so deals settle for real.", s: "next", size: "S" },
       { t: "Reference price on offers", d: "Show each offer against the on-chain spot price: '4.2% under market'.", s: "next", size: "S" },
       { t: "Notifications", d: "Telegram and email alerts when an answer arrives or the other side deposits.", s: "next", size: "S" },
       { t: "Deal receipts", d: "A public, shareable page per settled deal, read live from the contract.", s: "planned", size: "S" },
@@ -42,7 +42,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     title: "Medium: more ways to trade",
     blurb: "Features that open the desk to bigger and more varied deals.",
     items: [
-      { t: "Professional audit", d: "External audit of the escrow and fee vault before large sizes.", s: "next", size: "M" },
+      { t: "Professional audit", d: "External audit of the contract and fee vault before large sizes.", s: "next", size: "M" },
       { t: "Partial fills", d: "Several sellers fill one big bid, each with their own sealed offer.", s: "planned", size: "M", doc: "partial-fills" },
       { t: "Team access", d: "Big buyers send a direct, private request to a project's team.", s: "planned", size: "M", doc: "team-access" },
       { t: "Exposure check", d: "After a ghost-mode deal, see how easily your main wallet can be linked.", s: "planned", size: "M", doc: "exposure-check" },
@@ -57,7 +57,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     items: [
       { t: "Platform token on Pons", d: "Launch on a Pons bonding curve, then plug it into the fee vault.", s: "planned", size: "L", doc: "token" },
       { t: "Buy-and-burn + holder discount", d: "Fees buy the token and burn it; holders pay 0.5% less.", s: "planned", size: "L", doc: "token" },
-      { t: "Locked-token OTC for teams", d: "Sell vesting or locked tokens with the unlock schedule enforced in escrow.", s: "planned", size: "L", doc: "locked-otc" },
+      { t: "Locked-token OTC for teams", d: "Sell vesting or locked tokens with the unlock schedule enforced in the contract.", s: "planned", size: "L", doc: "locked-otc" },
       { t: "Private RPC relay", d: "Hide which wallets you read and trade from, with decoy traffic.", s: "research", size: "L", doc: "private-relay" },
       { t: "Agent passports", d: "Agents prove things about their owner (size, history) without revealing who.", s: "research", size: "L", doc: "agent-passports" },
     ],

@@ -29,7 +29,7 @@ export interface Relayer {
 /** EIP-712 typed data the seller (ghost wallet) signs so this relayer may deposit for it. */
 export function depositTypedData(cfg: Config, escrow: Address, id: Hex, relayer: Address) {
   return {
-    domain: { name: "BlockOTC", version: "1", chainId: cfg.chainId, verifyingContract: escrow },
+    domain: { name: "Obsyn", version: "1", chainId: cfg.chainId, verifyingContract: escrow },
     types: { Deposit: [{ name: "dealId", type: "bytes32" }, { name: "relayer", type: "address" }] },
     primaryType: "Deposit",
     message: { dealId: id, relayer },

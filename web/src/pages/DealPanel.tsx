@@ -18,7 +18,7 @@ import {
 } from "../lib/chain.ts";
 import { Copy, Err, fmtAmount, fmtLeft, Pill, short, useAction, useNow, usePoll } from "../lib/ui.tsx";
 
-/** Shared deal view for both sides: terms, live escrow state, and the next action. */
+/** Shared deal view for both sides: terms, live contract state, and the next action. */
 export function DealPanel({
   escrow,
   dealId,
@@ -127,7 +127,7 @@ export function DealPanel({
           <dd className="mono">
             {short(dealId)} <Copy text={dealId} />
           </dd>
-          <dt>Escrow</dt>
+          <dt>Contract</dt>
           <dd>
             <a href={explorerAddr(escrow)} target="_blank" rel="noreferrer" className="mono">
               {short(escrow)}
@@ -219,7 +219,7 @@ export function DealPanel({
           </a>
         </p>
       )}
-      {state.error && <p className="err">Can't read the escrow: {state.error}</p>}
+      {state.error && <p className="err">Can't read the contract: {state.error}</p>}
     </section>
   );
 }

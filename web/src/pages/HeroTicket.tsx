@@ -85,7 +85,7 @@ export function HeroTicket() {
         </div>
 
         <div className="ht-foot mono">
-          <i className="ht-led" aria-hidden="true" /> Settles in one escrow transaction
+          <i className="ht-led" aria-hidden="true" /> Settles in one contract transaction
         </div>
       </div>
     </div>

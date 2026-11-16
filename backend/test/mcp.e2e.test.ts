@@ -375,13 +375,13 @@ describe("MCP agents", { skip: !canRun && "anvil or forge build output missing" 
   });
 
   it("the bundled SDK file served by the backend works on its own", async (t) => {
-    const res = await fetch(`${apiUrl}/sdk/blockotc.mjs`);
+    const res = await fetch(`${apiUrl}/sdk/obsyn.mjs`);
     if (res.status === 404) return t.skip("SDK not built (npm run build:sdk)");
     const url = `data:text/javascript;base64,${Buffer.from(await res.text()).toString("base64")}`;
-    const { BlockOtc } = await import(url);
-    const buyer = new BlockOtc({ apiUrl, privateKey: KEYS.buyer });
+    const { Obsyn } = await import(url);
+    const buyer = new Obsyn({ apiUrl, privateKey: KEYS.buyer });
     const bid = await buyer.createBid({ token: stock, amount: "3", payWith: "ETH", replyMinutes: 15 });
-    const seller = new BlockOtc({ apiUrl, privateKey: KEYS.seller });
+    const seller = new Obsyn({ apiUrl, privateKey: KEYS.seller });
     const off = await seller.sendOffer({ bidId: bid.bidId, totalPrice: "0.5" });
     const offers = await buyer.getOffers(bid.bidId);
     assert.equal(offers[0].offerId, off.offerId);

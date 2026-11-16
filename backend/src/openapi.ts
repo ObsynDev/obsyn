@@ -66,7 +66,7 @@ const idParam = { name: "id", in: "path", required: true, schema: { type: "strin
 export const openapi = {
   openapi: "3.1.0",
   info: {
-    title: "BlockOTC API",
+    title: "Obsyn API",
     version: "0.1.0",
     description:
       "Private OTC block trades on Robinhood Chain. No accounts: creating a bid or offer returns a capability token; send it as `Authorization: Bearer <token>` to manage that bid or offer. Offers are sealed client-side; the server stores ciphertext only. Settlement happens on-chain in the OtcEscrow contract.",
@@ -171,7 +171,7 @@ export const openapi = {
       post: {
         summary: "Ghost mode: relay a seller deposit signed by a one-time wallet",
         description:
-          "The seller signs EIP-712 Deposit(bytes32 dealId, address relayer) for domain {name: 'BlockOTC', version: '1', chainId, verifyingContract: escrow}, plus an optional EIP-2612 permit. Only relayed once the buyer has funded the deal.",
+          "The seller signs EIP-712 Deposit(bytes32 dealId, address relayer) for domain {name: 'Obsyn', version: '1', chainId, verifyingContract: escrow}, plus an optional EIP-2612 permit. Only relayed once the buyer has funded the deal.",
         requestBody: body({
           type: "object",
           required: ["terms", "sellerSig"],
@@ -219,6 +219,7 @@ export const openapi = {
       },
     },
     "/openapi.json": { get: { summary: "This document", responses: { 200: ok("OpenAPI", { type: "object" }) } } },
-    "/sdk/blockotc.mjs": { get: { summary: "Bundled JavaScript SDK (ES module)", responses: { 200: { description: "JavaScript" }, 404: err("Not built") } } },
+    "/sdk/obsyn.mjs": { get: { summary: "Bundled JavaScript SDK (ES module)", responses: { 200: { description: "JavaScript" }, 404: err("Not built") } } },
+    "/sdk/blockotc.mjs": { get: { summary: "Deprecated alias of /sdk/obsyn.mjs", deprecated: true, responses: { 200: { description: "JavaScript" }, 404: err("Not built") } } },
   },
 } as const;

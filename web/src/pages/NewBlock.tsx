@@ -145,7 +145,7 @@ export function NewBlock({ initialSide, onClose }: { initialSide: "buy" | "sell"
           <li>
             {other} answer with sealed {side === "buy" ? "offers" : "bids"}, signed by their wallet. Only you can read them.
           </li>
-          <li>Settles in one escrow transaction, or everyone is refunded.</li>
+          <li>Settles in one contract transaction, or everyone is refunded.</li>
         </ul>
 
         <Err msg={submit.error} />

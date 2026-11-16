@@ -29,7 +29,7 @@ if (cfg.relayerKeyProblem) console.warn(cfg.relayerKeyProblem);
 if (!cfg.escrow) console.warn("ESCROW_ADDRESS not set: accepted deals will have no escrow address, relayer disabled");
 
 const server = serve({ fetch: site.fetch, port: cfg.port, hostname: "0.0.0.0" }, (info) => {
-  console.log(`BlockOTC on port ${info.port} (chain ${cfg.chainId}); API at /api`);
+  console.log(`Obsyn on port ${info.port} (chain ${cfg.chainId}); API at /api`);
 });
 
 // Railway sends SIGTERM on redeploy: finish in-flight requests, then exit.

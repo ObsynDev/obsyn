@@ -343,14 +343,16 @@ export function createApp(deps: Deps) {
 
   app.get("/openapi.json", (c) => c.json(openapi));
 
-  app.get("/sdk/blockotc.mjs", (c) => {
+  const sdk = (c: Context) => {
     try {
-      const js = readFileSync(new URL("../dist/sdk/blockotc.mjs", import.meta.url), "utf8");
+      const js = readFileSync(new URL("../dist/sdk/obsyn.mjs", import.meta.url), "utf8");
       return c.body(js, 200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "public, max-age=300" });
     } catch {
       return c.json({ error: "SDK not built; run npm run build:sdk" }, 404);
     }
-  });
+  };
+  app.get("/sdk/obsyn.mjs", sdk);
+  app.get("/sdk/blockotc.mjs", sdk); // deprecated alias
 
   // ─────────────────────────── on-chain reference price ───────────────────────────
 

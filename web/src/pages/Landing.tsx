@@ -160,7 +160,7 @@ function AgentChat() {
           <i />
           <i />
         </span>
-        <span className="dim small">~/desk · agent + slab mcp</span>
+        <span className="dim small">~/desk · agent + {BRAND.name.toLowerCase()} mcp</span>
       </div>
       {CHAT.slice(0, Math.min(n, CHAT.length)).map(([who, line, frac], k) => (
         <div key={k} className={`chat-line ${who}`}>
@@ -203,11 +203,11 @@ function SectMeta({ label, idx, total = 6, tone = "green" }: { label: string; id
 
 const FAQ = [
   ["Do I need an account?", "No. Posting gives you a private link that controls the block. Treat it like a password."],
-  ["What can I trade?", "The listed Robinhood stock tokens, the ETFs and PONS, or any other ERC-20 on Robinhood Chain by address, paid in ETH or USDG. Fee-on-transfer tokens are rejected by the escrow."],
-  ["Can you take my funds?", "No. The escrow has no owner, admin key, pause or upgrade. Funds only move to settle a deal or refund it after the deadline."],
+  ["What can I trade?", "The listed Robinhood stock tokens, the ETFs and PONS, or any other ERC-20 on Robinhood Chain by address, paid in ETH or USDG. Fee-on-transfer tokens are rejected by the contract."],
+  ["Can you take my funds?", "No. The contract has no owner, admin key, pause or upgrade. Funds only move to settle a deal or refund it after the deadline."],
   ["Is it audited?", "Not yet. There's an internal review and a full test suite, no professional audit. Start with sizes you're comfortable with."],
   ["What does it cost?", "Posting and answering are free. At settlement: 2.5% under $10k, 2% from $10k, 1.5% from $100k, capped at 2.5% in the contract. Holding the platform token takes 0.5% off."],
-  ["Is it anonymous?", "No, it's private. Prices stay sealed while you negotiate. Once a side deposits into the escrow, the deal terms are public on-chain like any transaction, and funding a one-time wallet from your main wallet is a visible transfer too."],
+  ["Is it anonymous?", "No, it's private. Prices stay sealed while you negotiate. Once a side deposits into the contract, the deal terms are public on-chain like any transaction, and funding a one-time wallet from your main wallet is a visible transfer too."],
 ];
 
 export function Landing() {
@@ -227,7 +227,7 @@ export function Landing() {
   const band = useScrollVar<HTMLElement>(bandProgress);
   useSpotlight();
   useScrollBoost(".tok-track");
-  const mcp = `mcp-client add ${BRAND.name.toLowerCase()} -e BLOCKOTC_API=${window.location.origin}/api -- node backend/src/mcp/stdio.ts`;
+  const mcp = `mcp-client add ${BRAND.name.toLowerCase()} -e OBSYN_API=${window.location.origin}/api -- node backend/src/mcp/stdio.ts`;
 
   return (
     <div className="l3">
@@ -245,7 +245,7 @@ export function Landing() {
           </span>
           <SplitWords as="h1" text="Trade size. / [Stay private.]" accent="copper" />
           <p className="l3-lede rise" style={{ ["--i" as string]: 3 }}>
-            Post a block you want to buy or sell. Get prices sealed so only you can read them. Settle both sides in one escrow
+            Post a block you want to buy or sell. Get prices sealed so only you can read them. Settle both sides in one contract
             transaction, without touching the chart.
           </p>
           <div className="btn-wrap rise" style={{ ["--i" as string]: 4 }}>
@@ -259,7 +259,7 @@ export function Landing() {
             </div>
           </div>
           <div className="ca-row mono rise" style={{ ["--i" as string]: 5 }}>
-            <span className="ca-k">ESCROW</span>
+            <span className="ca-k">CONTRACT</span>
             {escrow ? (
               <>
                 <span>{short(escrow)}</span>
@@ -386,7 +386,7 @@ export function Landing() {
             <AgentChat />
             <div className="ask-btns">
               <SlotButton to="/developers">11 MCP TOOLS</SlotButton>
-              <SlotButton onClick={() => window.open("/api/sdk/blockotc.mjs", "_blank", "noreferrer")}>SDK</SlotButton>
+              <SlotButton onClick={() => window.open("/api/sdk/obsyn.mjs", "_blank", "noreferrer")}>SDK</SlotButton>
               <SlotButton onClick={() => window.open("/api/openapi.json", "_blank", "noreferrer")}>OPENAPI</SlotButton>
             </div>
           </Reveal>

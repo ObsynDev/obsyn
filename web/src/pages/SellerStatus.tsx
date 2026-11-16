@@ -87,6 +87,6 @@ function DealPanelWithEscrow({
 }) {
   const cfg = usePoll(api.config, 60_000, []);
   if (!cfg.data) return null;
-  if (!cfg.data.escrow) return <p className="err">Trading isn't live yet: the server has no escrow address configured.</p>;
+  if (!cfg.data.escrow) return <p className="err">Trading isn't live yet: the server has no contract address configured.</p>;
   return <DealPanel escrow={cfg.data.escrow} dealId={dealId} terms={terms} role={role} ghostKey={role === "seller" ? ghostKey : undefined} />;
 }

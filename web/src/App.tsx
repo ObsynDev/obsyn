@@ -94,7 +94,7 @@ function LiveBadge() {
   }, []);
   if (live === null) return null;
   return (
-    <span className={`live ${live ? "on" : ""}`} title={live ? "Escrow is live: deals settle on-chain" : "Escrow not deployed yet: posting and sealed answers work, settlement is off"}>
+    <span className={`live ${live ? "on" : ""}`} title={live ? "Contract is live: deals settle on-chain" : "Contract not deployed yet: posting and sealed answers work, settlement is off"}>
       {live ? "● LIVE" : "○ PREVIEW"}
     </span>
   );
@@ -177,7 +177,7 @@ export function App() {
           <a href="/api/openapi.json" target="_blank" rel="noreferrer">
             OpenAPI
           </a>
-          <a href="/api/sdk/blockotc.mjs" target="_blank" rel="noreferrer">
+          <a href="/api/sdk/obsyn.mjs" target="_blank" rel="noreferrer">
             SDK
           </a>
         </div>

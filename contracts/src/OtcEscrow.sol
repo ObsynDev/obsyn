@@ -399,7 +399,7 @@ contract OtcEscrow {
 
     function _buildDomainSeparator() private view returns (bytes32) {
         return keccak256(
-            abi.encode(DOMAIN_TYPEHASH, keccak256("BlockOTC"), keccak256("1"), block.chainid, address(this))
+            abi.encode(DOMAIN_TYPEHASH, keccak256("Obsyn"), keccak256("1"), block.chainid, address(this))
         );
     }
 }
