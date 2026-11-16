@@ -5700,3 +5700,11 @@ html, body { overflow-x: clip; }
   .mb-cta .gkey, .mb-cta .gslot { min-width: 0; width: 100%; }
   .gkey .gkey-legend { overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* server-rendered text for bots and no-JS readers; React replaces it on mount */
+.ssr { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; color: var(--text, #ece4d8); line-height: 1.6; font-family: Geist, system-ui, sans-serif; }
+.ssr nav { font-size: 13px; margin-bottom: 28px; color: #8a8175; }
+.ssr a { color: #ff6a2b; }
+.ssr h1 { font-size: 34px; line-height: 1.1; margin: 0 0 14px; }
+.ssr h2 { font-size: 20px; margin: 28px 0 8px; }
+.ssr h3 { font-size: 16px; margin: 18px 0 4px; }

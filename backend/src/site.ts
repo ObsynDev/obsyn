@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
+import { renderIndex } from "./seo.ts";
 import { extname, join, resolve, sep } from "node:path";
 import { Hono } from "hono";
 
@@ -37,7 +38,7 @@ const CSP = [
  * One public origin: the API under /api, the built web app everywhere else.
  * Unknown paths fall back to index.html so client-side routes (/bid/…, /rfq/…) work on reload.
  */
-export function createSite(api: Hono, webDist: string | null) {
+export function createSite(api: Hono, webDist: string | null, publicUrl = "") {
   const site = new Hono();
 
   site.use("*", async (c, next) => {
@@ -60,7 +61,7 @@ export function createSite(api: Hono, webDist: string | null) {
     return site;
   }
   // Read per request (it is tiny) so a rebuilt dist never serves a stale index pointing at deleted assets.
-  const index = () => readFileSync(join(root, "index.html"));
+  const index = (path: string) => renderIndex(readFileSync(join(root, "index.html"), "utf8"), path, publicUrl.replace(/\/+$/, ""));
 
   site.get("*", (c) => {
     let rel: string;
@@ -78,7 +79,7 @@ export function createSite(api: Hono, webDist: string | null) {
         "cache-control": immutable ? "public, max-age=31536000, immutable" : "public, max-age=300",
       });
     }
-    return c.body(index(), 200, { "content-type": TYPES[".html"], "cache-control": "no-cache" });
+    return c.body(index(rel), 200, { "content-type": TYPES[".html"], "cache-control": "no-cache" });
   });
 
   return site;

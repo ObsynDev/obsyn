@@ -51,7 +51,7 @@ export function Security() {
             Trust the contract. <span className="copper">Not us.</span>
           </h1>
           <p className="dx-lede">
-            Deposits sit in a contract contract nobody controls. Prices are sealed so nobody can front-run them. Here is what that
+            Deposits sit in a contract nobody controls. Prices are sealed so nobody can front-run them. Here is what that
             means, and what is still open.
           </p>
         </div>

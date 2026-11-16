@@ -76,3 +76,26 @@ describe("hardening", () => {
     assert.match(res.headers.get("content-security-policy")!, /frame-ancestors 'none'/);
   });
 });
+
+it("pages ship readable text, a per-page title and a canonical link for bots", async () => {
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { Hono } = await import("hono");
+  const { createSite } = await import("../src/site.ts");
+  const dir = mkdtempSync(join(tmpdir(), "obsyn-seo-"));
+  writeFileSync(
+    join(dir, "index.html"),
+    '<html><head><title>Obsyn</title><meta name="description" content="x" /></head><body><div id="root"></div></body></html>',
+  );
+  const site = createSite(new Hono(), dir, "https://obsyn.trade/");
+  const home = await (await site.request("/")).text();
+  assert.match(home, /<h1>Trade size\. Stay private\.<\/h1>/);
+  assert.match(home, /Can you take my funds\?/); // FAQ answers are in the HTML
+  assert.match(home, /<link rel="canonical" href="https:\/\/obsyn\.trade" \/>/);
+  const sec = await (await site.request("/security/")).text();
+  assert.match(sec, /<title>Security · Obsyn<\/title>/);
+  assert.match(sec, /href="https:\/\/obsyn\.trade\/security"/);
+  const bid = await (await site.request("/bid/abc")).text();
+  assert.match(bid, /<div id="root"><\/div>/); // private pages get nothing extra
+});

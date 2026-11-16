@@ -23,7 +23,7 @@ const api = createApp({
   readPrice: (token, src) => readPrice(publicClient, token, src),
   readToken: (token) => readTokenInfo(publicClient, token),
 });
-const site = createSite(api, process.env.WEB_DIST ?? fileURLToPath(new URL("../../web/dist", import.meta.url)));
+const site = createSite(api, process.env.WEB_DIST ?? fileURLToPath(new URL("../../web/dist", import.meta.url)), cfg.publicUrl);
 
 if (cfg.relayerKeyProblem) console.warn(cfg.relayerKeyProblem);
 if (!cfg.escrow) console.warn("ESCROW_ADDRESS not set: accepted deals will have no escrow address, relayer disabled");
