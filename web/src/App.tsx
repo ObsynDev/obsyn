@@ -86,14 +86,6 @@ function WalletButton() {
   );
 }
 
-/** Status badge: always shown as live. */
-function LiveBadge() {
-  return (
-    <span className="live on" title="Live on Robinhood Chain">
-      ● LIVE
-    </span>
-  );
-}
 
 const SITE_NAV: [string, string][] = [
   ["/markets", "Markets"],
@@ -124,7 +116,6 @@ export function App() {
         <Link to="/" className="brand" aria-label={`${BRAND.name} home`}>
           <Wordmark />
         </Link>
-        <LiveBadge />
         <nav>
           {nav.map(([to, label]) => (
             <Link key={to} to={to} className={path === to ? "on" : ""}>
