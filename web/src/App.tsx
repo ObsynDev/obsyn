@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { api } from "./lib/api.ts";
-import { BRAND, Wordmark } from "./lib/brand.tsx";
+import { BRAND, Wordmark, XIcon } from "./lib/brand.tsx";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Link, short, usePath } from "./lib/ui.tsx";
 import { BuyerBid } from "./pages/BuyerBid.tsx";
@@ -137,6 +137,9 @@ export function App() {
             </Link>
           ))}
         </nav>
+        <a href={BRAND.x} className="x-link" target="_blank" rel="noreferrer" aria-label={`${BRAND.name} on X`}>
+          <XIcon />
+        </a>
         {site ? (
           <Link to="/app" className="cta buy sm">
             Launch app
@@ -176,6 +179,9 @@ export function App() {
                 ← Back to site
               </Link>
             )}
+            <a href={BRAND.x} className="mnav-x" target="_blank" rel="noreferrer" style={{ ["--i" as string]: nav.length + 1 } as CSSProperties} tabIndex={menu ? 0 : -1}>
+              <XIcon size={15} /> Follow {BRAND.xHandle}
+            </a>
           </div>
         </div>
       </header>
@@ -187,6 +193,9 @@ export function App() {
         <div className="fcol fbrand">
           <Wordmark />
           <p>Trade size. Stay private. Sealed OTC block trades on Robinhood Chain.</p>
+          <a href={BRAND.x} className="foot-x" target="_blank" rel="noreferrer">
+            <XIcon size={14} /> {BRAND.xHandle}
+          </a>
         </div>
         <div className="fcol">
           <h4>PRODUCT</h4>

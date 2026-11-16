@@ -5879,3 +5879,14 @@ html, body { overflow-x: clip; }
   .btn-group .gkey .gkey-legend { grid-row: 1; grid-column: 1; align-self: center; }
   .btn-group .gkey .gkey-led { position: absolute; top: 6px; right: 6px; width: 5px; height: 5px; }
 }
+
+/* X (Twitter) links */
+.x-link { display: inline-grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 9px; border: 1px solid var(--line-2); color: var(--muted); transition: color 0.2s, border-color 0.2s, background 0.2s; }
+.x-link:hover { color: var(--text); border-color: rgb(255 106 43 / 0.5); background: rgb(255 106 43 / 0.08); }
+.top nav { margin-right: auto; }
+.foot-x { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--muted); text-decoration: none; font: 500 13px var(--mono); }
+.foot-x:hover { color: var(--green); }
+@media (max-width: 860px) {
+  .top > .x-link { display: none; }
+  .mnav-inner a.mnav-x { justify-content: flex-start; gap: 10px; border: 0; font: 500 13px var(--mono); color: var(--muted); padding-top: 14px; }
+}

@@ -4,7 +4,18 @@ export const BRAND = {
   name: "Obsyn",
   tagline: "Trade size. Stay private.",
   description: "Private OTC block trades and a privacy layer on Robinhood Chain",
+  x: "https://x.com/Obsyntrade",
+  xHandle: "@Obsyntrade",
 };
+
+/** The X (Twitter) logo. */
+export function XIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+    </svg>
+  );
+}
 
 /**
  * The platform token. Fill these in at launch and the site updates everywhere:
