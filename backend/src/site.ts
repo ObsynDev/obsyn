@@ -54,6 +54,8 @@ export function createSite(api: Hono, webDist: string | null, publicUrl = "") {
   });
 
   site.route("/api", api);
+  // an unknown API path is a 404 in JSON, never the web app's HTML
+  site.all("/api/*", (c) => c.json({ error: "not found" }, 404));
 
   const root = webDist ? resolve(webDist) : null;
   if (!root || !existsSync(join(root, "index.html"))) {

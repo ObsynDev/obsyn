@@ -99,3 +99,18 @@ it("pages ship readable text, a per-page title and a canonical link for bots", a
   const bid = await (await site.request("/bid/abc")).text();
   assert.match(bid, /<div id="root"><\/div>/); // private pages get nothing extra
 });
+
+it("unknown API paths answer 404 JSON, not the web app", async () => {
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { Hono } = await import("hono");
+  const { createSite } = await import("../src/site.ts");
+  const dir = mkdtempSync(join(tmpdir(), "obsyn-404-"));
+  writeFileSync(join(dir, "index.html"), "<html><body><div id=\"root\"></div></body></html>");
+  const site = createSite(new Hono(), dir);
+  const r = await site.request("/api/nope/x");
+  assert.equal(r.status, 404);
+  assert.match(r.headers.get("content-type") ?? "", /json/);
+  assert.equal((await site.request("/trade")).status, 200); // app routes still served
+});
