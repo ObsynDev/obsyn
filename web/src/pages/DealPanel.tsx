@@ -136,7 +136,8 @@ export function DealPanel({
         </dl>
       )}
 
-      {s && s.status === "open" && !expired && !myFunded && role === "buyer" && (
+      {/* A fresh deal is "none" on-chain until its first deposit, which is the buyer's (payment locks first). */}
+      {s && (s.status === "none" || s.status === "open") && !expired && !myFunded && role === "buyer" && (
         <button className="btn primary" disabled={act.busy} onClick={() => act.run("buy")}>
           {act.busy ? "Confirm in wallet…" : `Deposit ${pay ? fmtAmount(terms.price, pay.decimals) : ""} ${pay?.symbol ?? ""}`}
         </button>
