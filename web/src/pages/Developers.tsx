@@ -27,10 +27,15 @@ const ROUTES: [string, string][] = [
 
 export function Developers() {
   const origin = window.location.origin;
-  const mcp = `mcp-client add ${BRAND.name.toLowerCase()} \\
-  -e OBSYN_API=${origin}/api \\
-  -e OBSYN_PRIVATE_KEY=0x... \\
-  -- node backend/src/mcp/stdio.ts`;
+  const mcp = `{
+  "mcpServers": {
+    "${BRAND.name.toLowerCase()}": {
+      "command": "node",
+      "args": ["backend/src/mcp/stdio.ts"],
+      "env": { "OBSYN_API": "${origin}/api", "OBSYN_PRIVATE_KEY": "0x..." }
+    }
+  }
+}`;
   const sdk = `import { Obsyn } from "${origin}/api/sdk/obsyn.mjs";
 
 const otc = new Obsyn({ apiUrl: "${origin}/api", privateKey }); // key optional

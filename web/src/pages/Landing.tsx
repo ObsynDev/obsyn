@@ -227,7 +227,7 @@ export function Landing() {
   const band = useScrollVar<HTMLElement>(bandProgress);
   useSpotlight();
   useScrollBoost(".tok-track");
-  const mcp = `mcp-client add ${BRAND.name.toLowerCase()} -e OBSYN_API=${window.location.origin}/api -- node backend/src/mcp/stdio.ts`;
+  const mcp = `OBSYN_API=${window.location.origin}/api node backend/src/mcp/stdio.ts`;
 
   return (
     <div className="l3">

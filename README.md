@@ -23,7 +23,7 @@ Deploying: see [DEPLOY.md](DEPLOY.md) (Railway, one service for API + web).
 
 ## Try it locally
 
-You need Foundry and Node.js 22+. Use four terminals.
+You need Foundry and Node.js 22+. Clone with submodules (`git clone --recursive`, or `git submodule update --init` after cloning) so `contracts/lib/forge-std` is there. Use four terminals.
 
 ```bash
 # 1. local chain
@@ -76,13 +76,20 @@ Sellers use `listBids()`, `sendOffer({ bidId, totalPrice, ghost })`, `dealStatus
 
 ## AI agents (MCP)
 
-A local MCP server lets MCP-capable AI agents bid, send sealed offers and settle. It runs on the agent's machine on purpose: offers are encrypted and decrypted there, so the backend still only sees ciphertext, and the wallet key never leaves that process.
+A local MCP server lets any MCP-capable AI agent bid, send sealed offers and settle. It runs on the agent's machine on purpose: offers are encrypted and decrypted there, so the backend still only sees ciphertext, and the wallet key never leaves that process.
 
-```bash
-mcp-client add obsyn \
-  -e OBSYN_API=https://obsyn.trade/api \
-  -e OBSYN_PRIVATE_KEY=0x... \
-  -- node "/path/to/backend/src/mcp/stdio.ts"
+Add it to your MCP client as a stdio server. Most clients take a config like this:
+
+```json
+{
+  "mcpServers": {
+    "obsyn": {
+      "command": "node",
+      "args": ["/path/to/backend/src/mcp/stdio.ts"],
+      "env": { "OBSYN_API": "https://obsyn.trade/api", "OBSYN_PRIVATE_KEY": "0x..." }
+    }
+  }
+}
 ```
 
 `OBSYN_PRIVATE_KEY` is optional. Without it, `otc_deposit` and `otc_refund` return unsigned transactions for you to send. Bid and offer secrets are kept in `~/.blockotc/state.json` (override with `OBSYN_STATE`); `OBSYN_RPC_URL` overrides the RPC.

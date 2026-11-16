@@ -1,6 +1,6 @@
 /**
- * Local MCP server (stdio). Register it in any MCP client as a stdio server, e.g.:
- *   mcp-client add obsyn -e OBSYN_API=https://your-backend/api -- node /path/to/backend/src/mcp/stdio.ts
+ * Local MCP server (stdio). Register it in any MCP client as a stdio server:
+ *   command: node   args: [/path/to/backend/src/mcp/stdio.ts]   env: OBSYN_API=https://your-backend/api
  *
  * Env:
  *   OBSYN_API            backend API URL (default http://localhost:8787/api)
