@@ -5671,3 +5671,6 @@ html, body { overflow-x: clip; }
 @media (max-width: 700px) { .sec-grid { grid-template-columns: minmax(0, 1fr); } }
 .hw-escrow { padding: 0 40px; } .hw-flow { width: 30px; } .hw-flow.a { right: calc(100% - 36px); } .hw-flow.b { left: calc(100% - 36px); }
 .wordmark > span:last-child, .giant { text-transform: uppercase; }
+/* giant wordmark: size from the container width so any brand length fits edge to edge */
+.l3-close { container-type: inline-size; }
+.giant { font-size: min(21.5cqw, 420px); justify-content: center; }
