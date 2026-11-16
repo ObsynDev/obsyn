@@ -5559,3 +5559,34 @@ html, body { overflow-x: clip; }
   .dx-facts { grid-template-columns: 1fr 1fr; }
   .dx-table { font-size: 13px; }
 }
+
+/* ═════════════════ closing: mobbin-style looping icon columns ═════════════════ */
+.mb2 { display: grid; gap: 0; }
+.mb2-stage { position: relative; display: grid; place-items: center; min-height: 560px; overflow: hidden; padding: 40px 0; }
+.mb2-copy { position: relative; z-index: 2; display: grid; justify-items: center; gap: 22px; text-align: center; max-width: 640px; padding: 0 16px; }
+.mb2-h { margin: 0; font-family: var(--display); font-stretch: 112%; font-weight: 700; font-size: clamp(36px, 4.6vw, 64px); line-height: 1.04; letter-spacing: -0.035em; color: #6b645b; }
+.mb2-h .mb2-strong { color: var(--text); }
+.mb2-sub { margin: 0; font-size: 17px; line-height: 1.55; color: var(--muted); max-width: 52ch; }
+.ic-side { position: absolute; top: 0; bottom: 0; display: flex; gap: 22px; pointer-events: none; -webkit-mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent); mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent); }
+.ic-side.left { left: 2%; }
+.ic-side.right { right: 2%; }
+.ic-col { overflow: visible; }
+.ic-col.far { filter: blur(3px); opacity: 0.5; margin-top: 60px; }
+.ic-col.near { opacity: 0.95; }
+.ic-track { display: flex; flex-direction: column; animation: ic-up 36s linear infinite; }
+.ic-track.down { animation-name: ic-down; }
+.ic-col.far .ic-track { animation-duration: 48s; }
+@keyframes ic-up { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, -50%, 0); } }
+@keyframes ic-down { from { transform: translate3d(0, -50%, 0); } to { transform: translate3d(0, 0, 0); } }
+.ic-set { display: flex; flex-direction: column; gap: 26px; padding-bottom: 26px; }
+.ic-tile { transform: rotate(var(--r, 0deg)); filter: drop-shadow(0 18px 30px rgb(0 0 0 / 0.55)); }
+.ic-tile .avatar { border-radius: 24% !important; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.18); }
+.ic-tile .avatar.logo svg { width: 54% !important; height: 54% !important; }
+.l3-close.mb2 .giant { margin-top: 20px; }
+@media (max-width: 900px) {
+  .ic-side { opacity: 0.35; }
+  .ic-side.left { left: -40px; }
+  .ic-side.right { right: -40px; }
+  .ic-col.far { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .ic-track { animation: none; } }

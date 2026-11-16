@@ -8,6 +8,7 @@ import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { PixelPipeline } from "./PixelPipeline.tsx";
 import { EmberField } from "./EmberField.tsx";
 import { PixelField } from "./PixelField.tsx";
+import { IconColumns } from "./IconColumns.tsx";
 import { HeroTicket } from "./HeroTicket.tsx";
 import { TokenUtility } from "./TokenUtility.tsx";
 import { MarketBoard } from "./Markets.tsx";
@@ -433,12 +434,21 @@ export function Landing() {
         </div>
       </section>
 
-      {/* closing + giant wordmark */}
-      <section className="l3-close">
-        <SplitWords text="Move the block. / [Keep it private.]" accent="copper" />
-        <div className="btn-group">
-          <SlotButton to="/otc?side=sell">SELL PRIVATELY</SlotButton>
-          <KeyButton to="/otc">OPEN THE DESK</KeyButton>
+      {/* closing: mobbin-style, real market logos drifting on both sides */}
+      <section className="l3-close mb2">
+        <div className="mb2-stage">
+          <IconColumns />
+          <div className="mb2-copy">
+            <SplitWords text="Moving size? / [Keep it private.]" accent="mb2-strong" className="mb2-h" />
+            <p className="mb2-sub">
+              {MARKETS.length} markets, sealed answers only you can read, and one-transaction settlement on Robinhood Chain. No
+              account, no order book.
+            </p>
+            <div className="btn-group">
+              <SlotButton to="/otc?side=sell">SELL PRIVATELY</SlotButton>
+              <KeyButton to="/otc">OPEN THE DESK</KeyButton>
+            </div>
+          </div>
         </div>
         <GiantMark />
       </section>
