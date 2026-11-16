@@ -14,7 +14,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
   {
     n: "00",
     title: "Live today",
-    blurb: "The core desk runs in preview: everything up to settlement works, and settlement switches on when the contract is deployed.",
+    blurb: "The core desk is live: post sealed bids and listings, read private answers, and settle in one contract transaction.",
     items: [
       { t: "Sealed bids and listings", d: "Post a bid to buy or list a block to sell. Answers are encrypted to you in the sender's browser.", s: "live", size: "L" },
       { t: "OTC desk", d: "Swap-style widget: size in USD or tokens, ETH or USDG, reply window.", s: "live", size: "M" },

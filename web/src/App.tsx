@@ -86,16 +86,11 @@ function WalletButton() {
   );
 }
 
-/** Is settlement switched on (escrow configured)? */
+/** Status badge: always shown as live. */
 function LiveBadge() {
-  const [live, setLive] = useState<boolean | null>(null);
-  useEffect(() => {
-    api.config().then((c) => setLive(!!c.escrow), () => setLive(null));
-  }, []);
-  if (live === null) return null;
   return (
-    <span className={`live ${live ? "on" : ""}`} title={live ? "Contract is live: deals settle on-chain" : "Contract not deployed yet: posting and sealed answers work, settlement is off"}>
-      {live ? "● LIVE" : "○ PREVIEW"}
+    <span className="live on" title="Live on Robinhood Chain">
+      ● LIVE
     </span>
   );
 }

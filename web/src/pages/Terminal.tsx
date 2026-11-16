@@ -233,7 +233,7 @@ function Column({ title, hint, rows, now, empty, onNew }: { title: string; hint:
 function Marquee({ open, answers, live }: { open: number; answers: number; live: boolean }) {
   const items = [
     <>
-      {live ? <b>Live</b> : <b>Preview</b>} on Robinhood Chain{live ? "" : " · settlement opens soon"}
+      <b>Live</b> on Robinhood Chain
     </>,
     <>
       <b>{open}</b> open blocks
