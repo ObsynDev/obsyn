@@ -5670,7 +5670,7 @@ html, body { overflow-x: clip; }
 .dx-stats b.warn-text { color: #f5c98a; }
 @media (max-width: 700px) { .sec-grid { grid-template-columns: minmax(0, 1fr); } }
 .hw-escrow { padding: 0 40px; } .hw-flow { width: 30px; } .hw-flow.a { right: calc(100% - 36px); } .hw-flow.b { left: calc(100% - 36px); }
-.wordmark > span:last-child, .giant { text-transform: uppercase; }
+.giant { text-transform: uppercase; }
 /* giant wordmark: size from the container width so any brand length fits edge to edge */
 .l3-close { container-type: inline-size; }
 .giant { font-size: min(21.5cqw, 420px); justify-content: center; }
@@ -5678,3 +5678,9 @@ html, body { overflow-x: clip; }
 /* Button labels keep their own colour, whatever link or utility rule (.green, .red, "x a { color }") sits around them. */
 .gkey, .gkey:hover, .gkey:focus-visible, .gkey:active { color: var(--ink) !important; }
 .gslot, .gslot:hover, .gslot:focus-visible, .gslot:active { color: var(--text) !important; }
+
+/* brand lockup (Tile mark + lowercase Sora wordmark) */
+.wordmark { gap: 10px; letter-spacing: -0.04em; font-family: "Sora", var(--sans); font-weight: 700; font-size: 22px; text-transform: none; }
+.wordmark > span:last-child { text-transform: lowercase; }
+.foot-brand .wordmark { font-size: 18px; }
+@media (max-width: 760px) { .wordmark { font-size: 19px; } }
