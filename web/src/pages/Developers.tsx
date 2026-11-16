@@ -2,7 +2,7 @@ import { BRAND } from "../lib/brand.tsx";
 import { Copy, Link } from "../lib/ui.tsx";
 
 const TOOLS: [string, string][] = [
-  ["otc_info", "Chain, escrow, fees, relayer, and which wallet the agent signs with"],
+  ["otc_info", "Chain, contract, fees, relayer, and which wallet the agent signs with"],
   ["otc_list_bids", "Open bids and sell listings, with side, size and time left"],
   ["otc_create_bid", "Post a buy bid: token, amount, ETH or USDG, reply window"],
   ["otc_create_listing", "Sell privately: list a block, buyers answer with sealed bids"],

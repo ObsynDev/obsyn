@@ -5684,3 +5684,19 @@ html, body { overflow-x: clip; }
 .wordmark > span:last-child { text-transform: lowercase; }
 .foot-brand .wordmark { font-size: 18px; }
 @media (max-width: 760px) { .wordmark { font-size: 19px; } }
+
+/* phone fit: /how mocks and the end-of-page CTA pair never run past the screen */
+.hw-visual { grid-template-columns: minmax(0, 1fr); }
+.hw-mock { min-width: 0; justify-self: center; }
+.hw-row > * { min-width: 0; }
+@media (max-width: 520px) {
+  .dx-end { justify-items: stretch; }
+  .dx-end .btn-group { flex-wrap: wrap; justify-content: center; padding-inline: 0; }
+  .dx-end .btn-group > * { flex: 1 1 100%; }
+}
+@media (max-width: 520px) {
+  .btn-group { flex-wrap: wrap; max-width: 100%; }
+  .btn-group > .gkey, .btn-group > .gslot { flex: 1 1 100%; min-width: 0; }
+  .mb-cta .gkey, .mb-cta .gslot { min-width: 0; width: 100%; }
+  .gkey .gkey-legend { overflow: hidden; text-overflow: ellipsis; }
+}

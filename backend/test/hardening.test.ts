@@ -1,0 +1,78 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { createApp } from "../src/app.ts";
+import { loadConfig } from "../src/config.ts";
+import { openDb } from "../src/db.ts";
+import type { Relayer } from "../src/relayer.ts";
+import { createSite } from "../src/site.ts";
+
+const relayer: Relayer = {
+  info: () => ({ enabled: false, address: null, problem: null, minFee: { eth: "0", usdg: "0" } }),
+  async relayDeposit() {
+    throw new Error("unused");
+  },
+};
+
+function setup(readToken?: () => Promise<any>) {
+  return createApp({
+    cfg: loadConfig({ PUBLIC_URL: "https://otc.example" }),
+    db: openDb(":memory:"),
+    relayer,
+    readPrice: async () => {
+      throw new Error("unused");
+    },
+    readToken: readToken as any,
+    refQuote: async () => {
+      throw new Error("unused");
+    },
+  });
+}
+
+describe("hardening", () => {
+  it("rate-limits writes by the proxy-added address, so a spoofed first X-Forwarded-For entry doesn't help", async () => {
+    const app = setup();
+    let last = 0;
+    for (let i = 0; i < 61; i++) {
+      const res = await app.request("/rfqs", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": `10.0.0.${i}, 203.0.113.7` },
+        body: "{}",
+      });
+      last = res.status;
+    }
+    assert.equal(last, 429);
+    // a different real client is unaffected
+    const other = await app.request("/rfqs", { method: "POST", headers: { "content-type": "application/json", "x-real-ip": "198.51.100.9" }, body: "{}" });
+    assert.notEqual(other.status, 429);
+  });
+
+  it("rejects oversized bodies before parsing them", async () => {
+    const app = setup();
+    const res = await app.request("/rfqs", {
+      method: "POST",
+      headers: { "content-type": "application/json", "content-length": String(70 * 1024) },
+      body: JSON.stringify({ note: "x".repeat(70 * 1024) }),
+    });
+    assert.equal(res.status, 413);
+  });
+
+  it("caches on-chain token reads", async () => {
+    let calls = 0;
+    const app = setup(async () => {
+      calls++;
+      return { address: "0x0000000000000000000000000000000000000001", isContract: true };
+    });
+    for (let i = 0; i < 5; i++) assert.equal((await app.request("/token/0x0000000000000000000000000000000000000001")).status, 200);
+    assert.equal(calls, 1);
+  });
+
+  it("sends the security headers and answers malformed paths with 400", async () => {
+    const site = createSite(setup(), null);
+    const res = await site.request("/api/health");
+    for (const h of ["strict-transport-security", "content-security-policy", "permissions-policy", "x-frame-options", "x-content-type-options"]) {
+      assert.ok(res.headers.get(h), `missing ${h}`);
+    }
+    assert.match(res.headers.get("content-security-policy")!, /script-src 'self'/);
+    assert.match(res.headers.get("content-security-policy")!, /frame-ancestors 'none'/);
+  });
+});

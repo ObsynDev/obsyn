@@ -15,6 +15,25 @@ const TYPES: Record<string, string> = {
 };
 
 /**
+ * Content Security Policy for the web app. Scripts only from our own origin (Vite bundles
+ * everything); styles allow inline because React and the wallet modal set style attributes;
+ * network calls may go to https/wss because wallets reach their own relays and RPCs.
+ */
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:",
+  "connect-src 'self' https: wss:",
+  "frame-src https://verify.walletconnect.com https://verify.walletconnect.org https://secure.walletconnect.com https://secure.walletconnect.org https://keys.coinbase.com",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+].join("; ");
+
+/**
  * One public origin: the API under /api, the built web app everywhere else.
  * Unknown paths fall back to index.html so client-side routes (/bid/…, /rfq/…) work on reload.
  */
@@ -26,6 +45,11 @@ export function createSite(api: Hono, webDist: string | null) {
     c.header("x-content-type-options", "nosniff");
     c.header("referrer-policy", "no-referrer");
     c.header("x-frame-options", "DENY");
+    c.header("strict-transport-security", "max-age=31536000; includeSubDomains");
+    c.header("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+    // wallet SDKs (Coinbase, WalletConnect) open popups and need to talk back to us
+    c.header("cross-origin-opener-policy", "same-origin-allow-popups");
+    c.header("content-security-policy", CSP);
   });
 
   site.route("/api", api);
@@ -39,7 +63,12 @@ export function createSite(api: Hono, webDist: string | null) {
   const index = () => readFileSync(join(root, "index.html"));
 
   site.get("*", (c) => {
-    const rel = decodeURIComponent(new URL(c.req.url).pathname);
+    let rel: string;
+    try {
+      rel = decodeURIComponent(new URL(c.req.url).pathname);
+    } catch {
+      return c.text("bad request", 400); // malformed percent-encoding
+    }
     const file = resolve(root, "." + rel);
     // path traversal guard: never serve outside the build folder
     if ((file === root || file.startsWith(root + sep)) && existsSync(file) && statSync(file).isFile()) {

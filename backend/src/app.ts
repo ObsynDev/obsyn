@@ -1,4 +1,5 @@
 import { Hono, type Context } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { getAddress, isAddress, zeroAddress, type Address, type Hex } from "viem";
 import { z } from "zod";
@@ -64,15 +65,36 @@ export function createApp(deps: Deps) {
   // call carries its own bearer capability. It lets the SDK run on any site.
   app.use("*", cors({ origin: "*", allowHeaders: ["content-type", "authorization"], maxAge: 600 }));
 
-  // ── tiny per-client rate limit on writes ──
+  // Requests are capped in size before anything parses them (the largest valid body, a sealed
+  // answer, is well under this).
+  app.use("*", bodyLimit({ maxSize: 64 * 1024, onError: (c) => c.json({ error: "request too large" }, 413) }));
+
+  // ── tiny per-client rate limits: writes, and the routes that cost an RPC call ──
+  // The client IP comes from the proxy: X-Real-IP, else the LAST X-Forwarded-For entry (the one the
+  // proxy appended). The first entry is whatever the client sent, so it can't be trusted.
+  const clientIp = (c: Context) =>
+    c.req.header("x-real-ip")?.trim() || c.req.header("x-forwarded-for")?.split(",").pop()?.trim() || "local";
   const hits = new Map<string, { n: number; reset: number }>();
+  let lastPrune = 0;
+  const limited = (key: string, max: number) => {
+    const t = now();
+    if (t - lastPrune > 60) {
+      // forget expired windows so the map can't grow without bound
+      for (const [k, v] of hits) if (v.reset <= t) hits.delete(k);
+      lastPrune = t;
+    }
+    const h = hits.get(key);
+    if (!h || h.reset <= t) {
+      hits.set(key, { n: 1, reset: t + 60 });
+      return false;
+    }
+    return ++h.n > max;
+  };
   app.use("*", async (c, next) => {
-    if (c.req.method === "POST") {
-      const key = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-      const t = now();
-      const h = hits.get(key);
-      if (!h || h.reset <= t) hits.set(key, { n: 1, reset: t + 60 });
-      else if (++h.n > 60) return c.json({ error: "rate limited" }, 429);
+    const ip = clientIp(c);
+    if (c.req.method === "POST" && limited(`w:${ip}`, 60)) return c.json({ error: "rate limited" }, 429);
+    if (c.req.method === "GET" && /^\/(api\/)?(token|price)\//.test(c.req.path) && limited(`r:${ip}`, 120)) {
+      return c.json({ error: "rate limited" }, 429);
     }
     await next();
   });
@@ -357,12 +379,26 @@ export function createApp(deps: Deps) {
   // ─────────────────────────── on-chain reference price ───────────────────────────
 
   /** ERC-20 facts read on-chain by the server (useful when a client's own RPC is blocked). */
+  const tokenCache = new Map<string, { at: number; p: Promise<TokenInfo> }>();
   app.get("/token/:address", async (c) => {
     const a = c.req.param("address");
     if (!isAddress(a)) return c.json({ error: "invalid address" }, 400);
     if (!deps.readToken) return c.json({ error: "token reads not configured" }, 503);
+    const key = getAddress(a);
+    const hit = tokenCache.get(key);
+    if (hit && now() - hit.at < 300) {
+      try {
+        return c.json(await hit.p);
+      } catch {
+        tokenCache.delete(key);
+      }
+    }
+    if (tokenCache.size > 1000) tokenCache.clear();
+    const p = deps.readToken(key);
+    tokenCache.set(key, { at: now(), p });
+    p.catch(() => tokenCache.delete(key));
     try {
-      return c.json(await deps.readToken(getAddress(a)));
+      return c.json(await p);
     } catch (e) {
       return c.json({ error: (e as Error).message }, 502);
     }
