@@ -1,6 +1,17 @@
-# Obsyn (placeholder name)
+# Obsyn
 
-Private OTC block trades on Robinhood Chain: sealed bids and offers, one-transaction escrow settlement, and a gasless "ghost mode" for sellers.
+**Trade size. Stay private.** Private OTC block trades on Robinhood Chain: sealed bids and offers that only the poster can read, one-transaction settlement through an adminless contract, and a gasless "ghost mode" for sellers.
+
+[obsyn.trade](https://obsyn.trade) · [X @Obsyntrade](https://x.com/Obsyntrade) · [How it works](https://obsyn.trade/how) · [Security](https://obsyn.trade/security) · [Docs](https://obsyn.trade/docs)
+
+### Live on Robinhood Chain (chain id 4663)
+
+| Contract | Address |
+|---|---|
+| `OtcEscrow` (settlement, no owner / admin / pause / upgrade) | [`0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865`](https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865) |
+| `BuyBurnVault` (collects fees for $OBSYN buy-and-burn; can't withdraw them) | [`0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221`](https://robinhoodchain.blockscout.com/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221) |
+
+The contracts have not had a professional audit yet. Start with sizes you're comfortable with.
 
 | Folder | What it is |
 |---|---|
@@ -52,9 +63,9 @@ Walkthrough: as the buyer, place a bid for the `STOCK_TOKEN` paid in USDG. Open 
 - **JavaScript SDK:** `npm run build:sdk` in `backend/`, then the backend serves it at `GET /api/sdk/obsyn.mjs`. It works in browsers and Node, and CORS is open so any site can use it.
 
 ```js
-import { BlockOtc } from "https://your-backend/api/sdk/obsyn.mjs";
+import { Obsyn } from "https://obsyn.trade/api/sdk/obsyn.mjs";
 
-const otc = new BlockOtc({ apiUrl: "https://your-backend/api", privateKey: "0x…" }); // key optional
+const otc = new Obsyn({ apiUrl: "https://obsyn.trade/api", privateKey: "0x…" }); // key optional
 const bid = await otc.createBid({ token: "0x…", amount: "25000", payWith: "USDG", replyMinutes: 60 });
 const offers = await otc.getOffers(bid.bidId);            // decrypted locally, cheapest first
 await otc.acceptOffer({ bidId: bid.bidId, offerId: offers[0].offerId, fundingMinutes: 60 });
@@ -68,8 +79,8 @@ Sellers use `listBids()`, `sendOffer({ bidId, totalPrice, ghost })`, `dealStatus
 A local MCP server lets MCP-capable AI agents bid, send sealed offers and settle. It runs on the agent's machine on purpose: offers are encrypted and decrypted there, so the backend still only sees ciphertext, and the wallet key never leaves that process.
 
 ```bash
-mcp-client add blockotc \
-  -e OBSYN_API=http://localhost:8787/api \
+mcp-client add obsyn \
+  -e OBSYN_API=https://obsyn.trade/api \
   -e OBSYN_PRIVATE_KEY=0x... \
   -- node "/path/to/backend/src/mcp/stdio.ts"
 ```
@@ -102,10 +113,10 @@ cd web && npm run build        # typecheck + production build
 
 The OTC can go live **before** the platform token exists.
 
-1. `script/Deploy.s.sol` deploys `BuyBurnVault` (owner = a multisig) and `OtcEscrow` pointing at it. Fees in ETH and USDG pile up in the vault; nobody can withdraw them.
+1. `script/Deploy.s.sol` deploys `BuyBurnVault` and `OtcEscrow` pointing at it (already done, see the addresses above). Fees in ETH and USDG pile up in the vault; nobody can withdraw them.
 2. Fill `backend/.env` (see `.env.example`) and fund the relayer key with a little ETH.
 3. Later, when the token launches on Pons: run `script/SetPlatformToken.s.sol` with the token address, its Pons curve and the holder threshold. It works once and can't be changed. From then on holders get the 0.5% discount and the keeper can burn the accumulated fees.
 
 The escrow itself is never redeployed or changed.
 
-Before mainnet: get the contracts audited, check the Pons curve interface against its verified on-chain source (it came from their docs), and get the real USDG and ETH/USD feed addresses from official sources.
+`contracts/test/LiveFork.t.sol` replays deals against the live deployment on a fork: `LIVE_RPC=https://4663.rpc.thirdweb.com forge test --match-contract LiveFork`.
