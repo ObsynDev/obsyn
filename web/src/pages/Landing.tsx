@@ -3,7 +3,7 @@ import { api } from "../lib/api.ts";
 import { BRAND, PLATFORM_TOKEN } from "../lib/brand.tsx";
 import { CountUp, Reveal, Scramble, SplitWords, reducedMotion, useInView, useScrollBoost, useScrollVar, useSpotlight, useTilt } from "../lib/motion.tsx";
 import { Copy, Link, navigate, short } from "../lib/ui.tsx";
-import { AsciiSlabs } from "./AsciiSlabs.tsx";
+import { AsciiMark } from "./AsciiMark.tsx";
 import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { PixelPipeline } from "./PixelPipeline.tsx";
 import { EmberField } from "./EmberField.tsx";
@@ -392,7 +392,7 @@ export function Landing() {
           </Reveal>
           <div className="ask-art" aria-hidden="true">
             <span className="ask-glow" />
-            <AsciiSlabs />
+            <AsciiMark />
           </div>
         </div>
       </section>
