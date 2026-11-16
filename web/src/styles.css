@@ -4400,7 +4400,7 @@ body {
   cursor: pointer;
   transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.12s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.gkey.red {
+.gkey.gkey-red {
   --face-1: #ff8fa6;
   --face-2: #ff5277;
   --face-3: #e8406a;
@@ -4415,7 +4415,7 @@ body {
     0 var(--lift) 0 1px var(--deeper),
     0 calc(var(--lift) + 10px) 26px -8px rgb(255 82 119 / 0.4);
 }
-.gkey.block {
+.gkey.gkey-block {
   display: grid;
   width: 100%;
 }
@@ -4727,7 +4727,7 @@ body {
 .gkey {
   text-shadow: 0 1px 0 rgb(30 18 110 / 0.45);
 }
-.gkey.red {
+.gkey.gkey-red {
   text-shadow: none;
 }
 .sq.go:hover {
@@ -5639,7 +5639,7 @@ html, body { overflow-x: clip; }
 @keyframes hw-pulse { 50% { opacity: 0.45; } }
 .hw-extra { display: grid; gap: 22px; }
 .hw .dx-end .dx-lede { text-align: center; }
-.hw .dx-end a { color: var(--green); }
+.hw .dx-end .dx-lede a { color: var(--green); }
 @media (max-width: 900px) {
   .hw-step { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 22px 18px; }
   .hw-step.flip .hw-copy { order: 0; }
@@ -5674,3 +5674,7 @@ html, body { overflow-x: clip; }
 /* giant wordmark: size from the container width so any brand length fits edge to edge */
 .l3-close { container-type: inline-size; }
 .giant { font-size: min(21.5cqw, 420px); justify-content: center; }
+
+/* Button labels keep their own colour, whatever link or utility rule (.green, .red, "x a { color }") sits around them. */
+.gkey, .gkey:hover, .gkey:focus-visible, .gkey:active { color: var(--ink) !important; }
+.gslot, .gslot:hover, .gslot:focus-visible, .gslot:active { color: var(--text) !important; }

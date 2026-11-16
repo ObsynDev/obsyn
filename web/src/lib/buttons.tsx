@@ -86,13 +86,13 @@ export function KeyButton({
   );
   if (to) {
     return (
-      <Link to={to} className={`gkey ${tone}${block ? " block" : ""}`} onPointerEnter={sc.onPointerEnter}>
+      <Link to={to} className={`gkey gkey-${tone}${block ? " gkey-block" : ""}`} onPointerEnter={sc.onPointerEnter}>
         {inner}
       </Link>
     );
   }
   return (
-    <button type={type} className={`gkey ${tone}${block ? " block" : ""}`} onClick={onClick} disabled={disabled} onPointerEnter={sc.onPointerEnter}>
+    <button type={type} className={`gkey gkey-${tone}${block ? " gkey-block" : ""}`} onClick={onClick} disabled={disabled} onPointerEnter={sc.onPointerEnter}>
       {inner}
     </button>
   );
