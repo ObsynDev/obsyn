@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { api } from "../lib/api.ts";
 import { BRAND, PLATFORM_TOKEN } from "../lib/brand.tsx";
 import { CountUp, Reveal, Scramble, SplitWords, reducedMotion, useInView, useScrollBoost, useScrollVar, useSpotlight, useTilt } from "../lib/motion.tsx";
-import { Copy, Link, navigate, short } from "../lib/ui.tsx";
+import { Copy, Link, navigate } from "../lib/ui.tsx";
 import { AsciiMark } from "./AsciiMark.tsx";
 import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { PixelPipeline } from "./PixelPipeline.tsx";
@@ -15,15 +14,6 @@ import { MarketBoard } from "./Markets.tsx";
 import { TokenAvatar } from "./Terminal.tsx";
 import { MARKETS } from "../lib/tokens.ts";
 
-function useServer() {
-  const [escrow, setEscrow] = useState<string | null | undefined>(undefined);
-  const [open, setOpen] = useState<number | null>(null);
-  useEffect(() => {
-    api.config().then((c) => setEscrow(c.escrow), () => setEscrow(undefined));
-    api.listRfqs().then((r) => setOpen(r.filter((x) => x.expiresAt > Date.now() / 1000).length), () => setOpen(null));
-  }, []);
-  return { escrow, open };
-}
 
 // ───────────────────────── privacy: who sees what ─────────────────────────
 
@@ -211,7 +201,6 @@ const FAQ = [
 ];
 
 export function Landing() {
-  const { escrow, open } = useServer();
   // The "ENTER ↵" hint on the main button is real.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -257,20 +246,6 @@ export function Landing() {
               <SlotButton to="/how">HOW IT WORKS</SlotButton>
               <KeyButton to="/otc">OPEN THE DESK</KeyButton>
             </div>
-          </div>
-          <div className="ca-row mono rise" style={{ ["--i" as string]: 5 }}>
-            <span className="ca-k">CONTRACT</span>
-            {escrow ? (
-              <>
-                <span>{short(escrow)}</span>
-                <Copy text={escrow} />
-              </>
-            ) : (
-              <span className="dim">{escrow === null ? "not deployed yet" : "…"}</span>
-            )}
-            <span className="ca-sep" />
-            <span className="ca-k">OPEN</span>
-            <span>{open ?? "…"}</span>
           </div>
         </div>
         <div className="l3-hero-art" ref={tilt}>

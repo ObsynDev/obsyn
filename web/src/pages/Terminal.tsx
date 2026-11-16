@@ -259,28 +259,6 @@ function Marquee({ open, answers, live }: { open: number; answers: number; live:
   );
 }
 
-/** Escrow contract address chip, or an honest "not deployed yet" before launch. */
-function EscrowChip() {
-  const [escrow, setEscrow] = useState<string | null | undefined>(undefined);
-  useEffect(() => {
-    api.config().then((c) => setEscrow(c.escrow), () => setEscrow(undefined));
-  }, []);
-  if (escrow === undefined) return null;
-  return (
-    <span className="ca">
-      Contract{" "}
-      {escrow ? (
-        <>
-          <b>{short(escrow)}</b>
-          <Copy text={escrow} />
-        </>
-      ) : (
-        <b>not deployed yet. Accept no imitations.</b>
-      )}
-    </span>
-  );
-}
-
 // ───────────────────────── page ─────────────────────────
 
 export function Terminal() {
@@ -314,7 +292,6 @@ export function Terminal() {
             Trade size. <span className="copper">Stay private.</span>
           </h1>
           <p>Post a block. Get sealed answers only you can read. Settle both sides in one contract transaction.</p>
-          <EscrowChip />
         </div>
         <div className="strip-stats">
           <span>
