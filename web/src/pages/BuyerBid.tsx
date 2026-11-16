@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatUnits, getAddress, isAddress, toHex, zeroAddress, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { api, ApiError, type DealInfo, type Rfq, type SealedQuote, type ServerConfig } from "../lib/api.ts";
-import { balanceOfAsset, connectWallet, termsFromJson, termsToJson, tokenInfo, verifyAnswerSig, type Terms, type TokenInfo } from "../lib/chain.ts";
+import { balanceOfAsset, connectWallet, ghostSupported, NO_GHOST, termsFromJson, termsToJson, tokenInfo, verifyAnswerSig, type Terms, type TokenInfo } from "../lib/chain.ts";
 import { answerMessage, fromUrl, hashParams, keysFromSecret, sideOf, unseal, type BuyerBid as BuyerBidMsg, type Offer } from "../lib/sealed.ts";
 import { referral, saved } from "../lib/store.ts";
 import { Copy, Err, fmtAmount, fmtLeft, Pill, short, useAction, useNow, usePoll } from "../lib/ui.tsx";
@@ -42,6 +42,7 @@ export function BuyerBid({ id }: { id: string }) {
   const [err, setErr] = useState<string | null>(null);
   // sell listings only: how the seller wants to settle
   const [ghost, setGhost] = useState(false);
+  const [ghostOk, setGhostOk] = useState<boolean | null>(null);
   const [payout, setPayout] = useState("");
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export function BuyerBid({ id }: { id: string }) {
         setCfg(c);
         setTok(await tokenInfo(r.token));
         setPay(await tokenInfo(r.payToken));
+        if (sideOf(r) === "sell") ghostSupported(r.token).then(setGhostOk);
         if (r.status === "accepted") setDeal(await api.getDeal(id, token));
       })
       .catch((e) => setErr(e.message));
@@ -156,6 +158,7 @@ export function BuyerBid({ id }: { id: string }) {
       let relayerFee = 0n;
       if (ghost) {
         if (!cfg?.relayer.enabled) throw new Error("Ghost mode is unavailable: the relayer is offline.");
+        if ((await ghostSupported(rfq.token)) === false) throw new Error(NO_GHOST(tok?.symbol ?? "This token"));
         const key = ghostKey ?? generatePrivateKey();
         seller = privateKeyToAccount(key).address;
         relayerFee = BigInt(rfq.payToken === zeroAddress ? cfg.relayer.minFee.eth : cfg.relayer.minFee.usdg);
@@ -240,10 +243,17 @@ export function BuyerBid({ id }: { id: string }) {
                 <button type="button" className={!ghost ? "on" : ""} onClick={() => setGhost(false)}>
                   Deliver from my wallet
                 </button>
-                <button type="button" className={ghost ? "on" : ""} onClick={() => setGhost(true)}>
+                <button
+                  type="button"
+                  className={ghost ? "on" : ""}
+                  onClick={() => setGhost(true)}
+                  disabled={ghostOk === false}
+                  title={ghostOk === false ? NO_GHOST(tok.symbol) : undefined}
+                >
                   Ghost mode
                 </button>
               </div>
+              {ghostOk === false && <p className="muted small">{NO_GHOST(tok.symbol)}</p>}
               {ghost && (
                 <p className="muted small">
                   A one-time wallet is made in this browser. After accepting you move the tokens into it and the relayer deposits

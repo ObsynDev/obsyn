@@ -1,4 +1,13 @@
-import { erc20Abi, getAddress, parseAbi, type Address, type PublicClient } from "viem";
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  ContractFunctionZeroDataError,
+  erc20Abi,
+  getAddress,
+  parseAbi,
+  type Address,
+  type PublicClient,
+} from "viem";
 
 /**
  * Reference prices read straight from Robinhood Chain. No third-party price API.
@@ -103,7 +112,17 @@ export async function readTokenInfo(client: PublicClient, address: Address): Pro
   const blockNumber = await client.getBlockNumber();
   const code = await client.getCode({ address, blockNumber });
   const isContract = !!code && code !== "0x";
-  const read = <T>(p: Promise<T>) => p.then((v) => v, () => null);
+  // A revert (or no such function) means "not supported": null. A network error is rethrown, so the
+  // request fails and nothing wrong gets cached (e.g. permit:false during an RPC outage).
+  const read = <T>(p: Promise<T>) =>
+    p.then(
+      (v) => v,
+      (e) => {
+        const reverted = e instanceof BaseError && !!e.walk((x) => x instanceof ContractFunctionRevertedError || x instanceof ContractFunctionZeroDataError);
+        if (reverted) return null;
+        throw e;
+      },
+    );
   const [name, symbol, dec, supply, nonce, sep] = isContract
     ? await Promise.all([
         read(client.readContract({ address, abi: erc20Abi, functionName: "name", blockNumber })),

@@ -1,4 +1,7 @@
 import {
+  BaseError,
+  ContractFunctionRevertedError,
+  ContractFunctionZeroDataError,
   createPublicClient,
   createWalletClient,
   custom,
@@ -211,8 +214,14 @@ export async function ghostDeposit(escrow: Address, t: Terms, ghostKey: Hex) {
   let nonce: bigint;
   try {
     nonce = await c.readContract({ address: t.token, abi: permitAbi, functionName: "nonces", args: [ghost.address] });
-  } catch {
-    throw new Error("This token doesn't support gasless permits (EIP-2612). Use a normal deposit.");
+  } catch (e) {
+    // A revert means the token has no permit; anything else is the connection, so say so and let them retry.
+    const reverted = e instanceof BaseError && !!e.walk((x) => x instanceof ContractFunctionRevertedError || x instanceof ContractFunctionZeroDataError);
+    throw new Error(
+      reverted
+        ? "This token doesn't support gasless permits (EIP-2612). Use a normal deposit."
+        : "Couldn't reach Robinhood Chain to prepare the gasless deposit. Check your connection and try again.",
+    );
   }
 
   const permitDeadline = t.deadline;
@@ -250,6 +259,27 @@ export async function ghostDeposit(escrow: Address, t: Terms, ghostKey: Hex) {
   });
   return c.waitForTransactionReceipt({ hash: txHash });
 }
+
+/**
+ * Can this token do ghost mode (EIP-2612 gasless approvals)? Asked through our server so it
+ * works when the visitor's RPC is blocked. null = couldn't tell right now.
+ */
+const permitCache = new Map<string, Promise<boolean | null>>();
+export function ghostSupported(token: Address): Promise<boolean | null> {
+  let p = permitCache.get(token);
+  if (!p) {
+    p = api.token(token).then(
+      (t) => (t.isContract ? t.permit : null),
+      () => null,
+    );
+    p.then((v) => v === null && permitCache.delete(token));
+    permitCache.set(token, p);
+  }
+  return p;
+}
+
+export const NO_GHOST = (symbol: string) =>
+  `Ghost mode needs gasless approvals (EIP-2612), and ${symbol} doesn't have them. Deliver from your wallet instead.`;
 
 export const explorerTx = (h: Hex) => `https://robinhoodchain.blockscout.com/tx/${h}`;
 export const explorerAddr = (a: Address) => `https://robinhoodchain.blockscout.com/address/${a}`;

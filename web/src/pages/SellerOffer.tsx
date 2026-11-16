@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { formatUnits, getAddress, isAddress, parseUnits, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { api, type Rfq, type ServerConfig } from "../lib/api.ts";
-import { connectWallet, tokenInfo, type TokenInfo } from "../lib/chain.ts";
+import { connectWallet, ghostSupported, NO_GHOST, tokenInfo, type TokenInfo } from "../lib/chain.ts";
 import { answerMessage, seal, sideOf, unb64, type Offer } from "../lib/sealed.ts";
 import { BuyerAnswer } from "./BuyerAnswer.tsx";
 import { saved } from "../lib/store.ts";
@@ -16,6 +16,8 @@ export function SellerOffer({ id }: { id: string }) {
   const [tok, setTok] = useState<TokenInfo | null>(null);
   const [pay, setPay] = useState<TokenInfo | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
+  // Ghost mode only works for tokens with EIP-2612 permits; null = not known yet
+  const [ghostOk, setGhostOk] = useState<boolean | null>(null);
 
   const [mode, setMode] = useState<"wallet" | "ghost">("wallet");
   const [wallet, setWallet] = useState<string | null>(null);
@@ -35,6 +37,7 @@ export function SellerOffer({ id }: { id: string }) {
         const [t, p] = await Promise.all([tokenInfo(r.token), tokenInfo(r.payToken)]);
         setTok(t);
         setPay(p);
+        ghostSupported(r.token).then(setGhostOk);
       })
       .catch((e) => setLoadErr(e.message));
   }, [id]);
@@ -55,6 +58,7 @@ export function SellerOffer({ id }: { id: string }) {
     const relayerFee =
       mode === "ghost" ? BigInt(pay.symbol === "ETH" ? cfg.relayer.minFee.eth : cfg.relayer.minFee.usdg) : 0n;
     if (mode === "ghost" && !cfg.relayer.enabled) throw new Error("Ghost mode is unavailable: the relayer is offline.");
+    if (mode === "ghost" && (await ghostSupported(rfq.token)) === false) throw new Error(NO_GHOST(tok.symbol));
 
     let amount = rfq.amount;
     if (!amount) {
@@ -139,10 +143,17 @@ export function SellerOffer({ id }: { id: string }) {
             <button type="button" className={mode === "wallet" ? "on" : ""} onClick={() => setMode("wallet")}>
               From my wallet
             </button>
-            <button type="button" className={mode === "ghost" ? "on" : ""} onClick={() => setMode("ghost")}>
+            <button
+              type="button"
+              className={mode === "ghost" ? "on" : ""}
+              onClick={() => setMode("ghost")}
+              disabled={ghostOk === false}
+              title={ghostOk === false ? NO_GHOST(tok.symbol) : undefined}
+            >
               Ghost mode
             </button>
           </div>
+          {ghostOk === false && <p className="muted small">{NO_GHOST(tok.symbol)}</p>}
 
           {mode === "wallet" ? (
             wallet ? (

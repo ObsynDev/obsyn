@@ -9,6 +9,8 @@ import {
   explorerAddr,
   fundGhost,
   ghostDeposit,
+  ghostSupported,
+  NO_GHOST,
   publicClient,
   refund,
   sellerDeposit,
@@ -51,6 +53,8 @@ export function DealPanel({
 
   const [tx, setTx] = useState<Hex | null>(null);
   const act = useAction(async (kind: "buy" | "sell" | "fund" | "ghost" | "refund") => {
+    // Never move tokens into a one-time wallet that can't do the gasless deposit afterwards.
+    if (kind === "fund" && (await ghostSupported(terms.token)) === false) throw new Error(NO_GHOST(tok?.symbol ?? "This token"));
     const r =
       kind === "buy"
         ? await buyerDeposit(escrow, terms)
