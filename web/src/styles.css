@@ -5925,3 +5925,18 @@ html, body { overflow-x: clip; }
 /* "Why admin keys 0?" button under the stat */
 .why-btn { display: inline-flex; align-items: center; margin-top: 10px; padding: 6px 11px; border-radius: 999px; border: 1px solid rgb(255 106 43 / 0.45); background: rgb(255 106 43 / 0.08); color: var(--green); font: 600 12px var(--mono); letter-spacing: 0.02em; text-decoration: none; white-space: nowrap; transition: background 0.2s, border-color 0.2s; width: fit-content; }
 .why-btn:hover { background: rgb(255 106 43 / 0.16); border-color: rgb(255 106 43 / 0.75); }
+
+/* $OBSYN contract-address bar above the header (shown once the token address is set on the server) */
+.ca-bar { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 7px 16px; background: linear-gradient(90deg, rgb(255 106 43 / 0.10), rgb(255 106 43 / 0.18), rgb(255 106 43 / 0.10)); border-bottom: 1px solid rgb(255 106 43 / 0.28); font-size: 12.5px; color: var(--text); flex-wrap: wrap; }
+.ca-bar b { color: var(--green); font-family: var(--mono); letter-spacing: 0.04em; }
+.ca-bar-k { font: 600 10px var(--mono); letter-spacing: 0.12em; color: var(--muted); }
+.ca-bar-addr { font-size: 12.5px; color: #e9e2d8; }
+.ca-bar .ca-short { display: none; }
+.ca-bar button { padding: 3px 9px; font-size: 11px; }
+.ca-bar-buy { color: var(--green); text-decoration: none; font-weight: 600; }
+.ca-bar-buy:hover { text-decoration: underline; }
+@media (max-width: 640px) {
+  .ca-bar { gap: 8px; font-size: 12px; }
+  .ca-bar .ca-full { display: none; }
+  .ca-bar .ca-short { display: inline; }
+}

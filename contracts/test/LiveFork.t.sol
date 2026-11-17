@@ -100,3 +100,49 @@ contract LiveForkTest is Test {
         assertEq(IERC20(USDG).balanceOf(buyer), 10e6, "buyer got everything back");
     }
 }
+
+/// Dry run of the one-time `setPlatformToken` and a real buy-and-burn through the live Pons curve, on a fork.
+///   LIVE_RPC=https://4663.rpc.thirdweb.com forge test --match-contract LivePlatformToken -vv
+contract LivePlatformTokenTest is Test {
+    BuyBurnVault constant VAULT = BuyBurnVault(payable(0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221));
+    OtcEscrow constant ESC = OtcEscrow(payable(0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865));
+    address constant OBSYN = 0x5D992fa5B7Da8EFde5FD36d24e81097Ed6aD4351;
+    address constant CURVE = 0x1D6A7a3fAB6592cb5E6AA5873B915Bc6f93B0499;
+    address constant DEAD = 0x000000000000000000000000000000000000dEaD;
+    bool live;
+
+    function setUp() public {
+        string memory rpc = vm.envOr("LIVE_RPC", string(""));
+        if (bytes(rpc).length == 0) return;
+        vm.createSelectFork(rpc);
+        live = true;
+    }
+
+    function test_live_setPlatformToken_thenBurnViaCurve() public {
+        if (!live) return;
+        address owner = VAULT.owner();
+        vm.prank(owner);
+        VAULT.setPlatformToken(OBSYN, CURVE, 100_000e18);
+
+        (address dToken, uint256 dMin) = ESC.discountConfig();
+        assertEq(dToken, OBSYN, "escrow sees the discount token");
+        assertEq(dMin, 100_000e18);
+        assertTrue(VAULT.curveOpen());
+
+        // pretend fees arrived, then burn 0.01 ETH of them through the curve
+        vm.deal(address(VAULT), 0.05 ether);
+        uint256 deadBefore = IERC20(OBSYN).balanceOf(DEAD);
+        vm.prank(owner); // owner is also the keeper
+        VAULT.burnViaCurve(0.01 ether, 1);
+        uint256 burned = IERC20(OBSYN).balanceOf(DEAD) - deadBefore;
+        emit log_named_decimal_uint("OBSYN burned for 0.01 ETH", burned, 18);
+        assertGt(burned, 0);
+        assertEq(VAULT.totalBurned(), burned);
+        assertEq(address(VAULT).balance, 0.04 ether, "only the 0.01 ETH was spent");
+
+        // it can't be set twice
+        vm.prank(owner);
+        vm.expectRevert(BuyBurnVault.TokenAlreadySet.selector);
+        VAULT.setPlatformToken(OBSYN, CURVE, 1);
+    }
+}

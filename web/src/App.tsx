@@ -1,8 +1,8 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { api } from "./lib/api.ts";
-import { BRAND, GitHubIcon, Wordmark, XIcon } from "./lib/brand.tsx";
+import { BRAND, GitHubIcon, PLATFORM_TOKEN, Wordmark, XIcon } from "./lib/brand.tsx";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Link, short, usePath } from "./lib/ui.tsx";
+import { Copy, Link, short, usePath } from "./lib/ui.tsx";
 import { BuyerBid } from "./pages/BuyerBid.tsx";
 import { Developers } from "./pages/Developers.tsx";
 import { How } from "./pages/How.tsx";
@@ -126,6 +126,22 @@ export function App() {
 
   return (
     <>
+      {PLATFORM_TOKEN.address && (
+        <div className="ca-bar" role="note" aria-label={`$${PLATFORM_TOKEN.symbol} contract address`}>
+          <b>${PLATFORM_TOKEN.symbol}</b>
+          <span className="ca-bar-k">CA</span>
+          <span className="mono ca-bar-addr" title={PLATFORM_TOKEN.address}>
+            <span className="ca-full">{PLATFORM_TOKEN.address}</span>
+            <span className="ca-short">{short(PLATFORM_TOKEN.address)}</span>
+          </span>
+          <Copy text={PLATFORM_TOKEN.address} />
+          {PLATFORM_TOKEN.ponsUrl && (
+            <a href={PLATFORM_TOKEN.ponsUrl} target="_blank" rel="noreferrer" className="ca-bar-buy">
+              Buy on Pons ↗
+            </a>
+          )}
+        </div>
+      )}
       <header className={`top ${site ? "site" : "app"}${menu ? " menu-open" : ""}`}>
         <Link to="/" className="brand" aria-label={`${BRAND.name} home`}>
           <Wordmark />
