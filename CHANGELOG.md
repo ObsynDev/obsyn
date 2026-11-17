@@ -4,6 +4,11 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-17
 
+- **Internal security review published** ([SECURITY-REVIEW.md](SECURITY-REVIEW.md)): manual review, Slither triage, 41 contract tests, live-fork replays. No critical or high contract issues. Not an independent audit.
+- **Contracts verified on Sourcify** with an exact match (runtime and creation bytecode).
+- The backend refuses deal terms whose referrer is the buyer, the seller or the payout address (self-referral would halve the protocol fee).
+- Fixed: a pasted token address was never selected on the desk while the token read was slow, so the bid was never created.
+- Docs explain the escrow's single dependency (the fee vault) and what it can and can't do.
 - **Trade page** (`/trade?ca=0x…`): one page per token with its DEX price, market cap and logo, buying power and 25/50/75/MAX presets, "describe it" sentence fill (parsed in the browser), your wallet with one-click "Sell privately", and the open bids and listings for that token.
 - **Ghost mode only for tokens with EIP-2612 permits.** Tokens without a permit can't do the gasless deposit, so ghost mode is now disabled for them up front instead of failing after tokens were moved into the one-time wallet.
 - Connection errors are no longer reported as "token doesn't support permits".

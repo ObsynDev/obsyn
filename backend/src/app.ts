@@ -288,6 +288,11 @@ export function createApp(deps: Deps) {
     if (terms.deadline <= BigInt(now() + 60)) problems.push("terms.deadline must be at least 60s away");
     if (terms.deadline > BigInt(now() + MAX_DEAL_WINDOW)) problems.push("terms.deadline is more than 7 days away");
     if (terms.buyer === terms.seller) problems.push("buyer and seller must differ");
+    // A party naming itself as referrer would take back half the protocol fee. The contract can't stop a
+    // second wallet, but the obvious self-referral is refused here.
+    const zero = "0x0000000000000000000000000000000000000000";
+    if (terms.referrer !== zero && [terms.buyer, terms.seller, terms.sellerPayout].includes(terms.referrer))
+      problems.push("terms.referrer can't be the buyer, the seller or the seller's payout address");
     if (problems.length) return c.json({ error: "invalid terms", problems }, 400);
 
     const id = dealId(terms);

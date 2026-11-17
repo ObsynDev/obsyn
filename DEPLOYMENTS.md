@@ -48,4 +48,7 @@ cd contracts
 LIVE_RPC=https://4663.rpc.thirdweb.com forge test --match-contract LiveFork -vv
 ```
 
-Explorer source verification (the "verified contract" badge on robin.etherscan.io / Blockscout) is still pending. Until then, the script above is the way to confirm the deployed code.
+Both contracts are verified on Sourcify with an **exact match** (runtime and creation bytecode, including metadata), so explorers that read Sourcify show the source:
+
+- [OtcEscrow on Sourcify](https://repo.sourcify.dev/4663/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865)
+- [BuyBurnVault on Sourcify](https://repo.sourcify.dev/4663/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221)

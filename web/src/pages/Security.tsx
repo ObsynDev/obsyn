@@ -24,7 +24,7 @@ const PRIVACY: [string, string][] = [
 ];
 
 const OPEN: [string, string][] = [
-  ["No professional audit yet.", "There is an internal review and a full test suite. Use sizes you're comfortable with."],
+  ["No independent audit yet.", "We published an internal security review: manual review, Slither, 41 contract tests and replays against the live contracts. No critical or high contract issues. It's not an audit, so use sizes you're comfortable with."],
   ["Ghost mode is not a mixer.", "Moving tokens into the one-time wallet is a public transaction."],
   ["A real but empty wallet can still stall a deal.", "The funds check shows it; the posting side should deposit after the other side."],
   ["Only list plain tokens.", "Tokens whose balances change on their own (rebasing) are not safe in any shared contract."],
@@ -69,8 +69,13 @@ export function Security() {
           </div>
           <div>
             <span className="mono">AUDIT</span>
-            <b className="warn-text">Not yet</b>
-            <i>internal review and full test suite</i>
+            <b className="warn-text">Internal only</b>
+            <i>
+              <a href="https://github.com/ObsynDev/obsyn/blob/main/SECURITY-REVIEW.md" target="_blank" rel="noreferrer">
+                security review ↗
+              </a>{" "}
+              published, no independent audit yet
+            </i>
           </div>
           <div>
             <span className="mono">FEE CAP</span>

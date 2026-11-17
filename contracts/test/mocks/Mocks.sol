@@ -115,3 +115,12 @@ contract EthRejecter {
         revert("no eth");
     }
 }
+
+/// Tries to grief its caller by returning a huge blob ("return bomb") from receive/fallback.
+contract ReturnBomb {
+    fallback() external payable {
+        assembly {
+            return(0, 1000000)
+        }
+    }
+}

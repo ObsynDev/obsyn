@@ -4,7 +4,7 @@ pragma solidity 0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {OtcEscrow} from "../src/OtcEscrow.sol";
 import {BuyBurnVault} from "../src/BuyBurnVault.sol";
-import {MockToken, FeeOnTransferToken, MockFeed, EthRejecter} from "./mocks/Mocks.sol";
+import {MockToken, FeeOnTransferToken, MockFeed, EthRejecter, ReturnBomb} from "./mocks/Mocks.sol";
 
 contract OtcEscrowTest is Test {
     OtcEscrow esc;
@@ -280,6 +280,51 @@ contract OtcEscrowTest is Test {
 
         assertEq(stock.balanceOf(buyer), 100e18); // settlement still went through
         assertEq(esc.owedEth(address(rej)), 0.975 ether);
+    }
+
+    // ───────────────────────── review: griefing and economics ─────────────────────────
+
+    /// A referrer (or payout) contract that "return bombs" can't block settlement: it gets 50k gas,
+    /// can't afford a large return, the call fails and its share is credited instead.
+    function test_returnBombRecipients_cantBlockSettlement() public {
+        ReturnBomb bomb = new ReturnBomb();
+        OtcEscrow.Terms memory t = _terms(address(0), 1 ether);
+        t.referrer = address(bomb);
+        t.sellerPayout = address(bomb);
+        vm.prank(seller);
+        esc.depositTokens(t);
+        vm.prank(buyer);
+        esc.depositPayment{value: 1 ether, gas: 400_000}(t);
+        assertEq(stock.balanceOf(buyer), 100e18);
+        (OtcEscrow.Status s,,,) = esc.deals(esc.dealId(t));
+        assertEq(uint8(s), uint8(OtcEscrow.Status.Settled));
+    }
+
+    /// Documented economic limit: the referrer is part of the terms, so a party can name its own
+    /// second wallet and take back half the fee. The protocol share halves; nobody else loses.
+    function test_selfReferral_halvesProtocolFee_only() public {
+        OtcEscrow.Terms memory t = _terms(address(usdg), 5_000e6); // 2.5% = 125 USDG
+        t.referrer = buyer;
+        uint256 before = usdg.balanceOf(buyer);
+        vm.prank(buyer);
+        esc.depositPayment(t);
+        vm.prank(seller);
+        esc.depositTokens(t);
+        assertEq(usdg.balanceOf(treasury), 62.5e6, "protocol keeps half");
+        assertEq(before - usdg.balanceOf(buyer), 5_000e6 - 62.5e6, "buyer got half the fee back");
+        assertEq(usdg.balanceOf(payout), 4_875e6, "seller unaffected");
+    }
+
+    /// Refunds stay independent of any third party: no referrer, relayer or fee recipient is paid on refund.
+    function test_refund_ignoresBombReferrer() public {
+        ReturnBomb bomb = new ReturnBomb();
+        OtcEscrow.Terms memory t = _terms(address(0), 1 ether);
+        t.referrer = address(bomb);
+        vm.prank(buyer);
+        esc.depositPayment{value: 1 ether}(t);
+        vm.warp(t.deadline);
+        esc.refund(t);
+        assertEq(buyer.balance, 1_000 ether);
     }
 
     // ───────────────────────── rejections ─────────────────────────

@@ -92,6 +92,21 @@ describe("sealed RFQ flow", () => {
     });
   }
 
+  it("refuses terms where a party names itself as referrer", async () => {
+    const rfq = await createRfq({});
+    const pubKey = (await call(app, "GET", `/rfqs/${rfq.json.id}`)).json.buyerEncPubKey;
+    const nonce = nacl.randomBytes(24);
+    const box = nacl.box(enc({ price: "25000000000", seller: SELLER, sellerPayout: PAYOUT, ghost: false }), nonce, unb64(pubKey), sellerKeys.secretKey);
+    const q = await call(app, "POST", `/rfqs/${rfq.json.id}/quotes`, { sellerEncPubKey: b64(sellerKeys.publicKey), nonce: b64(nonce), ciphertext: b64(box) });
+    for (const self of [BUYER, SELLER, PAYOUT]) {
+      const acc = await call(app, "POST", `/rfqs/${rfq.json.id}/accept`, { quoteId: q.json.quoteId, terms: termsFor({ referrer: self }) }, rfq.json.manageToken);
+      assert.equal(acc.status, 400, `referrer ${self} should be refused`);
+      assert.match(JSON.stringify(acc.json), /referrer/);
+    }
+    const ok = await call(app, "POST", `/rfqs/${rfq.json.id}/accept`, { quoteId: q.json.quoteId, terms: termsFor() }, rfq.json.manageToken);
+    assert.equal(ok.status, 200, JSON.stringify(ok.json));
+  });
+
   it("runs bid → sealed offer → accept → seller sees terms", async () => {
     const rfq = await createRfq({ note: "size only, no slippage" });
     assert.equal(rfq.status, 201);

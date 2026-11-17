@@ -16,7 +16,7 @@ const FAQ: [string, string][] = [
     "The listed Robinhood stock tokens, the ETFs and PONS, or any other ERC-20 on Robinhood Chain by address, paid in ETH or USDG. Fee-on-transfer tokens are rejected by the contract.",
   ],
   ["Can you take my funds?", "No. The contract has no owner, admin key, pause or upgrade. Funds only move to settle a deal or refund it after the deadline."],
-  ["Is it audited?", "Not yet. There's an internal review and a full test suite, no professional audit. Start with sizes you're comfortable with."],
+  ["Is it audited?", "Not by an independent firm yet. We published an internal security review (manual review, Slither, 41 contract tests, live-fork replays): no critical or high contract issues. It's not an audit. Start with sizes you're comfortable with."],
   [
     "What does it cost?",
     "Posting and answering are free. At settlement: 2.5% under $10k, 2% from $10k, 1.5% from $100k, capped at 2.5% in the contract. Holding the platform token takes 0.5% off.",
@@ -77,7 +77,7 @@ ${faqHtml}`,
     body: `<h1>Security</h1><p>Deposits sit in a contract nobody controls. Prices are sealed so nobody can front-run them.</p>
 <h2>What the contract guarantees</h2><p>No owner, admin key, pause or upgrade. Funds only move to settle a deal or refund it after the deadline. The deal id is the hash of its terms, so terms can't be changed after the fact.</p>
 <h2>Sealed means sealed</h2><p>Answers are encrypted in the browser to a key that only exists in the private link's URL fragment, which browsers never send to the server.</p>
-<h2>What we're upfront about</h2><p>There is no professional audit yet. Once a side deposits, the deal terms are public on-chain like any transaction.</p>`,
+<h2>What we're upfront about</h2><p>There is no independent audit yet; an internal security review is published on GitHub. Once a side deposits, the deal terms are public on-chain like any transaction.</p>`,
   },
   "/docs": {
     title: "Docs · Obsyn",
