@@ -8,6 +8,7 @@ Everything Obsyn runs on-chain, with the transaction that created it. Machine-re
 |---|---|---|---|
 | `OtcEscrow` | [`0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865`](https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865) | 2026-11-16 08:52:58 UTC, block 115638560 | [`0x918f40b7…`](https://robinhoodchain.blockscout.com/tx/0x918f40b78804c90534b8081f000727ee1fcb00a36151f8f42183674dae72ca6c) |
 | `BuyBurnVault` | [`0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221`](https://robinhoodchain.blockscout.com/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221) | 2026-11-16 08:52:30 UTC, block 115638297 | [`0x96e61067…`](https://robinhoodchain.blockscout.com/tx/0x96e61067b39a05b18e6e0c6542ecc69174e256e3e6355049e11235fd5cab5133) |
+| `V4BurnAdapter` (the vault's buy route since $OBSYN graduated) | [`0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67`](https://robinhoodchain.blockscout.com/address/0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67) | 2026-11-17 20:18:14 UTC, block 116852320 | [`0x257f50cd…`](https://robinhoodchain.blockscout.com/tx/0x257f50cd59b664902016f360630649e13bf1d49b9f7053421dd3edaf7c95050c) |
 
 Compiler: solc 0.8.24, optimizer on (10,000 runs), EVM `cancun`. Built from `contracts/src` in this repository.
 
@@ -33,6 +34,20 @@ Compiler: solc 0.8.24, optimizer on (10,000 runs), EVM `cancun`. Built from `con
 | Holder discount threshold | 1,000,000 OBSYN (0.1% of supply) |
 
 From now on a buyer or seller holding at least 1,000,000 OBSYN pays 0.5% less fee, and fees in the vault can only be spent buying $OBSYN and sending it to `0x…dEaD`.
+
+### Burn route after graduation (V4BurnAdapter)
+
+$OBSYN graduated from its Pons curve to Uniswap v4, so the vault buys through `V4BurnAdapter`. It has no owner and no settings; everything below is fixed at deploy:
+
+| Setting | Value |
+|---|---|
+| `poolManager` | Uniswap v4 PoolManager [`0x8366a39CC670B4001A1121B8F6A443A643e40951`](https://robinhoodchain.blockscout.com/address/0x8366a39CC670B4001A1121B8F6A443A643e40951) |
+| `vault` (the only caller) | `BuyBurnVault` above |
+| OBSYN pool (v4) | ETH / OBSYN, fee 0, tick spacing 200, hook [`0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044`](https://robinhoodchain.blockscout.com/address/0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044) (Pons) |
+| USDG leg (v3) | WETH / USDG 0.01% [`0x52e65B17fB6E5BA00Ed806f37Afcd2DaA50271Ca`](https://robinhoodchain.blockscout.com/address/0x52e65B17fB6E5BA00Ed806f37Afcd2DaA50271Ca), official Uniswap v3 factory |
+| `weth` | [`0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73`](https://robinhoodchain.blockscout.com/address/0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73) |
+
+Queued in the vault on 2026-11-17 20:18:24 UTC in [`0xd8a83043…`](https://robinhoodchain.blockscout.com/tx/0xd8a83043d507ea7441d62d1169ab7933985303ab53269d4c49e114804e19a397). The vault's public 2-day wait ends **2026-11-19 20:18:24 UTC**; only then can the owner switch it on with `applyAdapter`. Verified on Sourcify (exact match): [V4BurnAdapter](https://repo.sourcify.dev/4663/0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67).
 
 ### Off-chain addresses
 
@@ -64,5 +79,6 @@ Both contracts are verified on Sourcify with an **exact match** (runtime and cre
 
 - [OtcEscrow on Sourcify](https://repo.sourcify.dev/4663/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865)
 - [BuyBurnVault on Sourcify](https://repo.sourcify.dev/4663/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221)
+- [V4BurnAdapter on Sourcify](https://repo.sourcify.dev/4663/0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67)
 
 The Robinhood Chain explorer (Blockscout) shows both as verified, with the source under the Contract tab: [OtcEscrow](https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865?tab=contract) · [BuyBurnVault](https://robinhoodchain.blockscout.com/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221?tab=contract).
