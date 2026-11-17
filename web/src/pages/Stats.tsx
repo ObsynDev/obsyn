@@ -4,6 +4,7 @@ import { api, type DeskStats, type ServerConfig } from "../lib/api.ts";
 import { PLATFORM_TOKEN } from "../lib/brand.tsx";
 import { explorerAddr } from "../lib/chain.ts";
 import { Link, short } from "../lib/ui.tsx";
+import { fmtCompactUsd, fmtPrice, useObsynMarket } from "./ObsynMarket.tsx";
 
 const num = (v: string, decimals: number, max = 2) => Number(formatUnits(BigInt(v), decimals)).toLocaleString("en-US", { maximumFractionDigits: max });
 const usd = (n: number) => "$" + n.toLocaleString("en-US", { maximumFractionDigits: n < 1000 ? 2 : 0 });
@@ -24,6 +25,7 @@ export function Stats() {
   const [s, setS] = useState<DeskStats | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [cfg, setCfg] = useState<ServerConfig | null>(null);
+  const m = useObsynMarket();
   useEffect(() => {
     const load = () => api.stats().then(setS, (e) => setErr(e.message));
     load();
@@ -59,6 +61,30 @@ export function Stats() {
             <Tile label="Blocks posted" value={s.postings.total.toLocaleString("en-US")} sub={`${s.postings.open} open now`} />
             <Tile label="Sealed answers" value={s.postings.answers.toLocaleString("en-US")} sub="encrypted offers and bids sent" />
           </section>
+
+          {PLATFORM_TOKEN.address && (
+            <section className="doc-sect">
+              <h2>{sym} market</h2>
+              <section className="stat-grid">
+                <Tile label="Price" value={m?.priceUsd != null ? fmtPrice(m.priceUsd) : "…"} sub="from its Uniswap v4 pool" />
+                <Tile label="Market cap" value={m?.marketCap != null ? fmtCompactUsd(m.marketCap) : "…"} sub="1B fixed supply" />
+                <Tile label="Liquidity" value={m?.liquidityUsd != null ? fmtCompactUsd(m.liquidityUsd) : "…"} sub="in the pool" />
+                <Tile
+                  label="24h"
+                  value={m?.change24h != null ? `${m.change24h >= 0 ? "+" : ""}${m.change24h.toFixed(1)}%` : "…"}
+                  sub={m?.volume24h != null ? `${fmtCompactUsd(m.volume24h)} volume` : " "}
+                />
+              </section>
+              <p className="muted small">
+                Reference only, read from the pool through DexScreener.{" "}
+                {m?.pairUrl && (
+                  <a href={m.pairUrl} target="_blank" rel="noreferrer">
+                    See the pool ↗
+                  </a>
+                )}
+              </p>
+            </section>
+          )}
 
           <section className="doc-sect">
             <h2>{sym} buy-and-burn</h2>

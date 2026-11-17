@@ -6157,3 +6157,26 @@ html, body { overflow-x: clip; }
   .brt-digits { gap: 6px; }
   .brt-digits span { min-width: 56px; padding: 10px 6px; }
 }
+
+/* token band: $OBSYN market strip and holder check */
+.obm-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 14px 18px; border: 1px solid rgb(255 140 80 / 0.22); border-radius: 14px; background: rgb(16 13 10 / 0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-size: 13px; }
+.obm-strip i { font-style: normal; font-size: 10.5px; letter-spacing: 0.14em; color: var(--muted); margin-right: 4px; }
+.obm-strip b { color: #fff3e6; font-weight: 600; }
+.obm-k { color: var(--green); font-weight: 700; }
+.obm-up { color: #7ee2a8 !important; }
+.obm-down { color: #ff8a7a !important; }
+.obm-strip a { color: var(--green); }
+.obm-ref { color: var(--muted); font-size: 11.5px; margin-left: auto; }
+.hold { display: grid; gap: 10px; margin-top: 6px; padding-top: 14px; border-top: 1px solid rgb(255 140 80 / 0.18); }
+.hold-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.hold p { margin: 0; line-height: 1.55; }
+.hold-ok { color: #a8f0c4; }
+.hold-ok b, .hold-no b { color: #fff3e6; }
+.hold-no { color: #cfc6ba; }
+.hold-buy { display: flex; gap: 16px; font-size: 12.5px; }
+.hold-buy a { color: var(--green); }
+.hold-input { width: 100%; padding: 9px 12px; border: 1px solid var(--line-2); border-radius: 10px; background: #0f0c09; color: inherit; font-size: 12.5px; }
+@media (max-width: 640px) {
+  .obm-strip { gap: 8px 16px; padding: 12px 14px; }
+  .obm-ref { margin-left: 0; width: 100%; }
+}

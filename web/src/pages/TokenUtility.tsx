@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fomoUrl, PLATFORM_TOKEN } from "../lib/brand.tsx";
 import { BurnRoute } from "./BurnRoute.tsx";
+import { HolderCheck, ObsynMarketStrip, useObsynMarket } from "./ObsynMarket.tsx";
 import { reducedMotion } from "../lib/motion.tsx";
 import { Copy, short } from "../lib/ui.tsx";
 
@@ -27,6 +28,7 @@ const TIERS: [string, string, string][] = [
 ];
 
 export function TokenUtility() {
+  const market = useObsynMarket();
   const [i, setI] = useState(0);
   useEffect(() => {
     if (reducedMotion()) return;
@@ -87,8 +89,12 @@ export function TokenUtility() {
             Either side of the deal holding the minimum is enough; the contract checks both wallets at settlement. Minimum
             holding: {PLATFORM_TOKEN.discountMin ? `${PLATFORM_TOKEN.discountMin} $${T}` : "set once at launch"}.
           </p>
+          <HolderCheck m={market} />
         </div>
       </div>
+
+      {/* live market of the token, from its Uniswap v4 pool */}
+      <ObsynMarketStrip m={market} />
 
       {/* the switch to the Uniswap v4 buy route, with the vault's public timelock */}
       <BurnRoute />
