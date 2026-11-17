@@ -82,9 +82,10 @@ const DOCS: Doc[] = [
     title: "Platform token, buy-and-burn, holder discount",
     status: "Live",
     half: "trade",
-    what: "A fixed-supply token launched on a Pons bonding curve. Every fee, paid in ETH or USDG, is used to buy the token and send it to the burn address. Holding it lowers your fees.",
+    what: "A fixed-supply token that launched on Pons and graduated to a Uniswap v4 pool. Every fee, paid in ETH or USDG, is used to buy the token and send it to the burn address. Holding it lowers your fees.",
     how: [
-      "Live: $OBSYN launched on a Pons bonding curve; after the curve sells out, liquidity moves to a locked Uniswap v4 pool.",
+      "Live: $OBSYN launched on Pons and graduated from the bonding curve; it now trades on Uniswap v4 (OBSYN/ETH).",
+      "Next: after graduation the vault buys through a Uniswap v4 route (an adapter). Adding one waits 2 days, publicly, before it can be used; until then fees collect in the vault.",
       "Live: the fee vault was pointed at $OBSYN once (setPlatformToken). That switch can never be changed.",
       "A keeper spends accumulated fees on the token and burns it, with a minimum-out check on every buy.",
       "Wallets holding the threshold amount get 0.5% off the fee, read on-chain at settlement.",

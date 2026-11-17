@@ -49,7 +49,7 @@ const ROADMAP: [string, string, [string, string][]][] = [
       ["Reference price on offers", "Each offer is shown against the token's on-chain DEX price."],
       ["Deal receipts", "A public, shareable page per settled deal, rebuilt from the settlement transaction."],
       ["Export / import private links", "Back up the keys to your bids and offers and restore them on another device."],
-      ["Platform token on Pons", "$OBSYN launched on a Pons bonding curve and plugged into the fee vault."],
+      ["Platform token on Pons", "$OBSYN launched on Pons, graduated to Uniswap v4, and is plugged into the fee vault."],
       ["Buy-and-burn + holder discount", "Fees buy $OBSYN and burn it; holders pay 0.5% less."],
       ["Partial fills", "Several sellers fill one big bid (or several buyers share a listing), each part its own deal."],
       ["Exposure check", "On a ghost-mode deal, see which public hops link the one-time wallet back to you."],
@@ -59,7 +59,7 @@ const ROADMAP: [string, string, [string, string][]][] = [
       ["Price-impact estimate", "An estimate of what the same size would cost as a DEX market order."],
     ],
   ],
-  ["01 · Small: polish the desk", "Quick wins.", [["Notifications (next)", "Telegram and email alerts when an answer arrives or the other side deposits."]]],
+  ["01 · Small: polish the desk", "Quick wins.", [["Uniswap v4 burn route (next)", "$OBSYN graduated, so the vault buys through its Uniswap v4 pool via an adapter, live 2 days after it is queued."], ["Notifications (next)", "Telegram and email alerts when an answer arrives or the other side deposits."]]],
   [
     "02 · Medium: more ways to trade",
     "Bigger and more varied deals.",

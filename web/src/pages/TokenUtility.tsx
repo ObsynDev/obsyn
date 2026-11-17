@@ -15,7 +15,7 @@ const T = PLATFORM_TOKEN.symbol;
 const LOOP = [
   { k: "01", h: "A deal settles", p: "Buyer and seller swap in one contract transaction." },
   { k: "02", h: "Fee goes to the vault", p: "The protocol's share of the fee, in ETH or USDG, lands in the BuyBurnVault contract." },
-  { k: "03", h: `The vault buys $${T}`, p: "On the Pons curve, or its Uniswap pool after it graduates, with a minimum-out check." },
+  { k: "03", h: `The vault buys $${T}`, p: "On its Uniswap v4 pool (it graduated from the Pons curve), with a minimum-out check." },
   { k: "04", h: "Burned for good", p: "Bought tokens go straight to 0x…dEaD. The running total is public on-chain." },
 ];
 

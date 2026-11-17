@@ -43,7 +43,7 @@ Deploying: see [DEPLOY.md](DEPLOY.md) (Railway, one service for API + web).
 
 ### How Obsyn earns
 
-Posting and answering are free. A fee is taken only when a deal settles, by the contract, in the payment token: 2.5% under $10k, 2% from $10k, 1.5% from $100k, capped at 2.5% in code. Holders of 1,000,000+ $OBSYN pay 0.5% less. Fees go to the `BuyBurnVault`, which can only spend them buying $OBSYN on its curve and burning it; nobody can withdraw them. Ghost-mode deposits add a small relayer fee that pays the relayer's gas.
+Posting and answering are free. A fee is taken only when a deal settles, by the contract, in the payment token: 2.5% under $10k, 2% from $10k, 1.5% from $100k, capped at 2.5% in code. Holders of 1,000,000+ $OBSYN pay 0.5% less. Fees go to the `BuyBurnVault`, which can only spend them buying $OBSYN (on its Uniswap v4 pool, now that it has graduated from the Pons curve) and burning it; nobody can withdraw them. Ghost-mode deposits add a small relayer fee that pays the relayer's gas.
 
 ### Abuse limits
 

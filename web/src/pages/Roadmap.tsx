@@ -35,7 +35,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Contract on mainnet", d: "Escrow and fee vault live on Robinhood Chain, verified on the explorer and Sourcify (exact match).", s: "live", size: "S", g: "Trust and transparency" },
       { t: "Security audit by the Obsyn team", d: "Manual review, Slither, 41 contract tests, live-fork replays. Report published on GitHub.", s: "live", size: "M", g: "Trust and transparency" },
       { t: "Stats and burn tracker", d: "Settled volume, deals, fees and the $OBSYN buy-and-burn, checked against the contracts.", s: "live", size: "S", doc: "stats", g: "Trust and transparency" },
-      { t: "Platform token on Pons", d: "$OBSYN launched on a Pons bonding curve and plugged into the fee vault.", s: "live", size: "L", doc: "token", g: "$OBSYN and growth" },
+      { t: "Platform token on Pons", d: "$OBSYN launched on Pons, graduated to Uniswap v4, and is plugged into the fee vault.", s: "live", size: "L", doc: "token", g: "$OBSYN and growth" },
       { t: "Buy-and-burn + holder discount", d: "Fees buy $OBSYN and burn it; holders pay 0.5% less.", s: "live", size: "L", doc: "token", g: "$OBSYN and growth" },
       { t: "Referral program", d: "Share a link, earn half the protocol fee on deals you bring, paid by the escrow at settlement.", s: "live", size: "S", doc: "referrals", g: "$OBSYN and growth" },
     ],
@@ -45,6 +45,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     title: "Small: polish the desk",
     blurb: "Quick wins that make deals faster and easier to trust.",
     items: [
+      { t: "Uniswap v4 burn route", d: "$OBSYN graduated, so the vault buys through its Uniswap v4 pool: an adapter, live 2 days after it is queued.", s: "next", size: "S", doc: "token" },
       { t: "Notifications", d: "Telegram and email alerts when an answer arrives or the other side deposits.", s: "next", size: "S" },
     ],
   },
@@ -84,10 +85,10 @@ const TOKEN_ITEMS = new Set(["Platform token on Pons"]);
 const withLaunch = (it: Item): Item => {
   const a = PLATFORM_TOKEN.address;
   if (TOKEN_ITEMS.has(it.t) && a)
-    return { ...it, s: "live", d: `$OBSYN is live (${a.slice(0, 6)}…${a.slice(-4)}) and plugged into the fee vault.` };
+    return { ...it, s: "live", d: `$OBSYN is live (${a.slice(0, 6)}…${a.slice(-4)}), graduated from the Pons curve to Uniswap v4, and plugged into the fee vault.` };
   // the vault was pointed at $OBSYN on-chain; the threshold shown comes from the server
   if (it.t === "Buy-and-burn + holder discount" && a && PLATFORM_TOKEN.discountMin)
-    return { ...it, s: "live", d: `Holders of ${PLATFORM_TOKEN.discountMin}+ $OBSYN pay 0.5% less. Fees in the vault buy $OBSYN on its Pons curve and burn it.` };
+    return { ...it, s: "live", d: `Holders of ${PLATFORM_TOKEN.discountMin}+ $OBSYN pay 0.5% less. Fees collect in the vault to buy $OBSYN and burn it.` };
   return it;
 };
 

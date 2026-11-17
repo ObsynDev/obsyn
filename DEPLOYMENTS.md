@@ -29,7 +29,7 @@ Compiler: solc 0.8.24, optimizer on (10,000 runs), EVM `cancun`. Built from `con
 | Setting | Value |
 |---|---|
 | Platform token ($OBSYN) | [`0x5D992fa5B7Da8EFde5FD36d24e81097Ed6aD4351`](https://robinhoodchain.blockscout.com/token/0x5D992fa5B7Da8EFde5FD36d24e81097Ed6aD4351) |
-| Pons bonding curve (pair: ETH) | [`0x1D6A7a3fAB6592cb5E6AA5873B915Bc6f93B0499`](https://robinhoodchain.blockscout.com/address/0x1D6A7a3fAB6592cb5E6AA5873B915Bc6f93B0499) |
+| Pons bonding curve (pair: ETH; graduated, now trades on Uniswap v4) | [`0x1D6A7a3fAB6592cb5E6AA5873B915Bc6f93B0499`](https://robinhoodchain.blockscout.com/address/0x1D6A7a3fAB6592cb5E6AA5873B915Bc6f93B0499) |
 | Holder discount threshold | 1,000,000 OBSYN (0.1% of supply) |
 
 From now on a buyer or seller holding at least 1,000,000 OBSYN pays 0.5% less fee, and fees in the vault can only be spent buying $OBSYN and sending it to `0x…dEaD`.
