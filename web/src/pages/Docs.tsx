@@ -204,7 +204,7 @@ const SECTIONS = [
 
 const LAST_UPDATED = "17 Nov 2026";
 const GITHUB = BRAND.github;
-const EXPLORER = "https://robin.etherscan.io";
+const EXPLORER = "https://robinhoodchain.blockscout.com";
 
 const ADDRESSES: [string, string, string][] = [
   ["OtcEscrow (settlement)", "0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865", "Holds both sides of a deal and swaps them in one transaction. No owner, admin key, pause or upgrade."],
@@ -680,7 +680,7 @@ node scripts/verify-deployment.mjs`}</Code>
               <a href={`${GITHUB}/blob/main/DEPLOYMENTS.md`} target="_blank" rel="noreferrer">
                 DEPLOYMENTS.md
               </a>
-              . Both contracts are verified on{" "}
+              . Both contracts are verified on the Robinhood Chain explorer and on{" "}
               <a href="https://repo.sourcify.dev/4663/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865" target="_blank" rel="noreferrer">
                 Sourcify
               </a>{" "}

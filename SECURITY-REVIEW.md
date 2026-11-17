@@ -7,7 +7,7 @@
 | Date | 17 November 2026 |
 | Audited by | Obsyn team |
 | Scope | `contracts/src/OtcEscrow.sol`, `contracts/src/BuyBurnVault.sol`, plus the security-relevant parts of the backend (API, relayer) and the web client |
-| Deployed code | `OtcEscrow` [`0x41c1…0865`](https://robin.etherscan.io/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865), `BuyBurnVault` [`0x2afd…4221`](https://robin.etherscan.io/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221) on Robinhood Chain |
+| Deployed code | `OtcEscrow` [`0x41c1…0865`](https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865), `BuyBurnVault` [`0x2afd…4221`](https://robinhoodchain.blockscout.com/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221) on Robinhood Chain |
 | Same code? | Yes. Sourcify `exact_match` (runtime and creation bytecode) for both, and `contracts/scripts/verify-deployment.mjs` matches the live bytecode against this source |
 
 ## Summary
