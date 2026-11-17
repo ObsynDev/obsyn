@@ -20,6 +20,7 @@ import {
 } from "../lib/chain.ts";
 import { Copy, Err, fmtAmount, fmtLeft, Link, Pill, short, useAction, useNow, usePoll } from "../lib/ui.tsx";
 import { api } from "../lib/api.ts";
+import { Exposure, rememberFunding } from "./Exposure.tsx";
 
 /** The terms as the tuple an explorer's "Write contract → refund" field expects. */
 const termsTuple = (t: Terms) =>
@@ -75,6 +76,7 @@ export function DealPanel({
               : await refund(escrow, terms);
     if (r.status !== "success") throw new Error("Transaction reverted");
     setTx(r.transactionHash);
+    if (kind === "fund") rememberFunding(ghost!, r.from, r.transactionHash);
     // if this deposit completed the deal, tell the server so both sides get a receipt link
     if (rfqId && (kind === "buy" || kind === "sell" || kind === "ghost")) {
       const after = await dealState(escrow, dealId).catch(() => null);
@@ -248,6 +250,8 @@ export function DealPanel({
           )}
         </p>
       )}
+
+      {ghost && <Exposure ghost={ghost} payout={terms.sellerPayout} ghostFunded={ghostReady || !!s?.sellerFunded} />}
 
       {ghostKey && (
         <details className="muted">

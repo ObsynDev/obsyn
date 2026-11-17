@@ -1224,6 +1224,34 @@ label.inline select {
 details summary {
   cursor: pointer;
 }
+.exposure {
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.exposure summary {
+  font-weight: 600;
+}
+.exposure-list {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.exposure-list li {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.exposure-list .pill {
+  justify-self: start;
+}
+.exposure-list p {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
 
 /* ───────────────────────── how it works ───────────────────────── */
 .prose h1 {

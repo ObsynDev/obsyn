@@ -8,7 +8,7 @@ import { Copy, Link, short } from "../lib/ui.tsx";
 type Doc = {
   id: string;
   title: string;
-  status: "Planned" | "Designing" | "Research";
+  status: "Live" | "Planned" | "Designing" | "Research";
   half: "trade" | "privacy" | "both";
   what: string;
   how: string[];
@@ -111,19 +111,19 @@ const DOCS: Doc[] = [
   {
     id: "exposure-check",
     title: "Exposure check",
-    status: "Planned",
+    status: "Live",
     half: "privacy",
-    what: "A score that shows how easily someone could connect your main wallet to a wallet you used for a deal, and what gave it away.",
+    what: "On every ghost-mode deal, a check that shows which public on-chain hops connect the one-time wallet back to you, and what to change.",
     how: [
-      "Reads public chain data around both wallets: direct transfers, shared funders, timing, amounts.",
-      "Shows each link it found and how strong it is.",
-      "Suggests what to change next time (e.g. fund the one-time wallet differently).",
+      "Live now: the deal page lists the funding transfer into the one-time wallet (which wallet sent it), whether the payment goes back to that same wallet, and that the relayer paid the gas.",
+      "It is built from what your browser saw and the deal terms, so it needs no indexer and nothing leaves your browser.",
+      "Next: read wider chain data around both wallets (shared funders, timing, amounts) once an indexer is available for Robinhood Chain.",
     ],
     impact: [
-      { who: "Traders", text: "Privacy you can measure, not just a claim." },
+      { who: "Traders", text: "Privacy you can see, not just a claim." },
       { who: BRAND.name, text: "Makes the privacy half honest and checkable." },
     ],
-    risks: "A good score is not a guarantee; it only covers the patterns we check.",
+    risks: "A clean check is not a guarantee; it only covers this deal's own transfers.",
   },
   {
     id: "private-relay",
@@ -203,7 +203,7 @@ const SECTIONS = [
   ["faq", "FAQ"],
 ] as const;
 
-const LAST_UPDATED = "17 Nov 2026";
+const LAST_UPDATED = "18 Nov 2026";
 const GITHUB = BRAND.github;
 const EXPLORER = "https://robinhoodchain.blockscout.com";
 
