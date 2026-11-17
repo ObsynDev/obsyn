@@ -27,7 +27,8 @@ const CSP = [
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
   "connect-src 'self' https: wss:",
-  "frame-src https://verify.walletconnect.com https://verify.walletconnect.org https://secure.walletconnect.com https://secure.walletconnect.org https://keys.coinbase.com",
+  // dexscreener.com: the live $OBSYN chart embedded in the token section
+  "frame-src https://verify.walletconnect.com https://verify.walletconnect.org https://secure.walletconnect.com https://secure.walletconnect.org https://keys.coinbase.com https://dexscreener.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

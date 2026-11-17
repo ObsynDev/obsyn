@@ -334,7 +334,7 @@ const STORED: [string, string][] = [
 
 const THIRD: [string, string][] = [
   ["Google Fonts", "fonts, loaded by your browser"],
-  ["DexScreener", "token prices and logos (our server fetches prices; logos load from their CDN)"],
+  ["DexScreener", "token prices and logos (our server fetches prices; logos load from their CDN), and the live $OBSYN chart on the homepage (loads from dexscreener.com in your browser when you scroll to it)"],
   ["Yahoo Finance", "reference prices of the listed stocks, fetched and cached by our server"],
   ["Your wallet's RPC", "on-chain reads and transactions go through your wallet's network settings"],
   ["WalletConnect / Reown", "only if you connect with a phone wallet through WalletConnect"],

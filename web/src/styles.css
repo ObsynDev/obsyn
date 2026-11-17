@@ -6185,3 +6185,16 @@ html, body { overflow-x: clip; }
 /* links out to the DEX (small size) and to the desk for $OBSYN */
 .mb-dex { display: inline-block; margin: 2px 0 4px; font-size: 12.5px; color: var(--green); }
 .tk-otc { color: #fff3e6 !important; font-weight: 600; }
+
+/* token band: live $OBSYN chart (DexScreener embed) */
+.obc { display: grid; gap: 10px; padding: 16px; border: 1px solid rgb(255 140 80 / 0.22); border-radius: 16px; background: rgb(16 13 10 / 0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.obc-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.obc-head a { color: var(--green); font-size: 12.5px; }
+.obc-frame { position: relative; width: 100%; height: 440px; border-radius: 12px; overflow: hidden; background: #0f0c09; border: 1px solid var(--line-2); display: grid; place-items: center; }
+.obc-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.obc-wait { color: var(--muted); font-size: 12.5px; }
+.obc-note { margin: 0; color: var(--muted); font-size: 11.5px; }
+@media (max-width: 640px) {
+  .obc { padding: 12px; }
+  .obc-frame { height: 360px; }
+}

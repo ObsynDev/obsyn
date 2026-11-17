@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fomoUrl, PLATFORM_TOKEN } from "../lib/brand.tsx";
 import { BurnRoute } from "./BurnRoute.tsx";
+import { ObsynChart } from "./ObsynChart.tsx";
 import { swapUrl } from "../lib/dex.ts";
 import { HolderCheck, ObsynMarketStrip, useObsynMarket } from "./ObsynMarket.tsx";
 import { reducedMotion } from "../lib/motion.tsx";
@@ -96,6 +97,7 @@ export function TokenUtility() {
 
       {/* live market of the token, from its Uniswap v4 pool */}
       <ObsynMarketStrip m={market} />
+      <ObsynChart />
 
       {/* the switch to the Uniswap v4 buy route, with the vault's public timelock */}
       <BurnRoute />
