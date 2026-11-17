@@ -49,6 +49,9 @@ jobs:
         working-directory: web
       - run: npm run typecheck
         working-directory: backend
+      # the SDK file the backend serves at /api/sdk/obsyn.mjs; one test loads it as a client would
+      - run: npm run build:sdk
+        working-directory: backend
       - run: npm test
         working-directory: backend
       - name: Build the MCP package
