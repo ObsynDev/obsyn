@@ -1,5 +1,7 @@
 # Obsyn
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Contracts verified on Sourcify](https://img.shields.io/badge/Sourcify-exact%20match-brightgreen)](DEPLOYMENTS.md)
+
 [![obsyn on HEY Research Lab](https://heyresearch.xyz/api/badge/obsyndev-obsyn)](https://heyresearch.xyz/project/obsyndev-obsyn)
 
 **Trade size. Stay private.** Private OTC block trades on Robinhood Chain: sealed bids and offers that only the poster can read, one-transaction settlement through an adminless contract, and a gasless "ghost mode" for sellers.
@@ -38,6 +40,14 @@
 | [web/](web/) | Vite + React app: bid, sealed offers, deal panel |
 
 Deploying: see [DEPLOY.md](DEPLOY.md) (Railway, one service for API + web).
+
+### How Obsyn earns
+
+Posting and answering are free. A fee is taken only when a deal settles, by the contract, in the payment token: 2.5% under $10k, 2% from $10k, 1.5% from $100k, capped at 2.5% in code. Holders of 1,000,000+ $OBSYN pay 0.5% less. Fees go to the `BuyBurnVault`, which can only spend them buying $OBSYN on its curve and burning it; nobody can withdraw them. Ghost-mode deposits add a small relayer fee that pays the relayer's gas.
+
+### Abuse limits
+
+The API limits each client to 60 writes and 120 on-chain reads per minute, caps request bodies, and rejects deal terms that would let a party refer itself. Sealed answers are signed by the wallet they name; unsigned or mis-signed ones are flagged and refused by the SDK and MCP unless explicitly allowed.
 
 ## Try it locally
 
@@ -133,6 +143,15 @@ cd contracts && forge test     # escrow + vault, incl. fuzzing
 cd backend && npm test         # API flow, dealId parity with Solidity, relayer end-to-end on anvil
 cd web && npm run build        # typecheck + production build
 ```
+
+| Suite | Where | What it covers |
+|---|---|---|
+| Escrow, 24 tests incl. fuzzing | [`contracts/test/OtcEscrow.t.sol`](contracts/test/OtcEscrow.t.sol) | Settlement in either deposit order, fee tiers and holder discount, ghost deposits through the relayer with permits, refunds after the deadline, payouts that reject ETH or return-bomb, fee-on-transfer rejection, value conservation (fuzzed) |
+| Fee vault, 13 tests | [`contracts/test/BuyBurnVault.t.sol`](contracts/test/BuyBurnVault.t.sol) | One-time platform-token switch, two-step ownership, burns through the Pons curve, route timelock, short-changed swaps revert |
+| Live fork, 5 tests | [`contracts/test/LiveFork.t.sol`](contracts/test/LiveFork.t.sol) | Replays deals against the deployed contracts (`LIVE_RPC=… forge test --match-contract LiveFork`) |
+| Backend, 53 tests | [`backend/test/`](backend/test/) | Bid and listing flows, partial fills, verified receipts, self-referral refusal, rate limits and body caps, deal-id parity with Solidity, hostile (forged) answers, ghost-mode relayer and agent-to-agent MCP trades end to end on anvil |
+
+Contributing: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Going to Robinhood Chain mainnet
 
