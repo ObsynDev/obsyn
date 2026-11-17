@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "obsyn-mcp",
   "display_name": "Obsyn OTC",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Private OTC block trades on Robinhood Chain: sealed bids and listings, encrypted offers, one-transaction settlement through an adminless contract.",
   "long_description": "Gives an AI agent the Obsyn desk. Post a bid or a sell listing, read the sealed answers (decrypted on this machine, never on the server), accept one, and settle both sides in one transaction through an escrow with no owner, admin key, pause or upgrade. Partial fills and a gasless ghost mode for sellers are supported. Answers are signed by the wallet they name; forged or unsigned ones are refused unless you allow them.",
   "author": {
@@ -22,7 +22,9 @@
     "entry_point": "server/obsyn-mcp.mjs",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/server/obsyn-mcp.mjs"],
+      "args": [
+        "${__dirname}/server/obsyn-mcp.mjs"
+      ],
       "env": {
         "OBSYN_PRIVATE_KEY": "${user_config.private_key}",
         "OBSYN_RPC_URL": "${user_config.rpc_url}"
@@ -45,22 +47,72 @@
     }
   },
   "tools": [
-    { "name": "otc_info", "description": "Chain, contract, fees, relayer, which wallet signs" },
-    { "name": "otc_list_bids", "description": "Open bids and sell listings" },
-    { "name": "otc_create_bid", "description": "Place a sealed bid" },
-    { "name": "otc_create_listing", "description": "List a block to sell privately" },
-    { "name": "otc_get_offers", "description": "Decrypt and verify the answers to your bid or listing" },
-    { "name": "otc_accept_offer", "description": "Fix a deal with one answer" },
-    { "name": "otc_send_offer", "description": "Send a sealed, signed answer to a bid or listing" },
-    { "name": "otc_deal_status", "description": "Who has deposited, time left" },
-    { "name": "otc_deposit", "description": "Deposit your side, signed or as unsigned transactions" },
-    { "name": "otc_refund", "description": "Refund after the deadline" },
-    { "name": "otc_price", "description": "Spot price from a Uniswap v3 pool or a Pons curve" }
+    {
+      "name": "otc_info",
+      "description": "Chain, contract, fees, relayer, which wallet signs"
+    },
+    {
+      "name": "otc_list_bids",
+      "description": "Open bids and sell listings"
+    },
+    {
+      "name": "otc_create_bid",
+      "description": "Place a sealed bid"
+    },
+    {
+      "name": "otc_create_listing",
+      "description": "List a block to sell privately"
+    },
+    {
+      "name": "otc_get_offers",
+      "description": "Decrypt and verify the answers to your bid or listing"
+    },
+    {
+      "name": "otc_accept_offer",
+      "description": "Fix a deal with one answer"
+    },
+    {
+      "name": "otc_send_offer",
+      "description": "Send a sealed, signed answer to a bid or listing"
+    },
+    {
+      "name": "otc_deal_status",
+      "description": "Who has deposited, time left"
+    },
+    {
+      "name": "otc_deposit",
+      "description": "Deposit your side, signed or as unsigned transactions"
+    },
+    {
+      "name": "otc_refund",
+      "description": "Refund after the deadline"
+    },
+    {
+      "name": "otc_price",
+      "description": "Spot price from a Uniswap v3 pool or a Pons curve"
+    },
+    {
+      "name": "otc_autopilot_preview",
+      "description": "Dry-run trading rules against the live desk"
+    }
   ],
-  "keywords": ["otc", "robinhood-chain", "privacy", "defi", "trading", "escrow"],
+  "keywords": [
+    "otc",
+    "robinhood-chain",
+    "privacy",
+    "defi",
+    "trading",
+    "escrow"
+  ],
   "license": "MIT",
   "compatibility": {
-    "platforms": ["darwin", "win32", "linux"],
-    "runtimes": { "node": ">=20.0.0" }
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "node": ">=20.0.0"
+    }
   }
 }

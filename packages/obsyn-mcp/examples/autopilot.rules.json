@@ -1,0 +1,25 @@
+{
+  "live": false,
+  "intervalSec": 30,
+  "maxOpenAnswers": 5,
+  "rules": [
+    {
+      "side": "sell",
+      "token": "0x5D992fa5B7Da8EFde5FD36d24e81097Ed6aD4351",
+      "payWith": "any",
+      "maxTotal": "50000",
+      "maxPerDeal": "5000",
+      "priceVsMarketPct": 5,
+      "minPriceUsd": 0.00004
+    },
+    {
+      "side": "buy",
+      "token": "0x322F0929c4625eD5bAd873c95208D54E1c003b2d",
+      "payWith": "USDG",
+      "maxTotal": "2",
+      "maxPerDeal": "1",
+      "priceVsMarketPct": -2,
+      "maxPriceUsd": 400
+    }
+  ]
+}

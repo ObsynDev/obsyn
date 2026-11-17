@@ -842,4 +842,22 @@ export class OtcAgent {
   async price(token: string, source: string) {
     return this.api("GET", `/price/${getAddress(token)}?source=${encodeURIComponent(source)}`);
   }
+
+  // ─────────────────────────── for the autopilot ───────────────────────────
+
+  /** A read-only GET on the Obsyn API. */
+  get<T>(path: string): Promise<T> {
+    return this.api<T>("GET", path);
+  }
+
+  /** Balance of an ERC-20, or ETH when `asset` is the zero address. */
+  async balanceOf(asset: Address, who: Address): Promise<bigint> {
+    const { pc } = await this.chain();
+    if (asset === zeroAddress) return pc.getBalance({ address: who });
+    return pc.readContract({ address: asset, abi: erc20Abi, functionName: "balanceOf", args: [who] });
+  }
+
+  async decimalsOf(token: Address): Promise<number> {
+    return (await this.token(token)).decimals;
+  }
 }

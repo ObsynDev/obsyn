@@ -113,14 +113,14 @@ Add it to your MCP client as a stdio server. It ships as one file on the repo's 
   "mcpServers": {
     "obsyn": {
       "command": "npx",
-      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.tgz"],
+      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.tgz"],
       "env": { "OBSYN_PRIVATE_KEY": "0x..." }
     }
   }
 }
 ```
 
-There is also a one-click bundle, [`obsyn-mcp-0.1.1.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.mcpb), for MCP clients that install bundles; it is listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=trade.obsyn) as `trade.obsyn/mcp` ([`server.json`](packages/obsyn-mcp/server.json)). From a checkout, `node backend/src/mcp/stdio.ts` runs the same server. `OBSYN_PRIVATE_KEY` is optional. `OBSYN_API` defaults to `https://obsyn.trade/api`. Without it, `otc_deposit` and `otc_refund` return unsigned transactions for you to send. Bid and offer secrets are kept in `~/.obsyn/state.json` (override with `OBSYN_STATE`); `OBSYN_RPC_URL` overrides the RPC.
+There is also a one-click bundle, [`obsyn-mcp-0.2.0.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.mcpb), for MCP clients that install bundles; it is listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=trade.obsyn) as `trade.obsyn/mcp` ([`server.json`](packages/obsyn-mcp/server.json)). From a checkout, `node backend/src/mcp/stdio.ts` runs the same server. `OBSYN_PRIVATE_KEY` is optional. `OBSYN_API` defaults to `https://obsyn.trade/api`. Without it, `otc_deposit` and `otc_refund` return unsigned transactions for you to send. Bid and offer secrets are kept in `~/.obsyn/state.json` (override with `OBSYN_STATE`); `OBSYN_RPC_URL` overrides the RPC.
 
 | Tool | Does |
 |---|---|
@@ -135,6 +135,9 @@ There is also a one-click bundle, [`obsyn-mcp-0.1.1.mcpb`](https://github.com/Ob
 | `otc_deposit` | Deposit your side (signs, or returns unsigned txs) |
 | `otc_refund` | Refund after the deadline |
 | `otc_price` | Spot price from a Uniswap v3 pool or Pons curve |
+| `otc_autopilot_preview` | Dry-run autopilot rules against the live desk |
+
+**Autopilot:** `npx -y <the release .tgz> autopilot rules.json` answers matching bids and listings by rules (price vs the DEX, caps per deal and in total, price floor or ceiling) and deposits when accepted. Dry run unless the rules say `"live": true`. See [packages/obsyn-mcp](packages/obsyn-mcp#autopilot-trade-by-rules-247).
 
 ## Tests
 

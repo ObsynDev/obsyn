@@ -13,20 +13,20 @@ Most clients take a config like this:
   "mcpServers": {
     "obsyn": {
       "command": "npx",
-      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.tgz"],
+      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.tgz"],
       "env": { "OBSYN_PRIVATE_KEY": "0x..." }
     }
   }
 }
 ```
 
-Or run it directly: `npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.tgz` (it speaks MCP over stdio). Needs Node 20 or newer.
+Or run it directly: `npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.tgz` (it speaks MCP over stdio). Needs Node 20 or newer.
 
 The file is published as a GitHub release of the open-source repo; every release lists its SHA-256 so you can check what you run.
 
 ### One-click bundle
 
-[`obsyn-mcp-0.1.1.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.mcpb) is the same server as an MCPB bundle: open it with an MCP client that supports bundles and it installs with a form for the optional settings below. Listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=trade.obsyn) as `trade.obsyn/mcp`.
+[`obsyn-mcp-0.2.0.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.mcpb) is the same server as an MCPB bundle: open it with an MCP client that supports bundles and it installs with a form for the optional settings below. Listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=trade.obsyn) as `trade.obsyn/mcp`.
 
 ## Settings (environment variables)
 
@@ -52,6 +52,34 @@ The file is published as a GitHub release of the open-source repo; every release
 | `otc_deposit` | Deposit your side (signs, or returns unsigned transactions) |
 | `otc_refund` | Refund after the deadline |
 | `otc_price` | Spot price from a Uniswap v3 pool or a Pons curve |
+| `otc_autopilot_preview` | Dry-run autopilot rules against the live desk: what it would answer, at what size and price |
+
+## Autopilot: trade by rules, 24/7
+
+Write the rules once and let the agent answer matching bids and listings on its own, with your key, on your machine:
+
+```bash
+OBSYN_PRIVATE_KEY=0x... npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.tgz autopilot rules.json
+```
+
+```json
+{
+  "live": false,
+  "intervalSec": 30,
+  "rules": [
+    { "side": "sell", "token": "0x5D99…4351", "maxTotal": "50000", "maxPerDeal": "5000", "priceVsMarketPct": 5, "minPriceUsd": 0.00004 }
+  ]
+}
+```
+
+Each tick it reads the open postings, sends a sealed, signed answer to the ones that match a rule (priced against the token's DEX price), and deposits its side once an answer is accepted. As a seller it waits for the buyer's payment first.
+
+- **Dry run by default.** It only logs what it would do until the file says `"live": true`.
+- **Hard caps:** `maxTotal` over the run and `maxPerDeal` per deal, plus optional `minPriceUsd` (sell) or `maxPriceUsd` (buy).
+- **No price, no answer.** Without a reference price for the token it skips. It checks the wallet holds what it would hand over before every answer, and refuses rules that sell more than 20% under or buy more than 20% over market.
+- **It never posts or accepts** on your behalf; it only answers and deposits.
+
+An AI agent can draft the rules and check them first with the `otc_autopilot_preview` tool. Full example: [`examples/autopilot.rules.json`](examples/autopilot.rules.json). Stop with Ctrl+C.
 
 ## Treat answers as hostile input
 

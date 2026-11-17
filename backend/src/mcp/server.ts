@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { OtcAgent } from "../sdk/client.ts";
+import { createAutopilot, validateConfig, type AutopilotConfig } from "../sdk/autopilot.ts";
 
 const json = (v: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(v, (_k, x) => (typeof x === "bigint" ? x.toString() : x), 2) }],
@@ -20,7 +21,7 @@ const ref = {
 };
 
 export function createMcpServer(agent: OtcAgent) {
-  const server = new McpServer({ name: "obsyn", version: "0.1.1" });
+  const server = new McpServer({ name: "obsyn", version: "0.2.0" });
 
   server.registerTool(
     "otc_info",
@@ -175,6 +176,38 @@ export function createMcpServer(agent: OtcAgent) {
       annotations: { readOnlyHint: true },
     },
     ({ token, source }) => run(() => agent.price(token, source)),
+  );
+
+  const rule = z.object({
+    side: z.enum(["sell", "buy"]).describe("sell: answer buy bids with offers. buy: answer sell listings with bids"),
+    token: z.string().describe("Token address on Robinhood Chain"),
+    payWith: z.enum(["ETH", "USDG", "any"]).optional(),
+    maxTotal: z.string().describe("Most tokens over the whole run, whole units"),
+    maxPerDeal: z.string().describe("Most tokens per deal, whole units"),
+    priceVsMarketPct: z.number().describe("Price against the token's DEX price: +5 = 5% above, -3 = 3% below"),
+    minPriceUsd: z.number().optional().describe("Sell rules: never below this USD price per token"),
+    maxPriceUsd: z.number().optional().describe("Buy rules: never above this USD price per token"),
+    payoutAddress: z.string().optional().describe("Sell rules: where payments go (default: the agent's wallet)"),
+  });
+
+  server.registerTool(
+    "otc_autopilot_preview",
+    {
+      title: "Autopilot: preview rules",
+      description:
+        "Dry-run trading rules against the live desk: which open postings the autopilot would answer, at what size and price, and why it would skip the others. Sends nothing. To run them for real, save the same JSON with \"live\": true and start `obsyn-mcp autopilot rules.json`.",
+      inputSchema: { rules: z.array(rule).min(1).max(10) },
+      annotations: { readOnlyHint: true },
+    },
+    ({ rules }) =>
+      run(async () => {
+        const cfg: AutopilotConfig = { rules, live: false };
+        const problems = validateConfig(cfg);
+        if (problems.length) throw new Error(problems.join("; "));
+        const pilot = await createAutopilot(agent, cfg);
+        const report = await pilot.tick();
+        return { ...report, configToRun: { ...cfg, live: true, intervalSec: 30 } };
+      }),
   );
 
   return server;

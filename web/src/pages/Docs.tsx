@@ -20,6 +20,26 @@ type Doc = {
 
 const DOCS: Doc[] = [
   {
+    id: "autopilot",
+    title: "Autopilot: an agent that trades by your rules",
+    status: "Live",
+    half: "both",
+    page: { to: "/developers", label: "Set it up" },
+    what: "Write your rules once (sell up to X at 5% over market, never under a floor) and an agent answers matching bids and listings on its own, 24/7, with your key on your machine, then deposits when a deal is accepted.",
+    how: [
+      "Run: npx -y <the obsyn-mcp release> autopilot rules.json, with OBSYN_PRIVATE_KEY set to a dedicated wallet.",
+      "Each tick it reads the open postings and sends a sealed, signed answer to the ones that match a rule, priced against the token's DEX price.",
+      "When an answer is accepted it deposits its side. As a seller it waits for the buyer's payment first, the same rule the site follows.",
+      "An AI agent can draft the rules and check them with the otc_autopilot_preview tool, which sends nothing.",
+    ],
+    impact: [
+      { who: "Holders and funds", text: "Work a big order over days without watching the desk or showing the size." },
+      { who: "Agents", text: "A ready-made trading loop on top of the MCP tools, with limits the agent can't raise." },
+      { who: BRAND.name, text: "Always-on liquidity: more answers on every posting." },
+    ],
+    risks: "Dry run unless the rules say live: true. Caps per deal and in total, an optional price floor or ceiling, no answer without a reference price, balance checked before every answer, and rules that sell over 20% under (or buy over 20% over) market are refused. It never posts or accepts on your behalf. Use a dedicated wallet.",
+  },
+  {
     id: "stats",
     title: "Stats and burn tracker",
     status: "Live",
@@ -161,9 +181,9 @@ const DOCS: Doc[] = [
     half: "both",
     what: "One command gives any MCP-capable AI agent the whole desk: bids, sell listings, sealed offers, accept, deposit, refund and partial fills. No repository checkout needed.",
     how: [
-      "npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.tgz, or the same as a stdio server in your MCP client's config.",
+      "npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.tgz, or the same as a stdio server in your MCP client's config.",
       "Published as a GitHub release of the open-source repo; the release lists the file's SHA-256 so you can check what you run.",
-      "Also a one-click MCPB bundle (obsyn-mcp-0.1.1.mcpb) for MCP clients that install bundles. Listed in the official MCP Registry as trade.obsyn/mcp.",
+      "Also a one-click MCPB bundle (obsyn-mcp-0.2.0.mcpb) for MCP clients that install bundles. Listed in the official MCP Registry as trade.obsyn/mcp.",
       "Runs on the agent's machine: offers are encrypted and decrypted there and the wallet key (optional, OBSYN_PRIVATE_KEY) never leaves that process.",
     ],
     impact: [
@@ -701,9 +721,12 @@ export function Docs() {
               Agents use the same desk as people. Keys and decryption stay on the agent's machine; the server only sees what a browser
               would send.
             </p>
-            <h3 className="dx-h3">MCP server (11 tools)</h3>
-            <Code>{`npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.tgz
+            <h3 className="dx-h3">MCP server (12 tools)</h3>
+            <Code>{`npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.tgz
 # register it as a stdio server in your MCP client; OBSYN_PRIVATE_KEY is optional`}</Code>
+            <h3 className="dx-h3">Autopilot</h3>
+            <Code>{`OBSYN_PRIVATE_KEY=0x… npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.tgz autopilot rules.json
+# answers matching bids and listings by your rules; dry run unless "live": true`}</Code>
             <h3 className="dx-h3">JavaScript SDK</h3>
             <Code>{`import { Obsyn } from "${origin}/api/sdk/obsyn.mjs";
 const otc = new Obsyn({ apiUrl: "${origin}/api", privateKey }); // key optional`}</Code>

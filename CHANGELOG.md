@@ -4,6 +4,8 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-18
 
+- **Autopilot** (obsyn-mcp 0.2.0): `obsyn-mcp autopilot rules.json` trades by rules, 24/7, with the owner's key on their machine. It answers matching bids and listings with sealed, signed prices against the token's DEX price, and deposits once accepted (as seller only after the buyer pays). Dry run unless `"live": true`; caps per deal and in total; optional price floor or ceiling; no answer without a reference price; balance checked first; rules that sell over 20% under or buy over 20% over market are refused. New MCP tool `otc_autopilot_preview` dry-runs rules. Tested end to end on a local escrow: answer, accept, both deposits, settlement, caps, dry run.
+
 - **$OBSYN is a featured market** (15 markets now): in the desk's token picker, the token strip and /markets, with a "Trade $OBSYN OTC, no slippage" link in the token section.
 - **Swap on Uniswap links** for small size: on every market (stocks pay in USDG, crypto in ETH), on each token's trade page and next to the $OBSYN contract address. Obsyn doesn't route these swaps; they open Uniswap on Robinhood Chain. Stock-token pages note that eligibility depends on your region.
 - **Holder discount check** (any wallet: qualifies, or how much more and what it costs) and the **$OBSYN market** (price, market cap, liquidity, 24h) from its Uniswap v4 pool, on the homepage and /stats.

@@ -135,8 +135,10 @@ describe("MCP agents", { skip: !canRun && "anvil or forge build output missing" 
     const { tools } = await a.client.listTools();
     assert.deepEqual(
       tools.map((t) => t.name).sort(),
-      ["otc_accept_offer", "otc_create_bid", "otc_create_listing", "otc_deal_status", "otc_deposit", "otc_get_offers", "otc_info", "otc_list_bids", "otc_price", "otc_refund", "otc_send_offer"],
+      ["otc_accept_offer", "otc_autopilot_preview", "otc_create_bid", "otc_create_listing", "otc_deal_status", "otc_deposit", "otc_get_offers", "otc_info", "otc_list_bids", "otc_price", "otc_refund", "otc_send_offer"],
     );
+    // the preview refuses bad rules before reading anything
+    await assert.rejects(a.call("otc_autopilot_preview", { rules: [{ side: "sell", token: stock, maxTotal: "10", maxPerDeal: "20", priceVsMarketPct: 5 }] }), /maxPerDeal can't exceed maxTotal/);
     const info = await a.call("otc_info");
     assert.equal(info.escrow, escrow);
     assert.equal(info.agentWallet, privateKeyToAccount(KEYS.buyer).address);

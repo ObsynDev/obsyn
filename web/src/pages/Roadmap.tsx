@@ -31,6 +31,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Ghost mode relayer", d: "Deliver from a one-time wallet; gas paid by the relayer.", s: "live", size: "M", g: "Privacy" },
       { t: "Exposure check", d: "On a ghost-mode deal, see which public hops link the one-time wallet back to you.", s: "live", size: "M", doc: "exposure-check", g: "Privacy" },
       { t: "SDK, OpenAPI, local MCP server", d: "Agents and apps can do everything the site does.", s: "live", size: "M", g: "Agents and developers" },
+      { t: "Autopilot", d: "An agent that trades by your rules 24/7: prices vs the DEX, hard caps, dry run by default.", s: "live", size: "M", doc: "autopilot", g: "Agents and developers" },
       { t: "Installable MCP package", d: "One command to give any agent the desk, no repository needed (npx, from the GitHub release).", s: "live", size: "M", doc: "mcp-package", g: "Agents and developers" },
       { t: "Contract on mainnet", d: "Escrow and fee vault live on Robinhood Chain, verified on the explorer and Sourcify (exact match).", s: "live", size: "S", g: "Trust and transparency" },
       { t: "Security audit by the Obsyn team", d: "Manual review, Slither, 41 contract tests, live-fork replays. Report published on GitHub.", s: "live", size: "M", g: "Trust and transparency" },
