@@ -12,6 +12,9 @@ const DEAD = "0x000000000000000000000000000000000000dEaD";
 const vaultAbi = parseAbi([
   "function totalBurned() view returns (uint256)",
   "function balances() view returns (uint256 eth, uint256 usdgBal)",
+  "function adapter() view returns (address)",
+  "function pendingAdapter() view returns (address)",
+  "function pendingAdapterEta() view returns (uint256)",
 ]);
 
 /** What the stats need from the chain; injectable for tests. */
@@ -20,7 +23,15 @@ export interface StatsChain {
   dealStatus(id: Hex): Promise<number>;
   /** protocol and referrer fee the escrow takes for these terms */
   fees(t: Terms): Promise<{ protocol: bigint; referrer: bigint }>;
-  vault(): Promise<{ address: Address; totalBurned: bigint; eth: bigint; usdg: bigint; tokenBurnedAtDead: bigint | null }>;
+  vault(): Promise<{
+    address: Address;
+    totalBurned: bigint;
+    eth: bigint;
+    usdg: bigint;
+    tokenBurnedAtDead: bigint | null;
+    /** the swap route the vault buys through, and one queued behind the 2-day timelock */
+    route?: { active: Address; pending: Address; pendingEta: bigint };
+  }>;
 }
 
 export function chainStats(client: PublicClient, escrow: Address, platformToken: Address | null): StatsChain {
@@ -37,12 +48,15 @@ export function chainStats(client: PublicClient, escrow: Address, platformToken:
     },
     async vault() {
       const address = await vault();
-      const [totalBurned, [eth, usdg], dead] = await Promise.all([
+      const [totalBurned, [eth, usdg], dead, active, pending, pendingEta] = await Promise.all([
         client.readContract({ address, abi: vaultAbi, functionName: "totalBurned" }),
         client.readContract({ address, abi: vaultAbi, functionName: "balances" }),
         platformToken ? client.readContract({ address: platformToken, abi: erc20Abi, functionName: "balanceOf", args: [DEAD] }) : Promise.resolve(null),
+        client.readContract({ address, abi: vaultAbi, functionName: "adapter" }),
+        client.readContract({ address, abi: vaultAbi, functionName: "pendingAdapter" }),
+        client.readContract({ address, abi: vaultAbi, functionName: "pendingAdapterEta" }),
       ]);
-      return { address, totalBurned, eth, usdg, tokenBurnedAtDead: dead };
+      return { address, totalBurned, eth, usdg, tokenBurnedAtDead: dead, route: { active, pending, pendingEta } };
     },
   };
 }
@@ -60,7 +74,15 @@ export interface StatsSummary {
   ethUsd: number | null;
   postings: { total: number; open: number; answers: number };
   tokensTraded: number;
-  vault: { address: string; ethWaiting: string; usdgWaiting: string; totalBurned: string; burnedAtDead: string | null } | null;
+  vault: {
+    address: string;
+    ethWaiting: string;
+    usdgWaiting: string;
+    totalBurned: string;
+    burnedAtDead: string | null;
+    /** buy route: the adapter in use, and one queued behind the public 2-day timelock (eta in unix seconds, 0 = none) */
+    route: { active: string; pending: string; pendingEta: number } | null;
+  } | null;
   updatedAt: number;
 }
 
@@ -166,6 +188,7 @@ export function createStats(opts: {
           usdgWaiting: v.usdg.toString(),
           totalBurned: v.totalBurned.toString(),
           burnedAtDead: v.tokenBurnedAtDead === null ? null : v.tokenBurnedAtDead.toString(),
+          route: v.route ? { active: getAddress(v.route.active), pending: getAddress(v.route.pending), pendingEta: Number(v.route.pendingEta) } : null,
         };
       } catch {
         vault = null;

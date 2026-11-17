@@ -121,7 +121,15 @@ export interface DeskStats {
   ethUsd: number | null;
   postings: { total: number; open: number; answers: number };
   tokensTraded: number;
-  vault: { address: string; ethWaiting: string; usdgWaiting: string; totalBurned: string; burnedAtDead: string | null } | null;
+  vault: {
+    address: string;
+    ethWaiting: string;
+    usdgWaiting: string;
+    totalBurned: string;
+    burnedAtDead: string | null;
+    /** buy route in use, and one queued behind the 2-day timelock (eta in unix seconds, 0 = none) */
+    route: { active: string; pending: string; pendingEta: number } | null;
+  } | null;
   updatedAt: number;
 }
 

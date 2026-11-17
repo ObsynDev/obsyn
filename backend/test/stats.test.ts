@@ -44,7 +44,14 @@ const chain: StatsChain = {
     return { protocol: fee - referrer, referrer };
   },
   async vault() {
-    return { address: VAULT, totalBurned: 5n * 10n ** 18n, eth: 7n, usdg: 9n, tokenBurnedAtDead: 6n * 10n ** 18n };
+    return {
+      address: VAULT,
+      totalBurned: 5n * 10n ** 18n,
+      eth: 7n,
+      usdg: 9n,
+      tokenBurnedAtDead: 6n * 10n ** 18n,
+      route: { active: "0x0000000000000000000000000000000000000000", pending: "0x00000000000000000000000000000000000000A9", pendingEta: 1_800_172_800n },
+    };
   },
 };
 
@@ -126,6 +133,7 @@ describe("stats and referrals", () => {
     assert.equal(s.json.postings.total, 3);
     assert.equal(s.json.vault.totalBurned, (5n * 10n ** 18n).toString());
     assert.equal(s.json.vault.usdgWaiting, "9");
+    assert.deepEqual(s.json.vault.route, { active: "0x0000000000000000000000000000000000000000", pending: "0x00000000000000000000000000000000000000A9", pendingEta: 1_800_172_800 });
   });
 
   it("caches the summary and never re-reads a deal that is final", async () => {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fomoUrl, PLATFORM_TOKEN } from "../lib/brand.tsx";
+import { BurnRoute } from "./BurnRoute.tsx";
 import { reducedMotion } from "../lib/motion.tsx";
 import { Copy, short } from "../lib/ui.tsx";
 
@@ -88,6 +89,9 @@ export function TokenUtility() {
           </p>
         </div>
       </div>
+
+      {/* the switch to the Uniswap v4 buy route, with the vault's public timelock */}
+      <BurnRoute />
 
       {/* contract address bar */}
       <div className="tk-ca">

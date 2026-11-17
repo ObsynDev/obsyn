@@ -380,8 +380,8 @@ export function Landing() {
             <SectMeta label={`THE TOKEN · $${PLATFORM_TOKEN.symbol}`} idx={5} />
             <SplitWords text={`Every deal buys $${PLATFORM_TOKEN.symbol}. / [Then burns it.]`} accent="ember" />
             <p className="muted">
-              Utility first: the desk runs today without a token. When ${PLATFORM_TOKEN.symbol} launches on Pons, two rules already
-              written into the contracts switch on.
+              Utility first: the desk works without a token. ${PLATFORM_TOKEN.symbol} launched on Pons and graduated to Uniswap v4, and
+              two rules written into the contracts apply to every deal: fees buy and burn ${PLATFORM_TOKEN.symbol}, and holders pay less.
             </p>
           </div>
           <Reveal>
