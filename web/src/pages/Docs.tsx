@@ -38,12 +38,12 @@ const DOCS: Doc[] = [
   {
     id: "token",
     title: "Platform token, buy-and-burn, holder discount",
-    status: "Planned",
+    status: "Live",
     half: "trade",
     what: "A fixed-supply token launched on a Pons bonding curve. Every fee, paid in ETH or USDG, is used to buy the token and send it to the burn address. Holding it lowers your fees.",
     how: [
-      "Launch on Pons; after the curve sells out, liquidity moves to a locked Uniswap v4 pool.",
-      "The fee vault (already deployed with the contract) is pointed at the token once; that switch can never be changed.",
+      "Live: $OBSYN launched on a Pons bonding curve; after the curve sells out, liquidity moves to a locked Uniswap v4 pool.",
+      "Live: the fee vault was pointed at $OBSYN once (setPlatformToken). That switch can never be changed.",
       "A keeper spends accumulated fees on the token and burns it, with a minimum-out check on every buy.",
       "Wallets holding the threshold amount get 0.5% off the fee, read on-chain at settlement.",
     ],
@@ -75,13 +75,14 @@ const DOCS: Doc[] = [
   {
     id: "partial-fills",
     title: "Partial fills",
-    status: "Planned",
+    status: "Live",
     half: "trade",
-    what: "One large bid gets filled by several sellers, each with their own sealed offer, instead of needing one seller big enough for the whole size.",
+    what: "One large bid gets filled by several sellers, each with their own sealed offer, instead of needing one seller big enough for the whole size. Works the same for listings: several buyers can share one block.",
     how: [
-      "A buyer posts a bid for, say, $1M of a token.",
-      "Sellers offer any slice. The buyer picks a set of offers that adds up to the size, best prices first.",
-      "Each slice settles as its own contract deal, so one failed slice never blocks the others.",
+      "On by default when you post a bid or listing (a checkbox turns it off). The SDK and MCP take allowPartial.",
+      "Answerers can offer part of the size. You accept answers one by one, best prices first, until the size is filled.",
+      "Each part settles as its own contract deal, so one failed part never blocks the others. The private page shows a fill bar and one deal panel per part.",
+      "No contract change was needed: the escrow already settles any amount per deal.",
     ],
     impact: [
       { who: "Buyers", text: "Fill sizes that no single holder can, at a blended price." },
@@ -89,6 +90,40 @@ const DOCS: Doc[] = [
       { who: BRAND.name, text: "Bigger blocks, deeper liquidity." },
     ],
     risks: "More moving parts per deal. The interface has to make the blended price and the status of each slice very clear.",
+  },
+  {
+    id: "price-impact",
+    title: "Price-impact estimate",
+    status: "Live",
+    half: "trade",
+    what: "Before you post, see what the same size would cost as a plain market order on the token's deepest DEX pool, so you know what a private block saves you.",
+    how: [
+      "Reads the token's deepest Robinhood Chain pool and its liquidity (a DEX snapshot, reference only).",
+      "Estimates the price you'd get swapping your whole size there, e.g. '≈ 11% worse, ≈ $11,048' for a $100k buy.",
+      "Shown on the desk and on each token's trade page while you type.",
+    ],
+    impact: [
+      { who: "Traders", text: "A clear reason to go OTC for size: the slippage you avoid, in dollars." },
+      { who: BRAND.name, text: "Shows the desk's value at the moment someone decides." },
+    ],
+    risks: "An estimate from pool liquidity, not a quote. Thin or fast-moving pools can differ a lot.",
+  },
+  {
+    id: "mcp-package",
+    title: "Installable MCP package",
+    status: "Live",
+    half: "both",
+    what: "One command gives any MCP-capable AI agent the whole desk: bids, sell listings, sealed offers, accept, deposit, refund and partial fills. No repository checkout needed.",
+    how: [
+      "npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz, or the same as a stdio server in your MCP client's config.",
+      "Published as a GitHub release of the open-source repo; the release lists the file's SHA-256 so you can check what you run.",
+      "Runs on the agent's machine: offers are encrypted and decrypted there and the wallet key (optional, OBSYN_PRIVATE_KEY) never leaves that process.",
+    ],
+    impact: [
+      { who: "Agents and builders", text: "Trade privately from an agent in a minute, with 11 tools." },
+      { who: BRAND.name, text: "Agents become a second front door to the desk." },
+    ],
+    risks: "Anyone can answer a bid, so agents must treat answers as hostile input: unverified answers are refused unless allowUnverified is set. Use a dedicated wallet.",
   },
   {
     id: "team-access",

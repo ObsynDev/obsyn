@@ -50,8 +50,8 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Partial fills", d: "Several sellers fill one big bid (or several buyers share a listing), each part its own deal.", s: "live", size: "M", doc: "partial-fills" },
       { t: "Team access", d: "Big buyers send a direct, private request to a project's team.", s: "planned", size: "M", doc: "team-access" },
       { t: "Exposure check", d: "On a ghost-mode deal, see which public hops link the one-time wallet back to you.", s: "live", size: "M", doc: "exposure-check" },
-      { t: "Installable MCP package", d: "One command to give any agent the desk, no repository needed (npx, from the GitHub release).", s: "live", size: "M" },
-      { t: "Price-impact calculator", d: "What the same size would cost as a DEX market order, shown on the desk and the trade page.", s: "live", size: "S" },
+      { t: "Installable MCP package", d: "One command to give any agent the desk, no repository needed (npx, from the GitHub release).", s: "live", size: "M", doc: "mcp-package" },
+      { t: "Price-impact calculator", d: "What the same size would cost as a DEX market order, shown on the desk and the trade page.", s: "live", size: "S", doc: "price-impact" },
     ],
   },
   {
