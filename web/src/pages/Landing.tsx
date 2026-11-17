@@ -216,7 +216,7 @@ export function Landing() {
   const band = useScrollVar<HTMLElement>(bandProgress);
   useSpotlight();
   useScrollBoost(".tok-track");
-  const mcp = `OBSYN_API=${window.location.origin}/api node backend/src/mcp/stdio.ts`;
+  const mcp = "npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz";
 
   return (
     <div className="l3">

@@ -30,9 +30,9 @@ export function Developers() {
   const mcp = `{
   "mcpServers": {
     "${BRAND.name.toLowerCase()}": {
-      "command": "node",
-      "args": ["backend/src/mcp/stdio.ts"],
-      "env": { "OBSYN_API": "${origin}/api", "OBSYN_PRIVATE_KEY": "0x..." }
+      "command": "npx",
+      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz"],
+      "env": { "OBSYN_PRIVATE_KEY": "0x..." }
     }
   }
 }`;

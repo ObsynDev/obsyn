@@ -13,14 +13,16 @@ Most clients take a config like this:
   "mcpServers": {
     "obsyn": {
       "command": "npx",
-      "args": ["-y", "obsyn-mcp"],
+      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz"],
       "env": { "OBSYN_PRIVATE_KEY": "0x..." }
     }
   }
 }
 ```
 
-Or run it directly: `npx -y obsyn-mcp` (it speaks MCP over stdio).
+Or run it directly: `npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz` (it speaks MCP over stdio). Needs Node 20 or newer.
+
+The file is published as a GitHub release of the open-source repo; every release lists its SHA-256 so you can check what you run.
 
 ## Settings (environment variables)
 

@@ -583,7 +583,8 @@ export function Docs() {
               would send.
             </p>
             <h3 className="dx-h3">MCP server (11 tools)</h3>
-            <Code>{`OBSYN_API=${origin}/api node backend/src/mcp/stdio.ts   # register as a stdio server in your MCP client`}</Code>
+            <Code>{`npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz
+# register it as a stdio server in your MCP client; OBSYN_PRIVATE_KEY is optional`}</Code>
             <h3 className="dx-h3">JavaScript SDK</h3>
             <Code>{`import { Obsyn } from "${origin}/api/sdk/obsyn.mjs";
 const otc = new Obsyn({ apiUrl: "${origin}/api", privateKey }); // key optional`}</Code>

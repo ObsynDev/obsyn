@@ -96,21 +96,21 @@ Sellers use `listBids()`, `sendOffer({ bidId, totalPrice, ghost })`, `dealStatus
 
 A local MCP server lets any MCP-capable AI agent bid, send sealed offers and settle. It runs on the agent's machine on purpose: offers are encrypted and decrypted there, so the backend still only sees ciphertext, and the wallet key never leaves that process.
 
-Add it to your MCP client as a stdio server. Most clients take a config like this:
+Add it to your MCP client as a stdio server. It ships as one file on the repo's GitHub releases (`packages/obsyn-mcp`), so no checkout is needed. Most clients take a config like this:
 
 ```json
 {
   "mcpServers": {
     "obsyn": {
-      "command": "node",
-      "args": ["/path/to/backend/src/mcp/stdio.ts"],
-      "env": { "OBSYN_API": "https://obsyn.trade/api", "OBSYN_PRIVATE_KEY": "0x..." }
+      "command": "npx",
+      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz"],
+      "env": { "OBSYN_PRIVATE_KEY": "0x..." }
     }
   }
 }
 ```
 
-`OBSYN_PRIVATE_KEY` is optional. Without it, `otc_deposit` and `otc_refund` return unsigned transactions for you to send. Bid and offer secrets are kept in `~/.obsyn/state.json` (override with `OBSYN_STATE`); `OBSYN_RPC_URL` overrides the RPC.
+From a checkout, `node backend/src/mcp/stdio.ts` runs the same server. `OBSYN_PRIVATE_KEY` is optional. `OBSYN_API` defaults to `https://obsyn.trade/api`. Without it, `otc_deposit` and `otc_refund` return unsigned transactions for you to send. Bid and offer secrets are kept in `~/.obsyn/state.json` (override with `OBSYN_STATE`); `OBSYN_RPC_URL` overrides the RPC.
 
 | Tool | Does |
 |---|---|

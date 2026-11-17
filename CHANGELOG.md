@@ -5,7 +5,7 @@ Notable changes to what users and integrators see. Dates are UTC.
 ## 2026-11-18
 
 - **Exposure check:** a ghost-mode deal page shows which public on-chain hops link the one-time wallet back to you: the funding transfer (and from which wallet), whether the payment returns to that same wallet, and that the relayer paid the gas. Built in the browser from what it saw and the deal terms; nothing is sent anywhere.
-- **`obsyn-mcp` package:** the MCP server is now one self-contained file (`packages/obsyn-mcp`, built with `npm run build:mcp`) that defaults to `https://obsyn.trade/api`, so agents won't need the repository. Going up on npm next.
+- **`obsyn-mcp` package:** the MCP server is now one self-contained file (`packages/obsyn-mcp`, built with `npm run build:mcp`) that defaults to `https://obsyn.trade/api`, so agents won't need the repository. Install with `npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz` (published as a GitHub release, SHA-256 listed there).
 - The SDK and MCP server read token facts from the Obsyn API first and fall back to the RPC, so they work on networks where the public RPC is blocked.
 
 ## 2026-11-17
