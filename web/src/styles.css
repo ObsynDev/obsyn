@@ -5967,3 +5967,12 @@ html, body { overflow-x: clip; }
 .tr-partial i { font-style: normal; color: var(--muted); }
 .fills .fill-bar { height: 8px; border-radius: 999px; background: var(--panel-2, #151a22); overflow: hidden; margin: 6px 0 4px; }
 .fills .fill-bar span { display: block; height: 100%; background: linear-gradient(90deg, #ff9a63, var(--green)); border-radius: 999px; transition: width 0.4s ease; }
+
+/* same size as a DEX market order */
+.dex-impact { display: grid; gap: 3px; margin: 8px 0 2px; padding: 9px 11px; border-radius: 10px; font-size: 13px; border: 1px solid var(--line-2, #2a3240); background: rgb(255 255 255 / 0.02); }
+.dex-impact b { font-weight: 700; }
+.dex-impact i { font-style: normal; color: var(--muted); }
+.dex-impact.warm { border-color: rgb(240 196 142 / 0.35); }
+.dex-impact.warm b { color: var(--sand, #f0c48e); }
+.dex-impact.hot { border-color: rgb(255 82 119 / 0.4); background: rgb(255 82 119 / 0.06); }
+.dex-impact.hot b { color: var(--red); }

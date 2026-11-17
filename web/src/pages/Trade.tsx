@@ -10,6 +10,7 @@ import { saved } from "../lib/store.ts";
 import { MARKETS, PAY_TOKENS } from "../lib/tokens.ts";
 import { Err, fmtLeft, Link, navigate, useAction, useNow, usePoll } from "../lib/ui.tsx";
 import { TokenAvatar } from "./Terminal.tsx";
+import { DexImpact } from "./DexImpact.tsx";
 
 /**
  * /trade?ca=0x…&side=buy|sell — a trading page for one token: order ticket on the left,
@@ -366,6 +367,7 @@ export function Trade() {
             <span>{side === "buy" ? "≈ Tokens at market" : "≈ Value at market"}</span>
             <b>{estimate === null ? "–" : side === "buy" ? `${num(estimate)} ${sym}` : usd(estimate)}</b>
           </div>
+          <DexImpact side={side} sizeUsd={side === "buy" ? (isFinite(sizeNum) && sizeNum > 0 ? sizeNum : null) : estimate} market={mkt} />
 
           <div className="tr-opts">
             <div>

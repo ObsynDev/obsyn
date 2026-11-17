@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useMarket } from "../lib/market.ts";
+import { DexImpact } from "./DexImpact.tsx";
 import { BRAND } from "../lib/brand.tsx";
 import { MARKETS, market } from "../lib/tokens.ts";
 import { getAddress, isAddress, parseUnits, type Address } from "viem";
@@ -368,6 +370,9 @@ export function Otc() {
   const [win, setWin] = useState(86400);
   const [picking, setPicking] = useState(false);
   const [partial, setPartial] = useState(true);
+  const market = useMarket(token?.address);
+  const usdNum = Number(usd.replace(/[,\s$]/g, ""));
+  const sellUsd = market?.priceUsd && Number(amount.replace(/[,\s]/g, "")) > 0 ? Number(amount.replace(/[,\s]/g, "")) * market.priceUsd : null;
 
   const submit = useAction(async () => {
     if (!token) throw new Error("Select the token first.");
@@ -439,6 +444,7 @@ export function Otc() {
                 <input className="otc-amt" value={usd} onChange={(e) => setUsd(e.target.value)} inputMode="decimal" placeholder="0" aria-label="Amount in USD" />
                 <span className="otc-unit">USD</span>
               </div>
+              <DexImpact side="buy" sizeUsd={isFinite(usdNum) && usdNum > 0 ? usdNum : null} market={market} />
               <div className="otc-sub">
                 <span className="dim">Minimum $5</span>
                 <span className="otc-pay">
@@ -472,6 +478,7 @@ export function Otc() {
                 {TokenButton}
               </div>
               <div className="otc-sub dim">{token ? `${token.name}` : "Pick the token you want to sell."}</div>
+              <DexImpact side="sell" sizeUsd={sellUsd} market={market} />
             </div>
             <div className="otc-arrow" aria-hidden="true">
               ↓

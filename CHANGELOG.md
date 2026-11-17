@@ -4,6 +4,7 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-17
 
+- **Price-impact estimate:** the desk and the trade page show what the same size would cost as a market order on the token's deepest DEX pool ("≈ 11% worse, ≈ $11,048" for a $100k NVDA buy), from that pool's liquidity. Labelled as an estimate.
 - **Partial fills:** a bid or listing can be filled by several answers, each its own deal that settles on its own. On by default on the desk and the trade page (a checkbox turns it off); answerers can offer part of a fixed size; the private page shows a fill bar and one deal panel per fill. The SDK and MCP take `allowPartial`. No contract change: the escrow already settles any amount per deal.
 - **Reference price on offers:** each decrypted offer or bid shows how it compares with the token's on-chain DEX price ("15% over market"), and price fields show the same while you type. Reference only.
 - **Deal receipts:** `/receipt/<tx>` is a public page per settled deal, rebuilt from the settlement transaction (terms from its input, fees from its `Settled` event). Whichever side completes the deal reports the transaction; the server checks it on-chain before recording it, and both sides get a "View receipt" link.

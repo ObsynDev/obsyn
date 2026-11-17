@@ -51,7 +51,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Team access", d: "Big buyers send a direct, private request to a project's team.", s: "planned", size: "M", doc: "team-access" },
       { t: "Exposure check", d: "After a ghost-mode deal, see how easily your main wallet can be linked.", s: "planned", size: "M", doc: "exposure-check" },
       { t: "Installable MCP package", d: "One command to give any agent the desk, no repository needed.", s: "planned", size: "M" },
-      { t: "Price-impact calculator", d: "What the same size would cost as a DEX market order, side by side.", s: "planned", size: "S" },
+      { t: "Price-impact calculator", d: "What the same size would cost as a DEX market order, shown on the desk and the trade page.", s: "live", size: "S" },
     ],
   },
   {

@@ -28,3 +28,16 @@ export function vsLabel(pct: number): string {
   if (a < 0.05) return "at market";
   return `${a < 10 ? a.toFixed(1) : a.toFixed(0)}% ${pct < 0 ? "under" : "over"} market`;
 }
+
+/**
+ * Estimated cost of doing the same size as a market order on the token's deepest DEX pool, as a percent
+ * versus the current price. Constant-product model on that pool's liquidity (half of it per side):
+ *   buying Δ dollars: average price is (1 + Δ/Y) times spot, so impact = Δ/Y
+ *   selling Δ dollars at spot: you receive Y·Δ/(Y+Δ), so impact = Δ/(Y+Δ)
+ * Concentrated-liquidity pools can be deeper or thinner near the price, so this is an estimate.
+ */
+export function dexImpact(side: "buy" | "sell", sizeUsd: number, liquidityUsd: number | null | undefined): number | null {
+  if (!liquidityUsd || liquidityUsd <= 0 || !isFinite(sizeUsd) || sizeUsd <= 0) return null;
+  const y = liquidityUsd / 2;
+  return (side === "buy" ? sizeUsd / y : sizeUsd / (y + sizeUsd)) * 100;
+}
