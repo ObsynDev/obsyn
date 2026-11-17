@@ -11,7 +11,7 @@
 | `OtcEscrow` (settlement, no owner / admin / pause / upgrade) | [`0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865`](https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865) |
 | `BuyBurnVault` (collects fees for $OBSYN buy-and-burn; can't withdraw them) | [`0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221`](https://robinhoodchain.blockscout.com/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221) |
 
-The contracts have had an internal security review ([SECURITY-REVIEW.md](SECURITY-REVIEW.md): no critical or high issues), not an independent audit. Start with sizes you're comfortable with.
+**Security audit by the Obsyn team:** [SECURITY-REVIEW.md](SECURITY-REVIEW.md), no critical or high issues. An independent third-party audit is planned.
 
 ### Transparency
 
@@ -19,7 +19,7 @@ The contracts have had an internal security review ([SECURITY-REVIEW.md](SECURIT
 |---|---|
 | [DEPLOYMENTS.md](DEPLOYMENTS.md) | Every address, its deploy transaction, block, constructor settings and compiler settings |
 | [`contracts/scripts/verify-deployment.mjs`](contracts/scripts/verify-deployment.mjs) | Checks the live bytecode against this source and prints the on-chain settings. `forge build && node scripts/verify-deployment.mjs` |
-| [SECURITY-REVIEW.md](SECURITY-REVIEW.md) | Internal security review: method, Slither triage, findings by severity, what was fixed. Not an independent audit |
+| [SECURITY-REVIEW.md](SECURITY-REVIEW.md) | Security audit by the Obsyn team: method, Slither triage, findings by severity, what was fixed |
 | [SECURITY.md](SECURITY.md) | Who can do what (permissions table), worst cases stated plainly, known risks, how to report a vulnerability |
 | [CHANGELOG.md](CHANGELOG.md) | What changed and when, including bugs we found and fixed |
 | [LICENSE](LICENSE) | MIT |

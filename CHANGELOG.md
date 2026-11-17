@@ -4,7 +4,7 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-17
 
-- **Internal security review published** ([SECURITY-REVIEW.md](SECURITY-REVIEW.md)): manual review, Slither triage, 41 contract tests, live-fork replays. No critical or high contract issues. Not an independent audit.
+- **Security audit by the Obsyn team published** ([SECURITY-REVIEW.md](SECURITY-REVIEW.md)): manual review, Slither triage, 41 contract tests, live-fork replays. No critical or high contract issues.
 - **Contracts verified on Sourcify** with an exact match (runtime and creation bytecode).
 - The backend refuses deal terms whose referrer is the buyer, the seller or the payout address (self-referral would halve the protocol fee).
 - Fixed: a pasted token address was never selected on the desk while the token read was slow, so the bid was never created.

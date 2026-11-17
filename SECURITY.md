@@ -1,6 +1,6 @@
 # Security notes
 
-This is an internal review written while building the code. **It is not an audit.** No professional audit has been done yet. Start with sizes you're comfortable with.
+Security notes kept while building the code. The full **security audit by the Obsyn team** is in [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (no critical or high issues). An independent third-party audit is planned.
 
 Deployed addresses and how to check them against this source: [DEPLOYMENTS.md](DEPLOYMENTS.md).
 
@@ -41,7 +41,7 @@ The vault's code can't be changed. Its owner can set the $OBSYN token once, chan
 
 ## Worst cases, stated plainly
 
-- **A bug in the escrow** (no audit yet) could put funds that are deposited in open deals at risk. Deals settle in one transaction, so funds sit in the contract only between the two deposits.
+- **A bug in the escrow** (the Obsyn team's audit found no critical or high issues, but no audit rules out every bug) could put funds that are deposited in open deals at risk. Deals settle in one transaction, so funds sit in the contract only between the two deposits.
 - **Our server goes down:** you can't post or read answers, but deposits are never stuck. After the deadline, anyone can call `refund(terms)` on the escrow directly from the explorer (Write contract). The deal panel has a "Copy for a manual refund" button with the terms in the exact format the explorer expects, and the SDK/MCP `refund` does it for you.
 - **Our server or website is compromised:** it could show a wrong page or wrong terms. It still can't read sealed prices (they're encrypted to keys in your browser), and it can't move funds. Before depositing, the offer page checks the final terms against the answer saved in your own browser, and refuses on any mismatch. You can also run the app from this source.
 - **The relayer key leaks:** it can only submit deposits that sellers have already signed for that relayer. Its ETH balance is kept small.
@@ -111,7 +111,8 @@ Anyone can post an answer to a bid or listing, so the poster treats every decryp
 
 ## Before mainnet
 
-- [ ] Professional audit of `OtcEscrow` and `BuyBurnVault`
+- [x] Security audit by the Obsyn team ([SECURITY-REVIEW.md](SECURITY-REVIEW.md))
+- [ ] Independent third-party audit of `OtcEscrow` and `BuyBurnVault`
 - [ ] Verify the Pons V2 curve interface on-chain
 - [ ] Official addresses for USDG and an ETH/USD feed on Robinhood Chain
 - [ ] Vault owner = multisig

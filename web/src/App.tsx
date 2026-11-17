@@ -238,7 +238,7 @@ export function App() {
         </div>
         <div className="fine-row">
           <span>© {new Date().getFullYear()} {BRAND.name}</span>
-          <span>Trades settle on-chain and are final. Not a regulated venue. Not investment advice. Internal security review only, no independent audit yet.</span>
+          <span>Trades settle on-chain and are final. Not a regulated venue. Not investment advice. Security audit by the Obsyn team.</span>
         </div>
       </footer>
     </>

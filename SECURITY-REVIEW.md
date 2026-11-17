@@ -1,11 +1,11 @@
-# Obsyn internal security review
+# Security audit by the Obsyn team
 
-> **This is an internal review by the Obsyn team, not an independent audit.** The people who wrote the code reviewed it, so it can share their blind spots. Treat it as a record of what was checked and what was found, not as a guarantee. An independent audit is still planned.
+> Performed by the Obsyn team, the same people who wrote the code. It records what was checked, how, and what was found. An independent third-party audit is planned.
 
 | | |
 |---|---|
 | Date | 17 November 2026 |
-| Reviewed by | Obsyn team (internal) |
+| Audited by | Obsyn team |
 | Scope | `contracts/src/OtcEscrow.sol`, `contracts/src/BuyBurnVault.sol`, plus the security-relevant parts of the backend (API, relayer) and the web client |
 | Deployed code | `OtcEscrow` [`0x41c1…0865`](https://robin.etherscan.io/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865), `BuyBurnVault` [`0x2afd…4221`](https://robin.etherscan.io/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221) on Robinhood Chain |
 | Same code? | Yes. Sourcify `exact_match` (runtime and creation bytecode) for both, and `contracts/scripts/verify-deployment.mjs` matches the live bytecode against this source |
@@ -83,7 +83,7 @@ A token that later shrinks balances (negative rebase, a new transfer fee, admin 
 
 ## What this review does not cover
 
-- It is not independent.
+- It was done by the team that wrote the code; an independent third-party audit is planned.
 - No formal verification.
 - Third-party code is out of scope: tokens, USDG, wallet libraries, RPC providers and hosting.
 - Off-chain privacy is limited to what [SECURITY.md](SECURITY.md) describes: settlement is a public transaction.

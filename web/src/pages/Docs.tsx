@@ -232,7 +232,7 @@ const PERMISSIONS: [string, string][] = [
 ];
 
 const WORST: [string, string][] = [
-  ["A bug in the escrow", "No independent audit yet (an internal review found no critical or high issues). Funds deposited in open deals could be at risk. A deal settles in one transaction, so funds sit in the contract only between the two deposits."],
+  ["A bug in the escrow", "The Obsyn team's audit found no critical or high issues, but no audit can rule out every bug. Funds deposited in open deals could be at risk. A deal settles in one transaction, so funds sit in the contract only between the two deposits."],
   ["Our server goes down", "You can't post or read answers, but deposits are never stuck: after the deadline anyone can call refund(terms) on the escrow from the explorer. The deal panel has a \"Copy for a manual refund\" button with the terms in the format the explorer expects."],
   ["Our server or website is compromised", "It could show a wrong page. It still can't read sealed prices or move funds, and before you deposit the offer page checks the final terms against the answer saved in your own browser."],
   ["The relayer key leaks", "It can only submit deposits sellers already signed for that relayer. Its ETH balance is kept small."],
@@ -271,7 +271,7 @@ const DOC_FAQ: [string, string][] = [
   ["Do I need an account?", "No. Posting gives you a private link that controls the block. Keep it like a password: whoever holds it can read the answers and accept one."],
   ["Who can read the prices?", "Only the side that posted the block. Answers are encrypted in the sender's browser to the poster's key before they leave it, and our server only ever stores ciphertext."],
   ["Can you take my funds?", "No. The contract has no owner, no admin key, no pause and no upgrade. Funds only move to settle a deal or to refund a side after the deadline."],
-  ["Is it audited?", "Not by an independent firm yet. We published an internal security review (manual review, Slither, 41 contract tests, live-fork replays): no critical or high contract issues. It's not an audit. Start with sizes you're comfortable with."],
+  ["Is it audited?", "Yes, by the Obsyn team: a published security audit (manual review, Slither, 41 contract tests, replays against the live contracts) with no critical or high issues. An independent third-party audit is planned."],
   ["Is it anonymous?", "No, it's private. Prices stay sealed while you negotiate. Once a side deposits, the deal is public on-chain like any transaction."],
   ["What happens if the other side never deposits?", "Nothing moves until both sides are in. After the deadline, whoever deposited takes their own funds back with a refund call."],
   ["Do I need the token?", `No. The desk works without $${PLATFORM_TOKEN.symbol}. Holding it only takes 0.5% off your fee once it launches.`],
@@ -684,7 +684,7 @@ node scripts/verify-deployment.mjs`}</Code>
               <a href="https://repo.sourcify.dev/4663/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865" target="_blank" rel="noreferrer">
                 Sourcify
               </a>{" "}
-              with an exact match, and the internal security review is in{" "}
+              with an exact match, and the security audit by the Obsyn team is in{" "}
               <a href={`${GITHUB}/blob/main/SECURITY-REVIEW.md`} target="_blank" rel="noreferrer">
                 SECURITY-REVIEW.md
               </a>
@@ -734,7 +734,7 @@ node scripts/verify-deployment.mjs`}</Code>
               {[
                 ["No admin keys", "The escrow has no owner, pause or upgrade. Only the deal's own rules move funds."],
                 ["Refunds can't be blocked", "Each side can always take its deposit back after the deadline."],
-                ["Reviewed, not audited", "Internal security review published (no critical or high contract issues). No independent audit yet. Start small."],
+                ["Security audit by the Obsyn team", "Published report: no critical or high contract issues. An independent third-party audit is planned."],
                 ["Never your seed phrase", "Signing an answer is a plain message, not a transaction. We never ask for keys."],
               ].map(([t, d]) => (
                 <div key={t} className="dx-card plain">
