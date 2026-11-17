@@ -30,6 +30,15 @@ Enforced by the contracts unless marked *(app)*. "Anyone" means any address, inc
 
 The vault owner is currently a single wallet, not a multisig (see [DEPLOYMENTS.md](DEPLOYMENTS.md)). Its powers only touch fees that are already in the vault, never user deposits in the escrow.
 
+## Is "no admin key" really true? The one dependency
+
+`OtcEscrow` itself has no owner, no admin function, no pause and no upgrade path. It has exactly one outside dependency, fixed at deploy: its fee recipient, the `BuyBurnVault`, whose owner is currently the deployer wallet. Here is everything that dependency can do to the escrow:
+
+1. **Fee discount lookup.** At settlement the escrow asks the vault `discountConfig()` through a `staticcall` capped at 30,000 gas (`OtcEscrow.discountConfig`). The answer only decides whether the 0.5% holder discount applies. If the call fails or misbehaves, the deal settles at the normal fee. It cannot block or redirect anything.
+2. **Receiving the fee.** The protocol fee is sent to the vault (`_pay`). If an ETH transfer to it ever failed, the amount is credited to `owedEth` and settlement continues. ERC-20 transfers don't call the recipient at all.
+
+The vault's code can't be changed. Its owner can set the $OBSYN token once, change the keeper, and change the buy-and-burn swap route after a public 2-day delay: all of that only touches fees already sitting in the vault. **Nothing the vault or its owner does can block a deposit, a settlement or a refund, or move a user's funds.** You can confirm this by reading `OtcEscrow.sol` (search for `feeRecipient`) and by running `contracts/scripts/verify-deployment.mjs` to check the live bytecode is this code.
+
 ## Worst cases, stated plainly
 
 - **A bug in the escrow** (no audit yet) could put funds that are deposited in open deals at risk. Deals settle in one transaction, so funds sit in the contract only between the two deposits.

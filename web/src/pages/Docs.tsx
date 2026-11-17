@@ -708,6 +708,17 @@ node scripts/verify-deployment.mjs`}</Code>
               "Nobody" includes us. The vault owner is a single wallet for now, and its powers only touch fees already in the vault, never
               your deposits.
             </p>
+            <h3 className="dx-h3">The escrow's one dependency</h3>
+            <p className="dx-p">
+              The escrow has no admin key, but it does talk to one other contract: the fee vault, owned by the deployer wallet. It asks the
+              vault whether the 0.5% holder discount applies (a read capped at 30,000 gas; if it fails, the normal fee applies) and sends
+              it the fee (if an ETH transfer failed, the fee is credited instead and settlement continues). That's all. The vault can't
+              block a deposit, a settlement or a refund, and can't touch user funds. Details in{" "}
+              <a href={`${GITHUB}/blob/main/SECURITY.md`} target="_blank" rel="noreferrer">
+                SECURITY.md
+              </a>
+              .
+            </p>
           </Sect>
 
           <Sect id="safety" n={11} title="Safety and worst cases">
