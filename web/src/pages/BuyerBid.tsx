@@ -193,6 +193,11 @@ export function BuyerBid({ id }: { id: string }) {
         salt,
       };
     }
+    // A referral link that names one of this deal's own parties can't earn on it (the server
+    // refuses self-referral), so drop it rather than fail the accept.
+    if ([terms.buyer, terms.seller, terms.sellerPayout].some((p) => p.toLowerCase() === terms.referrer.toLowerCase())) {
+      terms = { ...terms, referrer: zeroAddress };
+    }
     const res = await api.accept(id, token, a.q.id, termsToJson(terms));
     if (rfq.partial) {
       // the posting stays open until fills cover it; refresh what's filled

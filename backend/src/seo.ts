@@ -29,7 +29,7 @@ const FAQ: [string, string][] = [
 
 const faqHtml = `<h2>FAQ</h2>${FAQ.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}`;
 
-const nav = `<nav><a href="/">Home</a> · <a href="/otc">OTC desk</a> · <a href="/markets">Markets</a> · <a href="/how">How it works</a> · <a href="/security">Security</a> · <a href="/docs">Docs</a> · <a href="/roadmap">Roadmap</a> · <a href="/developers">Developers</a></nav>`;
+const nav = `<nav><a href="/">Home</a> · <a href="/otc">OTC desk</a> · <a href="/markets">Markets</a> · <a href="/how">How it works</a> · <a href="/security">Security</a> · <a href="/docs">Docs</a> · <a href="/roadmap">Roadmap</a> · <a href="/stats">Stats</a> · <a href="/refer">Refer &amp; earn</a> · <a href="/developers">Developers</a></nav>`;
 
 const ROADMAP: [string, string, [string, string][]][] = [
   [
@@ -54,6 +54,8 @@ const ROADMAP: [string, string, [string, string][]][] = [
       ["Partial fills", "Several sellers fill one big bid (or several buyers share a listing), each part its own deal."],
       ["Exposure check", "On a ghost-mode deal, see which public hops link the one-time wallet back to you."],
       ["Installable MCP package", "One command to give any agent the desk, no repository needed."],
+      ["Stats and burn tracker", "Settled volume, deals, fees and the $OBSYN buy-and-burn, checked against the contracts."],
+      ["Referral program", "Share a link, earn half the protocol fee on deals you bring, paid by the escrow at settlement."],
       ["Price-impact estimate", "An estimate of what the same size would cost as a DEX market order."],
     ],
   ],
@@ -142,6 +144,16 @@ ${faqHtml}`,
     title: "Docs · Obsyn",
     description: "How Obsyn works end to end: sealed answers, the settlement contract, fees, the platform token, agents, the SDK and the MCP server.",
     body: `<h1>Docs</h1><p>How Obsyn works end to end: posting blocks, sealed answers, the settlement contract, fees and the $OBSYN token, plus the SDK and MCP server for agents.</p>`,
+  },
+  "/stats": {
+    title: "Stats · Obsyn",
+    description: "Obsyn desk stats: settled OTC volume, deals, fees and the $OBSYN buy-and-burn on Robinhood Chain, checked against the escrow contract.",
+    body: `<h1>Stats</h1><p>Deals, settled volume, fees and the $OBSYN buy-and-burn. Every settled deal and every burn is a public transaction on Robinhood Chain. Prices of open postings stay sealed and are never counted. Live numbers: <a href="/api/stats">/api/stats</a>.</p>`,
+  },
+  "/refer": {
+    title: "Refer & earn · Obsyn",
+    description: "Share your Obsyn link and earn half the protocol fee on deals you refer, paid by the escrow contract straight to your wallet at settlement.",
+    body: `<h1>Bring a trader. Earn half the fee.</h1><p>Share a link with ?ref=your-address. When someone you sent accepts a deal and it settles, the escrow pays you half of the protocol fee in ETH or USDG, in the same transaction. No sign-up, no claiming. A referrer can't be a party to the same deal.</p>`,
   },
   "/roadmap": {
     title: "Roadmap · Obsyn",

@@ -110,6 +110,28 @@ export interface MarketRow {
   desk: { open: number; buy: number; sell: number };
 }
 /** Public receipt of a settled deal, rebuilt from the chain */
+type Amounts = { eth: string; usdg: string };
+
+/** GET /stats: settled volume and fees in base units (ETH wei, USDG 6 decimals), plus the fee vault. */
+export interface DeskStats {
+  deals: { accepted: number; settled: number; refunded: number; open: number };
+  volume: Amounts;
+  fees: { protocol: Amounts; referrer: Amounts };
+  volumeUsd: number | null;
+  ethUsd: number | null;
+  postings: { total: number; open: number; answers: number };
+  tokensTraded: number;
+  vault: { address: string; ethWaiting: string; usdgWaiting: string; totalBurned: string; burnedAtDead: string | null } | null;
+  updatedAt: number;
+}
+
+export interface ReferralSummary {
+  referrer: string;
+  deals: { accepted: number; settled: number };
+  earned: Amounts;
+  recent: { dealId: string; payToken: string; fee: string; settleTx: string | null; acceptedAt: number }[];
+}
+
 export interface DealReceipt {
   txHash: Hex;
   dealId: Hex;
@@ -201,6 +223,8 @@ export const api = {
   tokenMarket: (address: string) => req<TokenMarket>("GET", `/token/${address}/market`),
   receipt: (tx: string) => req<DealReceipt>("GET", `/receipts/${tx}`),
   dealReceipt: (dealId: string) => req<{ txHash: Hex }>("GET", `/deals/${dealId}/receipt`),
+  stats: () => req<DeskStats>("GET", "/stats"),
+  referrals: (address: string) => req<ReferralSummary>("GET", `/referrals/${address}`),
   reportSettled: (rfqId: string, txHash: string) => req<{ ok: true; txHash: Hex }>("POST", `/rfqs/${rfqId}/settled`, { txHash }),
   relayDeposit: (body: unknown) => req<{ txHash: Hex; dealId: Hex }>("POST", "/relay/deposit", body),
 };

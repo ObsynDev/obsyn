@@ -17,9 +17,11 @@ import { Receipt } from "./pages/Receipt.tsx";
 import { Roadmap } from "./pages/Roadmap.tsx";
 import { Markets } from "./pages/Markets.tsx";
 import { Docs } from "./pages/Docs.tsx";
+import { Refer } from "./pages/Refer.tsx";
+import { Stats } from "./pages/Stats.tsx";
 
 /** Marketing pages get the site header; everything else is the app. */
-const SITE_PAGES = new Set(["/", "/markets", "/how", "/developers", "/security", "/roadmap", "/docs"]);
+const SITE_PAGES = new Set(["/", "/markets", "/how", "/developers", "/security", "/roadmap", "/docs", "/stats", "/refer"]);
 
 function route(path: string) {
   let m: RegExpExecArray | null;
@@ -50,6 +52,10 @@ function route(path: string) {
       return <Markets />;
     case "/docs":
       return <Docs />;
+    case "/stats":
+      return <Stats />;
+    case "/refer":
+      return <Refer />;
   }
   return (
     <div className="narrow">
@@ -98,6 +104,7 @@ const SITE_NAV: [string, string][] = [
   ["/trade", "Trade"],
   ["/how", "How it works"],
   ["/docs", "Docs"],
+  ["/stats", "Stats"],
   ["/roadmap", "Roadmap"],
   ["/developers", "Developers"],
 ];
@@ -106,6 +113,7 @@ const APP_NAV: [string, string][] = [
   ["/trade", "Trade"],
   ["/app", "Terminal"],
   ["/mine", "My blocks"],
+  ["/refer", "Refer & earn"],
   ["/how", "How it works"],
 ];
 
@@ -113,7 +121,7 @@ export function App() {
   const path = usePath();
   const site = SITE_PAGES.has(path);
   useEffect(() => {
-    document.title = path === "/" ? `${BRAND.name} · ${BRAND.description}` : path === "/app" ? `${BRAND.name} · Terminal` : path === "/otc" ? `${BRAND.name} · OTC desk` : path === "/trade" ? `${BRAND.name} · Trade` : BRAND.name;
+    document.title = path === "/" ? `${BRAND.name} · ${BRAND.description}` : path === "/app" ? `${BRAND.name} · Terminal` : path === "/otc" ? `${BRAND.name} · OTC desk` : path === "/trade" ? `${BRAND.name} · Trade` : path === "/stats" ? `${BRAND.name} · Stats` : path === "/refer" ? `${BRAND.name} · Referrals` : BRAND.name;
   }, [path]);
   const nav = site ? SITE_NAV : APP_NAV;
   // the phone menu: closes on navigation and Escape
@@ -236,11 +244,13 @@ export function App() {
           <Link to="/app?new=buy">Post a bid</Link>
           <Link to="/app?new=sell">Sell privately</Link>
           <Link to="/mine">My blocks</Link>
+          <Link to="/refer">Refer &amp; earn</Link>
         </div>
         <div className="fcol">
           <h4>LEARN</h4>
           <Link to="/how">How it works</Link>
           <Link to="/docs">Docs</Link>
+          <Link to="/stats">Stats</Link>
           <Link to="/roadmap">Roadmap</Link>
           <Link to="/security">Security</Link>
         </div>

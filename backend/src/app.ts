@@ -11,6 +11,7 @@ import type { QuoteRow, RfqRow } from "./db.ts";
 import { parseSource, type PriceQuote, type PriceSource, type TokenInfo } from "./price.ts";
 import { createTokenMarkets, type TokenMarket } from "./dexmarket.ts";
 import type { DealReceipt } from "./receipt.ts";
+import { createStats, type StatsChain } from "./stats.ts";
 import { createReferencePrices, findMarket, MARKETS, RANGES, type Range, type RefQuote } from "./markets.ts";
 import { NO_PERMIT, RelayError, type Relayer } from "./relayer.ts";
 import { hashToken, isB64, newId, newToken, tokenMatches } from "./secrets.ts";
@@ -28,6 +29,8 @@ export interface Deps {
   tokenMarket?: (token: Address) => Promise<TokenMarket>;
   /** rebuild a settled deal's receipt from its settlement transaction */
   readReceipt?: (txHash: Hex) => Promise<DealReceipt>;
+  /** on-chain reads for the stats and referral pages (deal status, fees, the fee vault) */
+  statsChain?: StatsChain;
   now?: () => number; // unix seconds, injectable for tests
 }
 
@@ -104,7 +107,7 @@ export function createApp(deps: Deps) {
   app.use("*", async (c, next) => {
     const ip = clientIp(c);
     if (c.req.method === "POST" && limited(`w:${ip}`, 60)) return c.json({ error: "rate limited" }, 429);
-    if (c.req.method === "GET" && /^\/(api\/)?(token|price)\//.test(c.req.path) && limited(`r:${ip}`, 120)) {
+    if (c.req.method === "GET" && /^\/(api\/)?(token|price|stats|referrals)/.test(c.req.path) && limited(`r:${ip}`, 120)) {
       return c.json({ error: "rate limited" }, 429);
     }
     await next();
@@ -556,6 +559,36 @@ export function createApp(deps: Deps) {
     if (m.status === "rejected") return c.json({ error: (m.reason as Error).message }, 502);
     return c.json({ ...m.value, ethUsd: eth.status === "fulfilled" ? eth.value.price : null });
   });
+  // ─────────────────────────── stats and referrals ───────────────────────────
+
+  const stats = createStats({
+    db,
+    chain: deps.statsChain ?? null,
+    usdg: cfg.usdg,
+    ethUsd: () => refQuote("ETH-USD", "5d").then((q) => q.price, () => null),
+    now,
+  });
+
+  /** Desk totals: deals and settled volume, fees, and the fee vault's buy-and-burn. */
+  app.get("/stats", async (c) => {
+    try {
+      return c.json(await stats.summary());
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 502);
+    }
+  });
+
+  /** Deals a wallet referred and what it earned (half the protocol fee, paid by the escrow at settlement). */
+  app.get("/referrals/:address", async (c) => {
+    const a = c.req.param("address");
+    if (!isAddress(a)) return c.json({ error: "invalid address" }, 400);
+    try {
+      return c.json(await stats.referrals(getAddress(a)));
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 502);
+    }
+  });
+
   const openByToken = db.prepare(
     "SELECT token, side, COUNT(*) AS n FROM rfqs WHERE status = 'open' AND expires_at > ? GROUP BY token, side",
   );

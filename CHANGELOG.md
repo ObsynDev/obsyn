@@ -4,6 +4,9 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-18
 
+- **Stats page** (`/stats`, `GET /api/stats`): accepted, settled and refunded deals, settled volume (ETH, USDG and USD), fees, postings and sealed answers, plus the fee vault: $OBSYN burned by the vault, fees waiting to burn, and the total at the burn address. Deals are checked against the escrow on-chain; open postings' prices are never counted.
+- **Referral program** (`/refer`, `GET /api/referrals/{address}`): your `?ref=` link, deals you referred and what you earned. The escrow already pays the referrer half the protocol fee at settlement; this makes it usable. A referral link that names one of the deal's own parties is now dropped instead of failing the accept.
+
 - **MCP 0.1.1:** also ships as a one-click MCPB bundle (`obsyn-mcp-0.1.1.mcpb`) with a settings form, and is listed in the official MCP Registry as `trade.obsyn/mcp` (`packages/obsyn-mcp/server.json`; obsyn.trade proves the name at `/.well-known/mcp-registry-auth`). Blank settings now count as unset.
 - **Public CI:** every push runs the contract tests, the backend suite (including end-to-end agent trades on a local chain) and the web build.
 

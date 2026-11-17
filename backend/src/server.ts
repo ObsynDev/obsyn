@@ -8,6 +8,7 @@ import { readPrice, readTokenInfo } from "./price.ts";
 import { readReceipt } from "./receipt.ts";
 import { createRelayer } from "./relayer.ts";
 import { createSite } from "./site.ts";
+import { chainStats } from "./stats.ts";
 
 try {
   process.loadEnvFile();
@@ -24,6 +25,7 @@ const api = createApp({
   readPrice: (token, src) => readPrice(publicClient, token, src),
   readToken: (token) => readTokenInfo(publicClient, token),
   readReceipt: cfg.escrow ? (tx) => readReceipt(publicClient, cfg.escrow!, tx) : undefined,
+  statsChain: cfg.escrow ? chainStats(publicClient, cfg.escrow, cfg.platformToken?.address ?? null) : undefined,
 });
 const site = createSite(api, process.env.WEB_DIST ?? fileURLToPath(new URL("../../web/dist", import.meta.url)), cfg.publicUrl, {
   tokenAddress: cfg.platformToken?.address ?? null,

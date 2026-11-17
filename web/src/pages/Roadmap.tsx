@@ -15,7 +15,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
   {
     n: "00",
     title: "Live today",
-    blurb: "The core desk is live: post sealed bids and listings, read private answers, and settle in one contract transaction. Also live: partial fills, the exposure check, the price-impact estimate, the installable MCP package and $OBSYN with buy-and-burn.",
+    blurb: "The core desk is live: post sealed bids and listings, read private answers, and settle in one contract transaction. Also live: partial fills, the exposure check, the price-impact estimate, the installable MCP package, stats, referrals and $OBSYN with buy-and-burn.",
     items: [
       { t: "Sealed bids and listings", d: "Post a bid to buy or list a block to sell. Answers are encrypted to you in the sender's browser.", s: "live", size: "L" },
       { t: "OTC desk", d: "Swap-style widget: size in USD or tokens, ETH or USDG, reply window.", s: "live", size: "M" },
@@ -35,6 +35,8 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Partial fills", d: "Several sellers fill one big bid (or several buyers share a listing), each part its own deal.", s: "live", size: "M", doc: "partial-fills" },
       { t: "Exposure check", d: "On a ghost-mode deal, see which public hops link the one-time wallet back to you.", s: "live", size: "M", doc: "exposure-check" },
       { t: "Installable MCP package", d: "One command to give any agent the desk, no repository needed (npx, from the GitHub release).", s: "live", size: "M", doc: "mcp-package" },
+      { t: "Stats and burn tracker", d: "Settled volume, deals, fees and the $OBSYN buy-and-burn, checked against the contracts.", s: "live", size: "S" },
+      { t: "Referral program", d: "Share a link, earn half the protocol fee on deals you bring, paid by the escrow at settlement.", s: "live", size: "S" },
       { t: "Price-impact estimate", d: "An estimate of what the same size would cost as a DEX market order, shown on the desk and the trade page.", s: "live", size: "S", doc: "price-impact" },
     ],
   },

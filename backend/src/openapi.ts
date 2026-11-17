@@ -206,6 +206,19 @@ export const openapi = {
         responses: { 200: ok("Receipt", { type: "object" }), 400: err("Bad hash"), 404: err("Not an Obsyn settlement") },
       },
     },
+    "/stats": {
+      get: {
+        summary: "Desk totals: accepted, settled and refunded deals, settled volume and fees (ETH and USDG base units, plus USD), postings, and the fee vault's buy-and-burn",
+        responses: { 200: ok("Stats", { type: "object" }), 502: err("Chain read failed") },
+      },
+    },
+    "/referrals/{address}": {
+      get: {
+        summary: "Deals this wallet referred and what it earned: half the protocol fee, paid by the escrow at settlement",
+        parameters: [{ name: "address", in: "path", required: true, schema: { type: "string", pattern: "^0x[0-9a-fA-F]{40}$" } }],
+        responses: { 200: ok("Referral summary", { type: "object" }), 400: err("Bad address"), 502: err("Chain read failed") },
+      },
+    },
     "/deals/{dealId}/receipt": {
       get: {
         summary: "Settlement transaction of a deal, once a party has reported it",
