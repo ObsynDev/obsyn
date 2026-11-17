@@ -1,6 +1,6 @@
 # Obsyn
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Contracts verified on Sourcify](https://img.shields.io/badge/Sourcify-exact%20match-brightgreen)](DEPLOYMENTS.md)
+[![CI](https://github.com/ObsynDev/obsyn/actions/workflows/ci.yml/badge.svg)](https://github.com/ObsynDev/obsyn/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Contracts verified on Sourcify](https://img.shields.io/badge/Sourcify-exact%20match-brightgreen)](DEPLOYMENTS.md)
 
 [![obsyn on HEY Research Lab](https://heyresearch.xyz/api/badge/obsyndev-obsyn)](https://heyresearch.xyz/project/obsyndev-obsyn)
 
@@ -137,6 +137,8 @@ From a checkout, `node backend/src/mcp/stdio.ts` runs the same server. `OBSYN_PR
 | `otc_price` | Spot price from a Uniswap v3 pool or Pons curve |
 
 ## Tests
+
+Every push and pull request runs [CI](.github/workflows/ci.yml): contract tests, the backend suite (including end-to-end runs on a local chain) and a production build of the site.
 
 ```bash
 cd contracts && forge test     # escrow + vault, incl. fuzzing
