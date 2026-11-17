@@ -217,6 +217,9 @@ export function App() {
         <div className="fcol fbrand">
           <Wordmark />
           <p>Trade size. Stay private. Sealed OTC block trades on Robinhood Chain.</p>
+          <a href="https://heyresearch.xyz/project/obsyndev-obsyn" target="_blank" rel="noreferrer" className="foot-hey" aria-label="Obsyn on HEY Research Lab">
+            <img src="https://heyresearch.xyz/api/badge/obsyndev-obsyn" alt="obsyn on HEY Research Lab: Verified Builder" width={220} height={72} loading="lazy" />
+          </a>
           <span className="foot-social">
             <a href={BRAND.x} className="foot-x" target="_blank" rel="noreferrer">
               <XIcon size={14} /> {BRAND.xHandle}

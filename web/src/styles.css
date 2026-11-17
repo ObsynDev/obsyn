@@ -5954,3 +5954,7 @@ html, body { overflow-x: clip; }
 .receipt .kv a { color: var(--green); text-decoration: none; }
 .rc-foot { text-align: center; }
 .rc-foot a { color: var(--green); }
+
+.foot-hey { display: inline-block; margin-top: 14px; line-height: 0; border-radius: 8px; opacity: 0.92; transition: opacity 0.2s; }
+.foot-hey:hover { opacity: 1; }
+.foot-hey img { display: block; max-width: 100%; height: auto; border-radius: 8px; }

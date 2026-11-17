@@ -1,5 +1,7 @@
 # Obsyn
 
+[![obsyn on HEY Research Lab](https://heyresearch.xyz/api/badge/obsyndev-obsyn)](https://heyresearch.xyz/project/obsyndev-obsyn)
+
 **Trade size. Stay private.** Private OTC block trades on Robinhood Chain: sealed bids and offers that only the poster can read, one-transaction settlement through an adminless contract, and a gasless "ghost mode" for sellers.
 
 [obsyn.trade](https://obsyn.trade) · [X @Obsyntrade](https://x.com/Obsyntrade) · [How it works](https://obsyn.trade/how) · [Security](https://obsyn.trade/security) · [Docs](https://obsyn.trade/docs)
