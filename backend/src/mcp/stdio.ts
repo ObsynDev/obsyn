@@ -3,7 +3,7 @@
  *   command: node   args: [/path/to/backend/src/mcp/stdio.ts]   env: OBSYN_API=https://your-backend/api
  *
  * Env:
- *   OBSYN_API            backend API URL (default http://localhost:8787/api)
+ *   OBSYN_API            backend API URL (default https://obsyn.trade/api)
  *   OBSYN_PRIVATE_KEY    optional agent wallet key; without it deposits come back unsigned
  *   OBSYN_RPC_URL        optional RPC override
  *   OBSYN_STATE          where bid/offer secrets are kept (default ~/.obsyn/state.json)
@@ -24,7 +24,7 @@ if (key && !/^0x[0-9a-fA-F]{64}$/.test(key)) {
 }
 
 const agent = new OtcAgent({
-  apiUrl: process.env.OBSYN_API ?? process.env.BLOCKOTC_API ?? "http://localhost:8787/api",
+  apiUrl: process.env.OBSYN_API ?? process.env.BLOCKOTC_API ?? "https://obsyn.trade/api",
   privateKey: key as Hex | undefined,
   rpcUrl: process.env.OBSYN_RPC_URL ?? process.env.BLOCKOTC_RPC_URL,
   store: new FileStore(process.env.OBSYN_STATE ?? process.env.BLOCKOTC_STATE ?? join(homedir(), ".obsyn", "state.json")),

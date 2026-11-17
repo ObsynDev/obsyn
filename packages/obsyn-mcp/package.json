@@ -1,0 +1,38 @@
+{
+  "name": "obsyn-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Obsyn: private OTC block trades on Robinhood Chain. Post sealed bids, read encrypted offers, settle through an adminless contract.",
+  "type": "module",
+  "bin": {
+    "obsyn-mcp": "bin/obsyn-mcp.mjs"
+  },
+  "files": [
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "prepack": "npm --prefix ../../backend run build:mcp"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "otc",
+    "robinhood-chain",
+    "privacy",
+    "defi",
+    "ai-agents"
+  ],
+  "homepage": "https://obsyn.trade/developers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ObsynDev/obsyn.git",
+    "directory": "packages/obsyn-mcp"
+  },
+  "bugs": "https://github.com/ObsynDev/obsyn/issues",
+  "author": "Obsyn",
+  "license": "MIT"
+}

@@ -239,14 +239,32 @@ export class OtcAgent {
     return a;
   }
 
-  private async token(address: Address) {
-    if (address === zeroAddress) return { address, symbol: "ETH", decimals: 18 };
-    const { pc } = await this.chain();
-    const [symbol, decimals] = await Promise.all([
-      pc.readContract({ address, abi: erc20Abi, functionName: "symbol" }),
-      pc.readContract({ address, abi: erc20Abi, functionName: "decimals" }),
-    ]);
-    return { address, symbol, decimals };
+  private tokens = new Map<string, Promise<{ address: Address; symbol: string; decimals: number }>>();
+
+  /** Token symbol and decimals. Asks the Obsyn server first (works where the chain's RPC is blocked), then the chain. */
+  private token(address: Address) {
+    if (address === zeroAddress) return Promise.resolve({ address, symbol: "ETH", decimals: 18 });
+    const key = address.toLowerCase();
+    let p = this.tokens.get(key);
+    if (!p) {
+      p = (async () => {
+        try {
+          const t = await this.api<{ isContract: boolean; symbol: string | null; decimals: number | null }>("GET", `/token/${address}`);
+          if (t.isContract && t.symbol && t.decimals !== null) return { address, symbol: t.symbol, decimals: t.decimals };
+        } catch {
+          /* fall back to the chain */
+        }
+        const { pc } = await this.chain();
+        const [symbol, decimals] = await Promise.all([
+          pc.readContract({ address, abi: erc20Abi, functionName: "symbol" }),
+          pc.readContract({ address, abi: erc20Abi, functionName: "decimals" }),
+        ]);
+        return { address, symbol, decimals };
+      })();
+      p.catch(() => this.tokens.delete(key));
+      this.tokens.set(key, p);
+    }
+    return p;
   }
 
   private async escrow(): Promise<Address> {

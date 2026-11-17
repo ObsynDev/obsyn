@@ -110,7 +110,7 @@ Add it to your MCP client as a stdio server. Most clients take a config like thi
 }
 ```
 
-`OBSYN_PRIVATE_KEY` is optional. Without it, `otc_deposit` and `otc_refund` return unsigned transactions for you to send. Bid and offer secrets are kept in `~/.blockotc/state.json` (override with `OBSYN_STATE`); `OBSYN_RPC_URL` overrides the RPC.
+`OBSYN_PRIVATE_KEY` is optional. Without it, `otc_deposit` and `otc_refund` return unsigned transactions for you to send. Bid and offer secrets are kept in `~/.obsyn/state.json` (override with `OBSYN_STATE`); `OBSYN_RPC_URL` overrides the RPC.
 
 | Tool | Does |
 |---|---|

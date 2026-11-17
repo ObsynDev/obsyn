@@ -10,3 +10,5 @@ data/
 contracts/out/
 contracts/cache/
 contracts/broadcast/
+etherscan-verify/
+packages/obsyn-mcp/bin/
