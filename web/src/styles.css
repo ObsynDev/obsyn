@@ -6198,3 +6198,10 @@ html, body { overflow-x: clip; }
   .obc { padding: 12px; }
   .obc-frame { height: 360px; }
 }
+
+/* markets: live DEX chart for tokens without a listed stock */
+.mb-dexchart { display: grid; gap: 8px; }
+.mb-dexchart .obc-frame { height: 420px; }
+.mb-dexchart p { margin: 0; }
+.mb-dexchart a { color: var(--green); }
+@media (max-width: 640px) { .mb-dexchart .obc-frame { height: 340px; } }

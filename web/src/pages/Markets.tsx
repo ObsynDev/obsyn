@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api, type Candle, type ChartRange, type MarketChart, type MarketRow } from "../lib/api.ts";
 import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { swapUrl } from "../lib/dex.ts";
+import { useMarket } from "../lib/market.ts";
+import { DexChart } from "./ObsynChart.tsx";
 import { MARKETS, type KnownToken } from "../lib/tokens.ts";
 import { Copy, short } from "../lib/ui.tsx";
 import { TokenAvatar } from "./Terminal.tsx";
@@ -227,6 +229,18 @@ function useChart(symbol: string, hasRef: boolean, range: ChartRange) {
 
 // ───────────────────────── board ─────────────────────────
 
+/** Price + 24h change of a token without a listed stock, from its deepest DEX pool. */
+function DexPx({ address }: { address: KnownToken["address"] }) {
+  const m = useMarket(address);
+  return (
+    <>
+      <b>{m?.priceUsd != null ? dexUsd(m.priceUsd) : "…"}</b>
+      <i className={tone(m?.change24h ?? undefined)}>{m?.change24h != null ? pct(m.change24h) : "DEX"}</i>
+    </>
+  );
+}
+const dexUsd = (n: number) => (n >= 1 ? usd(n) : n.toPrecision(4).replace(/0+$/, ""));
+
 export function MarketBoard({ initial = "TSLA" }: { initial?: string }) {
   const { rows, loaded, failed } = useMarkets();
   const [sel, setSel] = useState(initial);
@@ -238,6 +252,7 @@ export function MarketBoard({ initial = "TSLA" }: { initial?: string }) {
   const { chart, err } = useChart(m.symbol, hasRef, range);
   const list = rows.filter((r) => !q || `${r.symbol} ${r.name}`.toLowerCase().includes(q.toLowerCase()));
   const desk = m.live?.desk;
+  const dex = useMarket(hasRef ? null : m.address);
 
   return (
     <div className="mb">
@@ -275,8 +290,14 @@ export function MarketBoard({ initial = "TSLA" }: { initial?: string }) {
                 </span>
                 <Spark values={p?.spark ?? []} w={52} h={20} />
                 <span className="mb-px mono">
-                  <b>{p ? usd(p.price) : r.kind === "crypto" ? "OTC" : loaded ? "—" : "…"}</b>
-                  <i className={tone(p?.changePct)}>{p ? pct(p.changePct) : r.kind === "crypto" ? "no listing" : ""}</i>
+                  {r.kind === "crypto" && !p ? (
+                    <DexPx address={r.address} />
+                  ) : (
+                    <>
+                      <b>{p ? usd(p.price) : loaded ? "—" : "…"}</b>
+                      <i className={tone(p?.changePct)}>{p ? pct(p.changePct) : ""}</i>
+                    </>
+                  )}
                 </span>
               </button>
             );
@@ -296,6 +317,15 @@ export function MarketBoard({ initial = "TSLA" }: { initial?: string }) {
                 {m.kind === "crypto" ? "Robinhood Chain token" : `${ref?.exchange ?? "Listed"} · Robinhood stock token`}
               </span>
             </div>
+            {!hasRef && dex?.priceUsd != null && (
+              <div className="mb-quote">
+                <b className="mono">${dexUsd(dex.priceUsd)}</b>
+                <span className="mono">
+                  {dex.change24h != null && <i className={tone(dex.change24h)}>{pct(dex.change24h)} 24h</i>}
+                  {dex.marketCap != null && <i>MC ${usd(dex.marketCap)}</i>}
+                </span>
+              </div>
+            )}
             {ref && (
               <div className="mb-quote">
                 <b className="mono">${usd(ref.price)}</b>
@@ -326,24 +356,37 @@ export function MarketBoard({ initial = "TSLA" }: { initial?: string }) {
               )}
             </>
           ) : (
-            <div className="mb-chart empty pons">
-              <p>
-                <b>No listed underlying.</b>{" "}
-                {m.symbol === "OBSYN"
-                  ? "OBSYN graduated from its Pons curve and trades on a Uniswap v4 pool on Robinhood Chain."
-                  : `${m.symbol} trades on Pons and Robinhood Chain.`}{" "}
-                On this desk the price is whatever the sealed answers to your block say, and only you read them.
-              </p>
-              {m.symbol === "OBSYN" ? (
-                <a className="mono" href="https://dexscreener.com/robinhood/0x9fe79f5726a87aa2758f14ba929e6fe4277a7718d6862aa039d61974c0542355" target="_blank" rel="noreferrer">
-                  View the Uniswap v4 pool ↗
-                </a>
-              ) : (
-                <a className="mono" href="https://www.ponsfamily.com/" target="_blank" rel="noreferrer">
-                  View on Pons ↗
-                </a>
-              )}
-            </div>
+            dex?.pairUrl ? (
+              <div className="mb-dexchart">
+                <DexChart key={dex.pairUrl} pairUrl={dex.pairUrl} title={`${m.symbol} live chart`} />
+                <p className="mono dim small">
+                  Live chart of the deepest {m.symbol} pool, by DexScreener. No listed underlying: on this desk the price is whatever the
+                  sealed answers to your block say.{" "}
+                  <a href={dex.pairUrl} target="_blank" rel="noreferrer">
+                    Open full chart ↗
+                  </a>
+                </p>
+              </div>
+            ) : (
+              <div className="mb-chart empty pons">
+                <p>
+                  <b>No listed underlying.</b>{" "}
+                  {m.symbol === "OBSYN"
+                    ? "OBSYN graduated from its Pons curve and trades on a Uniswap v4 pool on Robinhood Chain."
+                    : `${m.symbol} trades on Pons and Robinhood Chain.`}{" "}
+                  On this desk the price is whatever the sealed answers to your block say, and only you read them.
+                </p>
+                {m.symbol === "OBSYN" ? (
+                  <a className="mono" href="https://dexscreener.com/robinhood/0x9fe79f5726a87aa2758f14ba929e6fe4277a7718d6862aa039d61974c0542355" target="_blank" rel="noreferrer">
+                    View the Uniswap v4 pool ↗
+                  </a>
+                ) : (
+                  <a className="mono" href="https://www.ponsfamily.com/" target="_blank" rel="noreferrer">
+                    View on Pons ↗
+                  </a>
+                )}
+              </div>
+            )
           )}
 
           <dl className="mb-facts">
