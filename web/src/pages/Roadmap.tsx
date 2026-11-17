@@ -2,7 +2,7 @@ import { PLATFORM_TOKEN } from "../lib/brand.tsx";
 import { Link } from "../lib/ui.tsx";
 
 type Status = "live" | "next" | "planned" | "research";
-type Item = { t: string; d: string; s: Status; size: "S" | "M" | "L" | "XL"; doc?: string };
+type Item = { t: string; d: string; s: Status; size: "S" | "M" | "L" | "XL"; doc?: string; /** sub-group, for long phases */ g?: string };
 
 const STATUS_LABEL: Record<Status, string> = {
   live: "LIVE",
@@ -15,29 +15,29 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
   {
     n: "00",
     title: "Live today",
-    blurb: "The core desk is live: post sealed bids and listings, read private answers, and settle in one contract transaction. Also live: partial fills, the exposure check, the price-impact estimate, the installable MCP package, stats, referrals and $OBSYN with buy-and-burn.",
+    blurb: "Running on obsyn.trade today: the sealed OTC desk with one-transaction settlement, privacy tools, agent access, public stats, referrals and $OBSYN with buy-and-burn.",
     items: [
-      { t: "Sealed bids and listings", d: "Post a bid to buy or list a block to sell. Answers are encrypted to you in the sender's browser.", s: "live", size: "L" },
-      { t: "OTC desk", d: "Swap-style widget: size in USD or tokens, ETH or USDG, reply window.", s: "live", size: "M" },
-      { t: "Signed answers + funds check", d: "Every answer is signed by its wallet; fakes are flagged, empty wallets shown.", s: "live", size: "M" },
-      { t: "Payment locks first", d: "Sellers deposit only after the buyer has paid in.", s: "live", size: "S" },
-      { t: "Ghost mode relayer", d: "Deliver from a one-time wallet; gas paid by the relayer.", s: "live", size: "M" },
-      { t: "SDK, OpenAPI, local MCP server", d: "Agents and apps can do everything the site does.", s: "live", size: "M" },
-      { t: "Contract on mainnet", d: "Escrow and fee vault live on Robinhood Chain, verified on the explorer and Sourcify (exact match).", s: "live", size: "S" },
-      { t: "Security audit by the Obsyn team", d: "Manual review, Slither, 41 contract tests, live-fork replays. Report published on GitHub.", s: "live", size: "M" },
-      { t: "Trade page per token", d: "Paste any contract: price, market cap, your balance, one-click sell, open blocks for that token.", s: "live", size: "M" },
-      { t: "Token list with logos", d: "Listed Robinhood Chain markets in the picker, with logos and checked contract addresses.", s: "live", size: "S" },
-      { t: "Reference price on offers", d: "Each offer is shown against the token's on-chain DEX price: '4.2% under market'.", s: "live", size: "S" },
-      { t: "Deal receipts", d: "A public, shareable page per settled deal, rebuilt from the settlement transaction.", s: "live", size: "S" },
-      { t: "Export / import private links", d: "Back up the keys to your bids and offers to a file and restore them on another device.", s: "live", size: "S" },
-      { t: "Platform token on Pons", d: "$OBSYN launched on a Pons bonding curve and plugged into the fee vault.", s: "live", size: "L", doc: "token" },
-      { t: "Buy-and-burn + holder discount", d: "Fees buy $OBSYN and burn it; holders pay 0.5% less.", s: "live", size: "L", doc: "token" },
-      { t: "Partial fills", d: "Several sellers fill one big bid (or several buyers share a listing), each part its own deal.", s: "live", size: "M", doc: "partial-fills" },
-      { t: "Exposure check", d: "On a ghost-mode deal, see which public hops link the one-time wallet back to you.", s: "live", size: "M", doc: "exposure-check" },
-      { t: "Installable MCP package", d: "One command to give any agent the desk, no repository needed (npx, from the GitHub release).", s: "live", size: "M", doc: "mcp-package" },
-      { t: "Stats and burn tracker", d: "Settled volume, deals, fees and the $OBSYN buy-and-burn, checked against the contracts.", s: "live", size: "S" },
-      { t: "Referral program", d: "Share a link, earn half the protocol fee on deals you bring, paid by the escrow at settlement.", s: "live", size: "S" },
-      { t: "Price-impact estimate", d: "An estimate of what the same size would cost as a DEX market order, shown on the desk and the trade page.", s: "live", size: "S", doc: "price-impact" },
+      { t: "Sealed bids and listings", d: "Post a bid to buy or list a block to sell. Answers are encrypted to you in the sender's browser.", s: "live", size: "L", g: "Trading desk" },
+      { t: "OTC desk", d: "Swap-style widget: size in USD or tokens, ETH or USDG, reply window.", s: "live", size: "M", g: "Trading desk" },
+      { t: "Trade page per token", d: "Paste any contract: price, market cap, your balance, one-click sell, open blocks for that token.", s: "live", size: "M", g: "Trading desk" },
+      { t: "Token list with logos", d: "Listed Robinhood Chain markets in the picker, with logos and checked contract addresses.", s: "live", size: "S", g: "Trading desk" },
+      { t: "Partial fills", d: "Several sellers fill one big bid (or several buyers share a listing), each part its own deal.", s: "live", size: "M", doc: "partial-fills", g: "Trading desk" },
+      { t: "Payment locks first", d: "Sellers deposit only after the buyer has paid in.", s: "live", size: "S", g: "Trading desk" },
+      { t: "Reference price on offers", d: "Each offer is shown against the token's on-chain DEX price: '4.2% under market'.", s: "live", size: "S", g: "Trading desk" },
+      { t: "Price-impact estimate", d: "An estimate of what the same size would cost as a DEX market order, shown on the desk and the trade page.", s: "live", size: "S", doc: "price-impact", g: "Trading desk" },
+      { t: "Deal receipts", d: "A public, shareable page per settled deal, rebuilt from the settlement transaction.", s: "live", size: "S", g: "Trading desk" },
+      { t: "Export / import private links", d: "Back up the keys to your bids and offers to a file and restore them on another device.", s: "live", size: "S", g: "Trading desk" },
+      { t: "Signed answers + funds check", d: "Every answer is signed by its wallet; fakes are flagged, empty wallets shown.", s: "live", size: "M", g: "Privacy" },
+      { t: "Ghost mode relayer", d: "Deliver from a one-time wallet; gas paid by the relayer.", s: "live", size: "M", g: "Privacy" },
+      { t: "Exposure check", d: "On a ghost-mode deal, see which public hops link the one-time wallet back to you.", s: "live", size: "M", doc: "exposure-check", g: "Privacy" },
+      { t: "SDK, OpenAPI, local MCP server", d: "Agents and apps can do everything the site does.", s: "live", size: "M", g: "Agents and developers" },
+      { t: "Installable MCP package", d: "One command to give any agent the desk, no repository needed (npx, from the GitHub release).", s: "live", size: "M", doc: "mcp-package", g: "Agents and developers" },
+      { t: "Contract on mainnet", d: "Escrow and fee vault live on Robinhood Chain, verified on the explorer and Sourcify (exact match).", s: "live", size: "S", g: "Trust and transparency" },
+      { t: "Security audit by the Obsyn team", d: "Manual review, Slither, 41 contract tests, live-fork replays. Report published on GitHub.", s: "live", size: "M", g: "Trust and transparency" },
+      { t: "Stats and burn tracker", d: "Settled volume, deals, fees and the $OBSYN buy-and-burn, checked against the contracts.", s: "live", size: "S", doc: "stats", g: "Trust and transparency" },
+      { t: "Platform token on Pons", d: "$OBSYN launched on a Pons bonding curve and plugged into the fee vault.", s: "live", size: "L", doc: "token", g: "$OBSYN and growth" },
+      { t: "Buy-and-burn + holder discount", d: "Fees buy $OBSYN and burn it; holders pay 0.5% less.", s: "live", size: "L", doc: "token", g: "$OBSYN and growth" },
+      { t: "Referral program", d: "Share a link, earn half the protocol fee on deals you bring, paid by the escrow at settlement.", s: "live", size: "S", doc: "referrals", g: "$OBSYN and growth" },
     ],
   },
   {
@@ -91,6 +91,13 @@ const withLaunch = (it: Item): Item => {
   return it;
 };
 
+/** Items in their sub-groups, in first-seen order; one unnamed group when a phase has none. */
+function groupsOf(items: Item[]): [string | undefined, Item[]][] {
+  const out = new Map<string | undefined, Item[]>();
+  for (const it of items) out.set(it.g, [...(out.get(it.g) ?? []), it]);
+  return [...out];
+}
+
 export function Roadmap() {
   return (
     <div className="doc rm">
@@ -120,22 +127,33 @@ export function Roadmap() {
                 <p className="muted">{p.blurb}</p>
               </div>
             </div>
-            <div className="rm-items">
-              {p.items.map(withLaunch).map((it) => (
-                <div key={it.t} className={`rm-item st-${it.s}`}>
-                  <div className="rm-item-top">
-                    <span className={`rm-status st-${it.s}`}>{STATUS_LABEL[it.s]}</span>
-                    <span className="mono dim small">SIZE {it.size}</span>
-                  </div>
-                  <b>{it.t}</b>
-                  <p>{it.d}</p>
-                  {it.doc && (
-                    <Link to={`/docs#${it.doc}`} className="text-link">
-                      Read the doc →
-                    </Link>
-                  )}
+            <div className="rm-groups">
+            {groupsOf(p.items).map(([g, items]) => (
+              <div key={g ?? "all"} className="rm-group">
+                {g && (
+                  <h3 className="rm-group-h mono">
+                    {g} <span className="dim">· {items.length}</span>
+                  </h3>
+                )}
+                <div className="rm-items">
+                  {items.map(withLaunch).map((it) => (
+                    <div key={it.t} className={`rm-item st-${it.s}`}>
+                      <div className="rm-item-top">
+                        <span className={`rm-status st-${it.s}`}>{STATUS_LABEL[it.s]}</span>
+                        <span className="mono dim small">SIZE {it.size}</span>
+                      </div>
+                      <b>{it.t}</b>
+                      <p>{it.d}</p>
+                      {it.doc && (
+                        <Link to={`/docs#${it.doc}`} className="text-link">
+                          Read the doc →
+                        </Link>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            ))}
             </div>
           </section>
         ))}

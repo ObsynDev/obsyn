@@ -14,9 +14,50 @@ type Doc = {
   how: string[];
   impact: { who: string; text: string }[];
   risks: string;
+  /** where to use it on the site, for live features */
+  page?: { to: string; label: string };
 };
 
 const DOCS: Doc[] = [
+  {
+    id: "stats",
+    title: "Stats and burn tracker",
+    status: "Live",
+    half: "trade",
+    page: { to: "/stats", label: "Open stats" },
+    what: "A public page with what the desk has done: settled volume, deals, fees, and the $OBSYN buy-and-burn, every number checked against the contracts.",
+    how: [
+      "Deals accepted through the desk (site, SDK and MCP) are checked against the escrow on-chain: settled, refunded or still open.",
+      "Volume and fees count settled deals only, in ETH and USDG, with a USD total at the current ETH price.",
+      "The fee vault section reads the vault directly: $OBSYN it has burned, fees waiting to burn, and the total at the burn address (all sources, shown separately).",
+      "Prices of open postings stay sealed and are never counted. The same data is at /api/stats.",
+    ],
+    impact: [
+      { who: "Traders and holders", text: "See real usage and real burns, not claims." },
+      { who: BRAND.name, text: "A public scoreboard that builds trust and gives the community something to share." },
+    ],
+    risks: "Counts deals that went through this desk. A deal settled by calling the contract directly, without the desk, isn't counted.",
+  },
+  {
+    id: "referrals",
+    title: "Referral program",
+    status: "Live",
+    half: "trade",
+    page: { to: "/refer", label: "Get your link" },
+    what: "Share a link and earn half the protocol fee on every deal you bring, paid by the escrow contract straight to your wallet at settlement.",
+    how: [
+      "Connect a wallet on /refer to get your link: obsyn.trade/?ref=your-address. Any page works, e.g. a trade page for one token.",
+      "When someone who opened your link accepts a deal on a bid or listing they posted, your address goes into the deal terms. Both sides see it before depositing, and it can't change afterwards.",
+      "At settlement the escrow splits the protocol fee: half to the $OBSYN buy-and-burn vault, half to you, in ETH or USDG. No claiming, nothing to withdraw.",
+      "The page shows the deals you referred and what you earned; /api/referrals/{address} serves the same.",
+    ],
+    impact: [
+      { who: "Partners and communities", text: "Earn from the volume you bring, paid on-chain." },
+      { who: "Traders", text: "Nothing extra: the referral share comes out of the normal fee." },
+      { who: BRAND.name, text: "Growth paid only when deals actually settle." },
+    ],
+    risks: "A referrer can't be the buyer, the seller or the payout address of the same deal. The latest link a trader opened wins.",
+  },
   {
     id: "shielded-pool",
     title: "Shielded settlement pool",
@@ -37,6 +78,7 @@ const DOCS: Doc[] = [
   },
   {
     id: "token",
+    page: { to: "/stats", label: "See the burns" },
     title: "Platform token, buy-and-burn, holder discount",
     status: "Live",
     half: "trade",
@@ -74,6 +116,7 @@ const DOCS: Doc[] = [
   },
   {
     id: "partial-fills",
+    page: { to: "/otc", label: "Open the desk" },
     title: "Partial fills",
     status: "Live",
     half: "trade",
@@ -93,6 +136,7 @@ const DOCS: Doc[] = [
   },
   {
     id: "price-impact",
+    page: { to: "/otc", label: "Try it on the desk" },
     title: "Price-impact estimate",
     status: "Live",
     half: "trade",
@@ -110,6 +154,7 @@ const DOCS: Doc[] = [
   },
   {
     id: "mcp-package",
+    page: { to: "/developers", label: "Developer guide" },
     title: "Installable MCP package",
     status: "Live",
     half: "both",
@@ -221,6 +266,7 @@ const HALF_LABEL = { trade: "TRADE", privacy: "PRIVACY", both: "TRADE + PRIVACY"
 
 const SECTIONS = [
   ["start", "Getting started"],
+  ["live", "Live features"],
   ["post", "Posting a block"],
   ["sealed", "Sealed answers"],
   ["settle", "Settlement and the contract"],
@@ -331,6 +377,8 @@ function useActiveSection(ids: readonly string[]) {
   return active;
 }
 
+const num = (id: string) => SECTIONS.findIndex(([x]) => x === id) + 1;
+
 function Sect({ id, n, title, children }: { id: string; n: number; title: string; children: ReactNode }) {
   return (
     <section id={id} className="dx-sect">
@@ -439,7 +487,7 @@ export function Docs() {
         </aside>
 
         <div className="dx-body">
-          <Sect id="start" n={1} title="Getting started">
+          <Sect id="start" n={num("start")} title="Getting started">
             <p className="dx-p">
               {name} is a private OTC desk on Robinhood Chain. You post a block you want to buy or sell, the other side answers with
               sealed prices only you can read, and the deal settles in one contract transaction. No order book, so size never moves the
@@ -462,7 +510,39 @@ export function Docs() {
             </div>
           </Sect>
 
-          <Sect id="post" n={2} title="Posting a block">
+          <Sect id="live" n={num("live")} title="Live features">
+            <p className="dx-p">Everything below is running on obsyn.trade today. Open one for how it works, who it helps and its limits.</p>
+            <div className="dx-live">
+              {DOCS.filter((d) => d.status === "Live").map((d) => (
+                <article key={d.id} id={d.id} className="dx-live-card">
+                  <div className="dx-live-top">
+                    <span className={`half ${d.half} mono`}>{HALF_LABEL[d.half]}</span>
+                    <span className="dx-live-pill mono">LIVE</span>
+                  </div>
+                  <b>{d.title}</b>
+                  <p>{d.what}</p>
+                  <details>
+                    <summary>How it works</summary>
+                    <ol>
+                      {d.how.map((h) => (
+                        <li key={h}>{h}</li>
+                      ))}
+                    </ol>
+                    <p className="dx-note">
+                      <span className="mono">LIMITS</span> {d.risks}
+                    </p>
+                  </details>
+                  {d.page && (
+                    <Link to={d.page.to} className="dx-link">
+                      {d.page.label} →
+                    </Link>
+                  )}
+                </article>
+              ))}
+            </div>
+          </Sect>
+
+          <Sect id="post" n={num("post")} title="Posting a block">
             <p className="dx-p">A block is one side's intent, posted privately. There are two kinds:</p>
             <div className="dx-two">
               <div>
@@ -498,7 +578,7 @@ export function Docs() {
             </p>
           </Sect>
 
-          <Sect id="sealed" n={3} title="Sealed answers">
+          <Sect id="sealed" n={num("sealed")} title="Sealed answers">
             <p className="dx-p">
               Every answer is encrypted in the sender's browser to the poster's public key (NaCl box) before it leaves the device. The
               server stores and relays ciphertext it cannot open. Only the poster's browser holds the key that decrypts it.
@@ -517,7 +597,7 @@ export function Docs() {
             </div>
           </Sect>
 
-          <Sect id="settle" n={4} title="Settlement and the contract">
+          <Sect id="settle" n={num("settle")} title="Settlement and the contract">
             <ol className="dx-steps">
               <li>
                 <b>Accept.</b> You pick an answer. The terms (both wallets, token, amount, price, deadline) are fixed and hashed into a
@@ -554,7 +634,7 @@ export function Docs() {
             </p>
           </Sect>
 
-          <Sect id="markets" n={5} title="Markets and prices">
+          <Sect id="markets" n={num("markets")} title="Markets and prices">
             <p className="dx-p">
               The market board lists {MARKETS.length} tokens, each checked on Robinhood Chain: Robinhood stock tokens, two index ETFs
               and PONS. Any other ERC-20 can still be traded by pasting its address. Fee-on-transfer tokens are rejected by the
@@ -570,7 +650,7 @@ export function Docs() {
             </Link>
           </Sect>
 
-          <Sect id="fees" n={6} title={`Fees and $${PLATFORM_TOKEN.symbol}`}>
+          <Sect id="fees" n={num("fees")} title={`Fees and $${PLATFORM_TOKEN.symbol}`}>
             <p className="dx-p">Posting and answering are free. A fee is taken only when a deal settles, from the payment:</p>
             <table className="dx-table mono">
               <thead>
@@ -600,10 +680,12 @@ export function Docs() {
             </table>
             <ul className="dx-list">
               <li>The fee is capped at 2.5% in the contract and can't be raised.</li>
-              <li>A partner who refers the deal earns half of the fee.</li>
+              <li>
+                A partner who refers the deal earns half of the fee, paid by the contract at settlement. <Link to="/refer">Get your referral link →</Link>
+              </li>
               <li>
                 The protocol's share goes to a vault that buys ${PLATFORM_TOKEN.symbol} and sends it to 0x…dEaD. The running total is
-                public on-chain.
+                public on-chain and on the <Link to="/stats">stats page</Link>.
               </li>
               <li>If the buyer or the seller holds the minimum ${PLATFORM_TOKEN.symbol}, the fee drops by 0.5%.</li>
             </ul>
@@ -613,7 +695,7 @@ export function Docs() {
             </p>
           </Sect>
 
-          <Sect id="agents" n={7} title="For agents: MCP, SDK, API">
+          <Sect id="agents" n={num("agents")} title="For agents: MCP, SDK, API">
             <p className="dx-p">
               Agents use the same desk as people. Keys and decryption stay on the agent's machine; the server only sees what a browser
               would send.
@@ -632,13 +714,15 @@ POST ${origin}/api/rfqs                 post a bid or listing
 POST ${origin}/api/rfqs/{id}/quotes     send a sealed answer
 POST ${origin}/api/rfqs/{id}/accept     accept one (needs the private link)
 GET  ${origin}/api/token/{address}      ERC-20 facts read on-chain
+GET  ${origin}/api/stats                desk totals and the $OBSYN burns
+GET  ${origin}/api/referrals/{address}  what a referrer earned
 GET  ${origin}/api/openapi.json         the full spec`}</Code>
             <Link to="/developers" className="dx-link">
               Full developer guide →
             </Link>
           </Sect>
 
-          <Sect id="privacy" n={8} title="Privacy model">
+          <Sect id="privacy" n={num("privacy")} title="Privacy model">
             <p className="dx-p">Private, not anonymous. Here is exactly who sees what:</p>
             <table className="dx-table">
               <thead>
@@ -676,7 +760,7 @@ GET  ${origin}/api/openapi.json         the full spec`}</Code>
             </p>
           </Sect>
 
-          <Sect id="contracts" n={9} title="Contracts and how to verify">
+          <Sect id="contracts" n={num("contracts")} title="Contracts and how to verify">
             <p className="dx-p">
               Everything that holds or moves money, on Robinhood Chain (chain id 4663). Deployed 16 Nov 2026. Each link opens the
               explorer.
@@ -733,7 +817,7 @@ node scripts/verify-deployment.mjs`}</Code>
             </p>
           </Sect>
 
-          <Sect id="admin" n={10} title="Why admin keys: 0">
+          <Sect id="admin" n={num("admin")} title="Why admin keys: 0">
             <p className="dx-p">
               Many contracts have an admin key: one wallet that can pull funds, pause the contract, swap its code for a new version or
               raise fees. If that key is abused or stolen, every user's money goes with it. The escrow that holds your deposits has none.
@@ -802,7 +886,7 @@ cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0xb53127684a568b3173ae13
             </p>
           </Sect>
 
-          <Sect id="permissions" n={11} title="Who can do what">
+          <Sect id="permissions" n={num("permissions")} title="Who can do what">
             <p className="dx-p">Enforced by the contracts, except reading and accepting answers, which the app handles with encryption and private links.</p>
             <table className="dx-table stack">
               <thead>
@@ -839,7 +923,7 @@ cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0xb53127684a568b3173ae13
             </p>
           </Sect>
 
-          <Sect id="safety" n={12} title="Safety and worst cases">
+          <Sect id="safety" n={num("safety")} title="Safety and worst cases">
             <div className="dx-cards">
               {[
                 ["No admin keys", "The escrow has no owner, pause or upgrade. Only the deal's own rules move funds."],
@@ -878,7 +962,7 @@ cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0xb53127684a568b3173ae13
             </Link>
           </Sect>
 
-          <Sect id="data" n={13} title="Data we keep and third parties">
+          <Sect id="data" n={num("data")} title="Data we keep and third parties">
             <h3 className="dx-h3">On our server</h3>
             <table className="dx-table stack">
               <tbody>
@@ -908,7 +992,7 @@ cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0xb53127684a568b3173ae13
             </table>
           </Sect>
 
-          <Sect id="troubleshooting" n={14} title="Troubleshooting">
+          <Sect id="troubleshooting" n={num("troubleshooting")} title="Troubleshooting">
             <table className="dx-table stack">
               <thead>
                 <tr>
@@ -929,9 +1013,9 @@ cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0xb53127684a568b3173ae13
             </table>
           </Sect>
 
-          <Sect id="coming" n={15} title="In development">
+          <Sect id="coming" n={num("coming")} title="In development">
             <p className="dx-p">The big pieces that aren't live yet. Details can change, and nothing ships before it's tested and reviewed.</p>
-            {DOCS.map((d) => (
+            {DOCS.filter((d) => d.status !== "Live").map((d) => (
               <details key={d.id} id={d.id} className="dx-dev">
                 <summary>
                   <span className={`half ${d.half} mono`}>{HALF_LABEL[d.half]}</span>
@@ -962,7 +1046,7 @@ cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0xb53127684a568b3173ae13
             </Link>
           </Sect>
 
-          <Sect id="terms" n={16} title="Terms">
+          <Sect id="terms" n={num("terms")} title="Terms">
             <ul className="dx-list">
               <li>Not financial, legal or tax advice. Nothing here promises a price or a return.</li>
               <li>The software is provided as is (MIT license). Trades settle on-chain and are final.</li>
@@ -971,7 +1055,7 @@ cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0xb53127684a568b3173ae13
             </ul>
           </Sect>
 
-          <Sect id="faq" n={17} title="FAQ">
+          <Sect id="faq" n={num("faq")} title="FAQ">
             <div className="l3-faq dx-faq">
               {DOC_FAQ.map(([q, a]) => (
                 <details key={q}>

@@ -6100,3 +6100,24 @@ html, body { overflow-x: clip; }
   background: var(--panel-2);
   color: inherit;
 }
+
+/* docs: live features */
+.dx-live { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; }
+.dx-live-card { display: grid; gap: 8px; align-content: start; border: 1px solid var(--line-2); border-radius: 12px; background: #110f0c; padding: 16px 18px; scroll-margin-top: 90px; }
+.dx-live-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.dx-live-card .half { font-size: 10.5px; letter-spacing: 0.12em; padding: 4px 8px; border-radius: 4px; background: rgb(255 255 255 / 0.04); color: var(--muted); }
+.dx-live-card .half.privacy { color: var(--copper); }
+.dx-live-card .half.trade { color: var(--green); }
+.dx-live-pill { font-size: 10px; letter-spacing: 0.14em; padding: 3px 8px; border-radius: 999px; color: #7ee2a8; background: rgb(46 204 113 / 0.12); border: 1px solid rgb(46 204 113 / 0.35); }
+.dx-live-card > b { font-size: 16px; }
+.dx-live-card > p { margin: 0; color: #cfc6ba; font-size: 14px; line-height: 1.55; }
+.dx-live-card details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.dx-live-card details ol { margin: 8px 0; padding-left: 18px; color: #cfc6ba; font-size: 13.5px; line-height: 1.55; display: grid; gap: 4px; }
+.dx-live-card .dx-link { margin-top: 2px; }
+
+/* roadmap: sub-groups inside a phase */
+.rm-group { display: grid; gap: 10px; }
+.rm-group + .rm-group { margin-top: 18px; }
+.rm-group-h { margin: 0; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--green); font-weight: 600; }
+.rm-groups { display: grid; gap: 0; min-width: 0; }
+.dx-live-top .half { margin-right: auto; }
