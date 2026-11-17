@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { api } from "../lib/api.ts";
 import { BRAND, PLATFORM_TOKEN } from "../lib/brand.tsx";
 import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { answerMessage } from "../lib/sealed.ts";
@@ -193,10 +192,80 @@ const SECTIONS = [
   ["fees", `Fees and $${PLATFORM_TOKEN.symbol}`],
   ["agents", "For agents: MCP, SDK, API"],
   ["privacy", "Privacy model"],
-  ["safety", "Safety"],
+  ["contracts", "Contracts and how to verify"],
+  ["permissions", "Who can do what"],
+  ["safety", "Safety and worst cases"],
+  ["data", "Data we keep and third parties"],
+  ["troubleshooting", "Troubleshooting"],
   ["coming", "In development"],
+  ["terms", "Terms"],
   ["faq", "FAQ"],
 ] as const;
+
+const LAST_UPDATED = "17 Nov 2026";
+const GITHUB = BRAND.github;
+const EXPLORER = "https://robin.etherscan.io";
+
+const ADDRESSES: [string, string, string][] = [
+  ["OtcEscrow (settlement)", "0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865", "Holds both sides of a deal and swaps them in one transaction. No owner, admin key, pause or upgrade."],
+  ["BuyBurnVault (fees)", "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221", `Receives the protocol fee. It can't send funds anywhere except a buy that burns $${PLATFORM_TOKEN.symbol}.`],
+  ["Vault owner and keeper", "0x533452c0e3C3455D33d551964F14D352597b21e1", "A single wallet for now, not a multisig. Its powers are listed under Who can do what."],
+  ["Relayer", "0x81D583e77A74571a6fD7b6EE16ECeba9CfE3a2DD", "Pays gas for ghost-mode deposits. Can only submit a deposit the seller signed for that deal and that relayer."],
+  ["USDG (payment token)", "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", "Global Dollar on Robinhood Chain. Not ours; fixed in the escrow at deploy."],
+];
+
+// [action, who can]
+const PERMISSIONS: [string, string][] = [
+  ["Post a bid or listing, send a sealed answer", "Anyone"],
+  ["Read the prices in sealed answers", "Only the poster (encrypted to keys in their browser)"],
+  ["Accept an answer", "Whoever holds the block's private link"],
+  ["Deposit the payment", "Only the buyer named in the deal"],
+  ["Deposit the tokens", "Only the seller named in the deal, or the relayer with the seller's signature for that exact deal"],
+  ["Change price, amount, payout or deadline after accepting", "Nobody: any change is a different deal id"],
+  ["Refund after the deadline", "Anyone can trigger it; funds only go back to the side that paid them"],
+  ["Pause, upgrade or change the escrow", "Nobody: no owner, no admin key"],
+  ["Raise the fee above 2.5%", "Nobody: capped in the contract"],
+  ["Withdraw fees from the vault", `Nobody. The keeper can only spend them on a buy that burns $${PLATFORM_TOKEN.symbol}`],
+  [`Set the $${PLATFORM_TOKEN.symbol} token in the vault`, "The vault owner, once, then never again"],
+  ["Change the swap route used for buy-and-burn", "The vault owner, after a public 2-day delay"],
+  ["Change the keeper, hand over the vault", "The vault owner (ownership moves in two steps)"],
+];
+
+const WORST: [string, string][] = [
+  ["A bug in the escrow", "No professional audit yet. Funds deposited in open deals could be at risk. A deal settles in one transaction, so funds sit in the contract only between the two deposits."],
+  ["Our server goes down", "You can't post or read answers, but deposits are never stuck: after the deadline anyone can call refund(terms) on the escrow from the explorer. The deal panel has a \"Copy for a manual refund\" button with the terms in the format the explorer expects."],
+  ["Our server or website is compromised", "It could show a wrong page. It still can't read sealed prices or move funds, and before you deposit the offer page checks the final terms against the answer saved in your own browser."],
+  ["The relayer key leaks", "It can only submit deposits sellers already signed for that relayer. Its ETH balance is kept small."],
+  ["The vault owner acts badly", `It could buy $${PLATFORM_TOKEN.symbol} at a poor price with fees already in the vault (a route change waits 2 days and is public). User deposits are not affected.`],
+  ["You lose your private link", "Nobody can recover it. Your deposits are still safe: they refund after the deadline."],
+];
+
+const STORED: [string, string][] = [
+  ["Postings", "token, side, size, pay token, optional public note, reply window"],
+  ["Sealed answers", "ciphertext we can't decrypt, plus the sender's one-off encryption key"],
+  ["Private-link tokens", "only their SHA-256 hashes"],
+  ["Accepted deals", "the deal terms (they become public on-chain at the first deposit anyway)"],
+  ["Not stored", "accounts, emails, names, cookies, analytics. Request logs from our host keep IPs for a short time"],
+];
+
+const THIRD: [string, string][] = [
+  ["Google Fonts", "fonts, loaded by your browser"],
+  ["DexScreener", "token prices and logos (our server fetches prices; logos load from their CDN)"],
+  ["Yahoo Finance", "reference prices of the listed stocks, fetched and cached by our server"],
+  ["Your wallet's RPC", "on-chain reads and transactions go through your wallet's network settings"],
+  ["WalletConnect / Reown", "only if you connect with a phone wallet through WalletConnect"],
+  ["Railway, Cloudflare", "hosting, and DNS for obsyn.trade"],
+];
+
+const TROUBLE: [string, string][] = [
+  ["\"Couldn't reach Robinhood Chain\"", "Some networks block the official RPC. In your wallet, edit Robinhood Chain's RPC to https://robinhood-rpc.publicnode.com and retry."],
+  ["\"Select the token first\" / \"Minimum $5\"", "Pick a token or paste its address; bids start at $5."],
+  ["\"This private link is incomplete\"", "Open the full link you saved, including everything after #. That part never reaches our server."],
+  ["\"Connect the buyer (or seller) wallet\"", "Switch your wallet to the address named in the deal."],
+  ["The seller can't deposit yet", "Payment locks first: the seller's button appears once the buyer has paid in."],
+  ["Ghost mode is greyed out", `The token has no gasless approvals (EIP-2612). Deliver from your wallet instead.`],
+  ["\"Transaction reverted\"", "Usually the deadline passed or the balance is short. After the deadline, use Refund."],
+];
 
 const DOC_FAQ: [string, string][] = [
   ["Do I need an account?", "No. Posting gives you a private link that controls the block. Keep it like a password: whoever holds it can read the answers and accept one."],
@@ -253,10 +322,6 @@ const go = (id: string) => (e: React.MouseEvent) => {
 export function Docs() {
   const ids = useMemo(() => SECTIONS.map(([id]) => id), []);
   const active = useActiveSection(ids);
-  const [escrow, setEscrow] = useState<string | null | undefined>(undefined);
-  useEffect(() => {
-    api.config().then((c) => setEscrow(c.escrow), () => setEscrow(undefined));
-  }, []);
   // jump to #anchor when arriving from the roadmap or a link
   useEffect(() => {
     const id = window.location.hash.slice(1);
@@ -277,7 +342,17 @@ export function Docs() {
           </h1>
           <p className="dx-lede">
             Posting a block, reading sealed answers, settling in one transaction, the privacy model, fees, the token and the API.
-            Everything in one place.
+            Every contract address, who can do what, what we store, and what can go wrong.
+          </p>
+          <p className="dx-updated mono">
+            Last updated {LAST_UPDATED} ·{" "}
+            <a href={GITHUB} target="_blank" rel="noreferrer">
+              source on GitHub ↗
+            </a>{" "}
+            ·{" "}
+            <a href={`${GITHUB}/blob/main/CHANGELOG.md`} target="_blank" rel="noreferrer">
+              changelog ↗
+            </a>
           </p>
         </div>
         <div className="dx-stats">
@@ -417,8 +492,8 @@ export function Docs() {
                 transaction: tokens to the buyer, payment minus the fee to the seller.
               </li>
               <li>
-                <b>Or everyone is refunded.</b> If the deadline (at most 7 days) passes first, each side takes back exactly what it put
-                in. No one can block a refund.
+                <b>Or everyone is refunded.</b> If the deadline passes first (the desk lets you pick 1 to 24 hours and never allows more
+                than 7 days), each side takes back exactly what it put in. Anyone can trigger the refund, and no one can block it.
               </li>
             </ol>
             <div className="dx-two">
@@ -435,14 +510,7 @@ export function Docs() {
               </div>
             </div>
             <p className="dx-note">
-              Contract:{" "}
-              {escrow ? (
-                <span className="mono">
-                  {short(escrow)} <Copy text={escrow} />
-                </span>
-              ) : (
-                <span className="mono">{escrow === null ? "not deployed yet, so settlement is switched off" : "…"}</span>
-              )}
+              The settlement contract and how to check it are in <a href="#contracts" onClick={go("contracts")}>Contracts and how to verify</a>.
             </p>
           </Sect>
 
@@ -567,10 +635,85 @@ GET  ${origin}/api/openapi.json         the full spec`}</Code>
             </p>
           </Sect>
 
-          <Sect id="safety" n={9} title="Safety">
+          <Sect id="contracts" n={9} title="Contracts and how to verify">
+            <p className="dx-p">
+              Everything that holds or moves money, on Robinhood Chain (chain id 4663). Deployed 16 Nov 2026. Each link opens the
+              explorer.
+            </p>
+            <table className="dx-table stack">
+              <thead>
+                <tr>
+                  <th>What</th>
+                  <th>Address</th>
+                  <th>Role</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ADDRESSES.map(([what, addr, role]) => (
+                  <tr key={addr}>
+                    <td>{what}</td>
+                    <td className="mono">
+                      <a href={`${EXPLORER}/address/${addr}`} target="_blank" rel="noreferrer">
+                        {short(addr)} ↗
+                      </a>{" "}
+                      <Copy text={addr} />
+                    </td>
+                    <td>{role}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="dx-p">
+              None of these is the ${PLATFORM_TOKEN.symbol} token. ${PLATFORM_TOKEN.symbol}{" "}
+              {PLATFORM_TOKEN.address ? `is ${PLATFORM_TOKEN.address}` : "hasn't launched yet; anything claiming to be it is not us"}.
+            </p>
+            <h3 className="dx-h3">Check it yourself</h3>
+            <p className="dx-p">
+              The source is public. This script compares the live bytecode with the source byte for byte and prints every setting
+              it reads from the contracts:
+            </p>
+            <Code>{`git clone --recursive ${GITHUB}
+cd obsyn/contracts && forge build
+node scripts/verify-deployment.mjs`}</Code>
+            <p className="dx-note">
+              Deploy transactions, blocks and constructor settings are in{" "}
+              <a href={`${GITHUB}/blob/main/DEPLOYMENTS.md`} target="_blank" rel="noreferrer">
+                DEPLOYMENTS.md
+              </a>
+              . The explorer's "verified source" badge is still pending; until then the script is the check.
+            </p>
+          </Sect>
+
+          <Sect id="permissions" n={10} title="Who can do what">
+            <p className="dx-p">Enforced by the contracts, except reading and accepting answers, which the app handles with encryption and private links.</p>
+            <table className="dx-table stack">
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Who can</th>
+                </tr>
+              </thead>
+              <tbody>
+                {PERMISSIONS.map(([a, w]) => (
+                  <tr key={a}>
+                    <td>{a}</td>
+                    <td>
+                      <b>{w}</b>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="dx-note">
+              "Nobody" includes us. The vault owner is a single wallet for now, and its powers only touch fees already in the vault, never
+              your deposits.
+            </p>
+          </Sect>
+
+          <Sect id="safety" n={11} title="Safety and worst cases">
             <div className="dx-cards">
               {[
-                ["No admin keys", "The contract has no owner, pause or upgrade. Only the deal's own rules move funds."],
+                ["No admin keys", "The escrow has no owner, pause or upgrade. Only the deal's own rules move funds."],
                 ["Refunds can't be blocked", "Each side can always take its deposit back after the deadline."],
                 ["Not audited yet", "Internal review and a full test suite, no professional audit. Start small."],
                 ["Never your seed phrase", "Signing an answer is a plain message, not a transaction. We never ask for keys."],
@@ -581,12 +724,83 @@ GET  ${origin}/api/openapi.json         the full spec`}</Code>
                 </div>
               ))}
             </div>
+            <h3 className="dx-h3">If something goes wrong</h3>
+            <table className="dx-table stack">
+              <tbody>
+                {WORST.map(([w, d]) => (
+                  <tr key={w}>
+                    <td>
+                      <b>{w}</b>
+                    </td>
+                    <td>{d}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="dx-note">
+              Found a vulnerability? Report it privately through "Report a vulnerability" on the{" "}
+              <a href={`${GITHUB}/security`} target="_blank" rel="noreferrer">
+                GitHub Security tab
+              </a>{" "}
+              or DM {BRAND.xHandle}.
+            </p>
             <Link to="/security" className="dx-link">
               Security details →
             </Link>
           </Sect>
 
-          <Sect id="coming" n={10} title="In development">
+          <Sect id="data" n={12} title="Data we keep and third parties">
+            <h3 className="dx-h3">On our server</h3>
+            <table className="dx-table stack">
+              <tbody>
+                {STORED.map(([k, v]) => (
+                  <tr key={k}>
+                    <td>
+                      <b>{k}</b>
+                    </td>
+                    <td>{v}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="dx-p">Nothing is deleted automatically yet. Private links stay in your browser; clearing site data removes them.</p>
+            <h3 className="dx-h3">Services involved</h3>
+            <table className="dx-table stack">
+              <tbody>
+                {THIRD.map(([k, v]) => (
+                  <tr key={k}>
+                    <td>
+                      <b>{k}</b>
+                    </td>
+                    <td>{v}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Sect>
+
+          <Sect id="troubleshooting" n={13} title="Troubleshooting">
+            <table className="dx-table stack">
+              <thead>
+                <tr>
+                  <th>You see</th>
+                  <th>What to do</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TROUBLE.map(([k, v]) => (
+                  <tr key={k}>
+                    <td>
+                      <b>{k}</b>
+                    </td>
+                    <td>{v}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Sect>
+
+          <Sect id="coming" n={14} title="In development">
             <p className="dx-p">The big pieces that aren't live yet. Details can change, and nothing ships before it's tested and reviewed.</p>
             {DOCS.map((d) => (
               <details key={d.id} id={d.id} className="dx-dev">
@@ -619,7 +833,16 @@ GET  ${origin}/api/openapi.json         the full spec`}</Code>
             </Link>
           </Sect>
 
-          <Sect id="faq" n={11} title="FAQ">
+          <Sect id="terms" n={15} title="Terms">
+            <ul className="dx-list">
+              <li>Not financial, legal or tax advice. Nothing here promises a price or a return.</li>
+              <li>The software is provided as is (MIT license). Trades settle on-chain and are final.</li>
+              <li>Not a regulated venue. You're responsible for following the rules where you live, including any restrictions on stock tokens.</li>
+              <li>Deposits are controlled by the contract and the two parties to a deal, not by us.</li>
+            </ul>
+          </Sect>
+
+          <Sect id="faq" n={16} title="FAQ">
             <div className="l3-faq dx-faq">
               {DOC_FAQ.map(([q, a]) => (
                 <details key={q}>

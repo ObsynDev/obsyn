@@ -13,6 +13,21 @@
 
 The contracts have not had a professional audit yet. Start with sizes you're comfortable with.
 
+### Transparency
+
+| | |
+|---|---|
+| [DEPLOYMENTS.md](DEPLOYMENTS.md) | Every address, its deploy transaction, block, constructor settings and compiler settings |
+| [`contracts/scripts/verify-deployment.mjs`](contracts/scripts/verify-deployment.mjs) | Checks the live bytecode against this source and prints the on-chain settings. `forge build && node scripts/verify-deployment.mjs` |
+| [SECURITY.md](SECURITY.md) | Who can do what (permissions table), worst cases stated plainly, known risks, how to report a vulnerability |
+| [CHANGELOG.md](CHANGELOG.md) | What changed and when, including bugs we found and fixed |
+| [LICENSE](LICENSE) | MIT |
+
+- **No admin keys on the escrow.** No owner, no pause, no upgrade. The fee is capped at 2.5% in code.
+- **The fee vault's owner is a single wallet for now,** and can only steer how fees already in the vault buy and burn $OBSYN (route changes wait 2 days, publicly). It can't touch user deposits. Details in [SECURITY.md](SECURITY.md#who-can-do-what).
+- **What our server stores:** postings (token, size, side, pay token, optional note, expiry), sealed answers as ciphertext it can't decrypt, SHA-256 hashes of the private-link tokens, and the terms of accepted deals. No accounts, no emails. We set no cookies and run no analytics. Nothing is deleted automatically yet.
+- **Third parties:** Google Fonts (fonts, loaded by your browser), DexScreener and Yahoo Finance (market data, fetched by our server; token logos load from DexScreener's CDN), your wallet's RPC, WalletConnect/Reown if you connect that way, Railway (hosting) and Cloudflare (DNS).
+
 | Folder | What it is |
 |---|---|
 | [contracts/](contracts/) | Foundry: `OtcEscrow` (adminless escrow) and `BuyBurnVault` (turns fees into token burns) |

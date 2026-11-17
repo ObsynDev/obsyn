@@ -1,6 +1,43 @@
 # Security notes
 
-This is an internal review written while building the code. **It is not an audit.** Get the contracts professionally audited before they hold real funds.
+This is an internal review written while building the code. **It is not an audit.** No professional audit has been done yet. Start with sizes you're comfortable with.
+
+Deployed addresses and how to check them against this source: [DEPLOYMENTS.md](DEPLOYMENTS.md).
+
+## Reporting a vulnerability
+
+Please report privately, not in a public issue: use **"Report a vulnerability"** under this repository's Security tab (GitHub private vulnerability reporting), or DM [@Obsyntrade](https://x.com/Obsyntrade) on X. Include the steps to reproduce. We'll confirm receipt and keep you updated until it's fixed.
+
+## Who can do what
+
+Enforced by the contracts unless marked *(app)*. "Anyone" means any address, including us.
+
+| Action | Buyer | Seller | Relayer | Vault owner | Anyone else |
+|---|---|---|---|---|---|
+| Post a bid or listing, send a sealed answer | yes | yes | — | — | yes *(app)* |
+| Read the prices in sealed answers | the poster only *(app, encrypted)* | the poster only | no | no | no |
+| Accept an answer | whoever holds the private link *(app)* | same | no | no | no |
+| Deposit the payment | **only the buyer named in the deal** | no | no | no | no |
+| Deposit the tokens | no | **only the seller named in the deal** | only with the seller's signature for that deal and that relayer | no | no |
+| Change price, amount, payout or deadline of a deal | no: any change is a different deal id | no | no | no | no |
+| Refund after the deadline | yes | yes | yes | yes | **yes**: anyone can trigger it; funds only go back to the side that paid them |
+| Pause, upgrade or change the escrow | nobody: no owner, no admin key | | | | |
+| Raise the fee above 2.5% | nobody: capped in code | | | | |
+| Take fees out of the vault | nobody can withdraw them; the keeper can only spend them on a buy that burns $OBSYN | | | | |
+| Set the $OBSYN token in the vault | — | — | — | **once, then never again** | no |
+| Change the swap route (adapter) used for buy-and-burn | — | — | — | yes, **after a public 2-day delay** | no |
+| Change the keeper / hand over ownership | — | — | — | yes (ownership in two steps) | no |
+
+The vault owner is currently a single wallet, not a multisig (see [DEPLOYMENTS.md](DEPLOYMENTS.md)). Its powers only touch fees that are already in the vault, never user deposits in the escrow.
+
+## Worst cases, stated plainly
+
+- **A bug in the escrow** (no audit yet) could put funds that are deposited in open deals at risk. Deals settle in one transaction, so funds sit in the contract only between the two deposits.
+- **Our server goes down:** you can't post or read answers, but deposits are never stuck. After the deadline, anyone can call `refund(terms)` on the escrow directly from the explorer (Write contract). The deal panel has a "Copy for a manual refund" button with the terms in the exact format the explorer expects, and the SDK/MCP `refund` does it for you.
+- **Our server or website is compromised:** it could show a wrong page or wrong terms. It still can't read sealed prices (they're encrypted to keys in your browser), and it can't move funds. Before depositing, the offer page checks the final terms against the answer saved in your own browser, and refuses on any mismatch. You can also run the app from this source.
+- **The relayer key leaks:** it can only submit deposits that sellers have already signed for that relayer. Its ETH balance is kept small.
+- **The vault owner and keeper act badly:** they could buy $OBSYN at a poor price with the fees in the vault (low `minOut`, or a bad adapter after the 2-day delay, which is public as an `AdapterQueued` event). User deposits are not affected.
+- **You lose your private link:** nobody can recover it. Deposits are still safe: they refund after the deadline.
 
 ## What the escrow guarantees
 
@@ -46,7 +83,7 @@ This is an internal review written while building the code. **It is not an audit
 - No accounts. Bids and offers are controlled by random 256-bit capability tokens; only their SHA-256 hashes are stored, and checks are constant-time.
 - Sealed offers are encrypted client-side (NaCl box with a one-off key per offer). The server stores ciphertext and can't read prices.
 - The relayer only submits when the buyer has already funded, so the relayed deposit settles and pays the relayer at once. It simulates before sending. A race (e.g. the one-time wallet moving its tokens between simulation and inclusion) can still cost the relayer gas; the minimum relayer fee covers that. Keep the relayer key's ETH balance small.
-- Rate limiting is per IP from `x-forwarded-for`. That header is only trustworthy behind a proxy that overwrites it; set one up in production.
+- Rate limiting is per client IP, taken from the address our proxy appends (`x-real-ip`, or the last `x-forwarded-for` entry), so a client can't spoof it. Request bodies are capped at 64 KB.
 - CORS is open (`*`). That's safe because no request relies on cookies or ambient credentials.
 
 ## Answers are hostile input

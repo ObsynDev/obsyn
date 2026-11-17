@@ -5887,7 +5887,9 @@ html, body { overflow-x: clip; }
 .foot-x { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--muted); text-decoration: none; font: 500 13px var(--mono); }
 .foot-x:hover { color: var(--green); }
 @media (max-width: 860px) {
-  .top > .x-link { display: none; }
+  .top > .x-link { width: 32px; height: 32px; border-radius: 8px; }
+  .top > .x-link svg { width: 14px; height: 14px; }
+  .top > .x-link + .x-link { margin-left: -6px; }
   .mnav-inner a.mnav-x { justify-content: flex-start; gap: 10px; border: 0; font: 500 13px var(--mono); color: var(--muted); padding-top: 14px; }
 }
 .foot-social { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 14px; }
@@ -5895,3 +5897,27 @@ html, body { overflow-x: clip; }
 .sec-src { margin: -6px 0 18px; color: var(--muted); font-size: 15px; }
 .sec-src a { color: var(--green); text-decoration: none; font-family: var(--mono); font-size: 14px; }
 .sec-src a:hover { text-decoration: underline; }
+
+/* docs: last-updated line and readable tables on phones */
+.dx-updated { margin: 14px 0 0; font-size: 12px; color: var(--dim); letter-spacing: 0.02em; }
+.dx-updated a { color: var(--muted); text-decoration: none; }
+.dx-updated a:hover { color: var(--green); }
+.dx-table a { color: var(--green); text-decoration: none; }
+.dx-table td b { color: var(--text); font-weight: 600; }
+@media (max-width: 640px) {
+  .dx-table.stack, .dx-table.stack tbody, .dx-table.stack tr, .dx-table.stack td { display: block; width: 100%; }
+  .dx-table.stack thead { display: none; }
+  .dx-table.stack tr { padding: 10px 0; border-top: 1px solid var(--line); }
+  .dx-table.stack td { border: 0; padding: 3px 0; }
+}
+
+@media (max-width: 560px) {
+  /* phone header: logo · GitHub · X · action · menu — keep it on one line */
+  .top { gap: 8px; }
+  .top > .brand { margin-right: auto; }
+  .top > .cta, .top > .wallet-btn { margin-left: 0; }
+  .top.site > .cta { padding: 7px 10px; font-size: 11px; }
+}
+@media (max-width: 380px) {
+  .top.site > .cta { display: none; }
+}

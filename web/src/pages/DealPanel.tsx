@@ -20,6 +20,10 @@ import {
 } from "../lib/chain.ts";
 import { Copy, Err, fmtAmount, fmtLeft, Pill, short, useAction, useNow, usePoll } from "../lib/ui.tsx";
 
+/** The terms as the tuple an explorer's "Write contract → refund" field expects. */
+const termsTuple = (t: Terms) =>
+  `[${[t.buyer, t.seller, t.token, t.amount, t.payToken, t.price, t.sellerPayout, t.referrer, t.relayerFee, t.deadline, t.salt].map(String).join(",")}]`;
+
 /** Shared deal view for both sides: terms, live contract state, and the next action. */
 export function DealPanel({
   escrow,
@@ -130,6 +134,11 @@ export function DealPanel({
           <dt>Deal id</dt>
           <dd className="mono">
             {short(dealId)} <Copy text={dealId} />
+          </dd>
+          <dt>Deal terms</dt>
+          <dd>
+            {/* the escape hatch: with these, anyone can call refund(terms) on the contract from an explorer */}
+            <Copy text={termsTuple(terms)} label="Copy for a manual refund" />
           </dd>
           <dt>Contract</dt>
           <dd>
