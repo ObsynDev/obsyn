@@ -56,7 +56,7 @@ A token that later shrinks balances (negative rebase, a new transfer fee, admin 
 - **I-03** ETH payouts get 50,000 gas. Smart-contract wallets that need more are credited in `owedEth` and claim with `withdraw()`.
 - **I-04** A buyer can open a deal naming any seller without their consent. It only costs the buyer gas; they refund after the deadline.
 - **I-05** `BuyBurnVault.transferOwnership` emits no event for the pending owner (only `OwnerSet` on accept), and `setKeeper` / `transferOwnership` accept the zero address. Neither can lock funds.
-- **I-06** The Pons curve interface in the vault comes from Pons' docs and is not yet checked against verified on-chain source. It is unused until `setPlatformToken` is called with a curve.
+- **I-06** The Pons curve interface in the vault comes from Pons' docs and is not yet checked against verified on-chain source. It is unused until `setPlatformToken` is called with a curve. (Since $OBSYN graduated, the curve is closed and burns go through the v4 adapter below.)
 
 ### Slither triage
 
@@ -70,6 +70,18 @@ A token that later shrinks balances (negative rebase, a new transfer fee, admin 
 | `missing-zero-check` | 5 | See I-05. |
 | `timestamp` | 4 | Intended: deadlines and price age. |
 | `low-level-calls`, `naming-convention`, `unindexed-event-address` | 13 | Style only. |
+
+## V4BurnAdapter (added 2026-11-18)
+
+$OBSYN graduated from its Pons curve to a Uniswap v4 pool, so the fee vault needs a new buy route. `contracts/src/V4BurnAdapter.sol` is that route, reviewed the same way:
+
+- **What it can do:** only the vault can call `swap`. ETH fees buy $OBSYN on its v4 pool (OBSYN/ETH, the Pons hook); USDG fees go USDG → WETH on the Uniswap v3 0.01% pool from the official factory, unwrap to ETH, then the same v4 swap. Bought tokens go straight to the burn address.
+- **What it can't do:** it has no owner and no settings; every address and pool is fixed at deploy. It holds nothing between calls: unused input goes back to the vault in the same transaction. The v3 callback only pays during its own swap, and only to that pool.
+- **Two checks on every burn:** the adapter checks the tokens the burn address received against `minOut`, and the vault checks the same again before counting the burn.
+- **Why not a v4 ETH/USDG pool:** the deepest one's hook refuses swaps from contracts like this one (tested on a fork), so the USDG leg uses v3.
+- **Tests:** 9 tests, 8 of them against the live contracts on a fork: ETH → OBSYN (0.01 ETH bought ~619k OBSYN), USDG → WETH → OBSYN (20 USDG bought ~692k OBSYN), the full vault flow (queue, refused before 2 days, apply, burn ETH and USDG, nothing left in the vault or the adapter), `minOut`, only the vault, only the PoolManager and only our own v3 swap can call back, wrong inputs. `LIVE_RPC=https://robinhood-rpc.publicnode.com forge test --match-contract V4BurnAdapter -vv`
+- **Slither:** `reentrancy-eth`/`reentrancy-balance` on `swap` are false positives (only the vault, which holds its own lock, can call it; `swap` also has its own lock, and the only external calls go to the fixed PoolManager, v3 pool and WETH); `incorrect-equality` (`out == 0`) and `unused-return` (`settle`, `unlock`) are intended; `missing-zero-check` was fixed (the constructor refuses zero addresses).
+- **Activation:** the vault owner deploys it and calls `queueAdapter`; it can only be switched on with `applyAdapter` after the vault's public 2-day wait.
 
 ## App and backend findings (fixed)
 

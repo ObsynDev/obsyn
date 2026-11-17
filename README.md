@@ -149,6 +149,7 @@ cd web && npm run build        # typecheck + production build
 | Suite | Where | What it covers |
 |---|---|---|
 | Escrow, 24 tests incl. fuzzing | [`contracts/test/OtcEscrow.t.sol`](contracts/test/OtcEscrow.t.sol) | Settlement in either deposit order, fee tiers and holder discount, ghost deposits through the relayer with permits, refunds after the deadline, payouts that reject ETH or return-bomb, fee-on-transfer rejection, value conservation (fuzzed) |
+| Burn route, 9 tests (8 on a live fork) | [`contracts/test/V4BurnAdapter.t.sol`](contracts/test/V4BurnAdapter.t.sol) | ETH → OBSYN on the v4 pool, USDG → WETH → OBSYN, full vault flow with the 2-day wait, only the vault can call it, nothing left behind |
 | Fee vault, 13 tests | [`contracts/test/BuyBurnVault.t.sol`](contracts/test/BuyBurnVault.t.sol) | One-time platform-token switch, two-step ownership, burns through the Pons curve, route timelock, short-changed swaps revert |
 | Live fork, 5 tests | [`contracts/test/LiveFork.t.sol`](contracts/test/LiveFork.t.sol) | Replays deals against the deployed contracts (`LIVE_RPC=… forge test --match-contract LiveFork`) |
 | Backend, 53 tests | [`backend/test/`](backend/test/) | Bid and listing flows, partial fills, verified receipts, self-referral refusal, rate limits and body caps, deal-id parity with Solidity, hostile (forged) answers, ghost-mode relayer and agent-to-agent MCP trades end to end on anvil |

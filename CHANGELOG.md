@@ -5,6 +5,7 @@ Notable changes to what users and integrators see. Dates are UTC.
 ## 2026-11-18
 
 - **$OBSYN graduated** from the Pons bonding curve; it now trades on Uniswap v4 (OBSYN/ETH). Copy updated. The vault needs a Uniswap v4 route (adapter) to keep buying and burning; until it is queued and its 2-day wait passes, fees collect in the vault.
+- **V4BurnAdapter** (`contracts/src/V4BurnAdapter.sol`): the vault's new buy route. ETH → OBSYN on the v4 pool; USDG → WETH (Uniswap v3) → ETH → OBSYN. No owner, holds nothing between calls, only the vault can call it. 9 tests, 8 on a fork of the live contracts; review notes in SECURITY-REVIEW.md. Not deployed yet: the vault owner deploys and queues it, and it switches on after the 2-day wait.
 
 - **Stats page** (`/stats`, `GET /api/stats`): accepted, settled and refunded deals, settled volume (ETH, USDG and USD), fees, postings and sealed answers, plus the fee vault: $OBSYN burned by the vault, fees waiting to burn, and the total at the burn address. Deals are checked against the escrow on-chain; open postings' prices are never counted.
 - **Referral program** (`/refer`, `GET /api/referrals/{address}`): your `?ref=` link, deals you referred and what you earned. The escrow already pays the referrer half the protocol fee at settlement; this makes it usable. A referral link that names one of the deal's own parties is now dropped instead of failing the accept.
