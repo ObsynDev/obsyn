@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "mcp": "node src/mcp/stdio.ts",
     "build:sdk": "esbuild src/sdk/index.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=dist/sdk/obsyn.mjs --legal-comments=none --minify",
-    "build:mcp": "node scripts/build-mcp.mjs"
+    "build:mcp": "node scripts/build-mcp.mjs && node scripts/build-mcpb.mjs"
   },
   "author": "",
   "license": "ISC",

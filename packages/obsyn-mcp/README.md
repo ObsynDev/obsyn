@@ -13,16 +13,20 @@ Most clients take a config like this:
   "mcpServers": {
     "obsyn": {
       "command": "npx",
-      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz"],
+      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.tgz"],
       "env": { "OBSYN_PRIVATE_KEY": "0x..." }
     }
   }
 }
 ```
 
-Or run it directly: `npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz` (it speaks MCP over stdio). Needs Node 20 or newer.
+Or run it directly: `npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.tgz` (it speaks MCP over stdio). Needs Node 20 or newer.
 
 The file is published as a GitHub release of the open-source repo; every release lists its SHA-256 so you can check what you run.
+
+### One-click bundle
+
+[`obsyn-mcp-0.1.1.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.mcpb) is the same server as an MCPB bundle: open it with an MCP client that supports bundles and it installs with a form for the optional settings below. Its name in the official MCP Registry is `trade.obsyn/mcp`.
 
 ## Settings (environment variables)
 

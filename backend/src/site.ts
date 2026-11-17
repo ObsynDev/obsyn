@@ -34,6 +34,8 @@ const CSP = [
   "object-src 'none'",
 ].join("; ");
 
+const MCP_REGISTRY_AUTH = "v=MCPv1; k=ed25519; p=Dct4VSoOa08JLHyDCwe3AkUWvq47drFCWm5XXQegNI4=";
+
 /**
  * One public origin: the API under /api, the built web app everywhere else.
  * Unknown paths fall back to index.html so client-side routes (/bid/…, /rfq/…) work on reload.
@@ -52,6 +54,10 @@ export function createSite(api: Hono, webDist: string | null, publicUrl = "", fa
     c.header("cross-origin-opener-policy", "same-origin-allow-popups");
     c.header("content-security-policy", CSP);
   });
+
+  // Proof that obsyn.trade owns the trade.obsyn/* names in the official MCP Registry.
+  // Public key only; the signing key never leaves the publisher's machine.
+  site.get("/.well-known/mcp-registry-auth", (c) => c.text(MCP_REGISTRY_AUTH));
 
   site.route("/api", api);
   // an unknown API path is a 404 in JSON, never the web app's HTML

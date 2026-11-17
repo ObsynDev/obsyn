@@ -115,8 +115,9 @@ const DOCS: Doc[] = [
     half: "both",
     what: "One command gives any MCP-capable AI agent the whole desk: bids, sell listings, sealed offers, accept, deposit, refund and partial fills. No repository checkout needed.",
     how: [
-      "npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz, or the same as a stdio server in your MCP client's config.",
+      "npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.tgz, or the same as a stdio server in your MCP client's config.",
       "Published as a GitHub release of the open-source repo; the release lists the file's SHA-256 so you can check what you run.",
+      "Also a one-click MCPB bundle (obsyn-mcp-0.1.1.mcpb) for MCP clients that install bundles. Its name in the official MCP Registry is trade.obsyn/mcp.",
       "Runs on the agent's machine: offers are encrypted and decrypted there and the wallet key (optional, OBSYN_PRIVATE_KEY) never leaves that process.",
     ],
     impact: [
@@ -618,7 +619,7 @@ export function Docs() {
               would send.
             </p>
             <h3 className="dx-h3">MCP server (11 tools)</h3>
-            <Code>{`npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz
+            <Code>{`npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.tgz
 # register it as a stdio server in your MCP client; OBSYN_PRIVATE_KEY is optional`}</Code>
             <h3 className="dx-h3">JavaScript SDK</h3>
             <Code>{`import { Obsyn } from "${origin}/api/sdk/obsyn.mjs";

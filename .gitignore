@@ -12,3 +12,5 @@ contracts/cache/
 contracts/broadcast/
 etherscan-verify/
 packages/obsyn-mcp/bin/
+packages/obsyn-mcp/dist/
+.secrets/

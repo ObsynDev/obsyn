@@ -1,0 +1,37 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "trade.obsyn/mcp",
+  "title": "Obsyn OTC",
+  "description": "Private OTC block trades on Robinhood Chain: sealed bids, encrypted offers, one-tx settlement.",
+  "version": "0.1.1",
+  "websiteUrl": "https://obsyn.trade/developers",
+  "repository": {
+    "url": "https://github.com/ObsynDev/obsyn",
+    "source": "github",
+    "subfolder": "packages/obsyn-mcp"
+  },
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.mcpb",
+      "version": "0.1.1",
+      "fileSha256": "f642b17bb2134517bb792194b00bc997355c5849585c4a489d643e958b0928cf",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        {
+          "name": "OBSYN_PRIVATE_KEY",
+          "description": "Optional key of a dedicated agent wallet. Without it, deposits and refunds come back unsigned.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "OBSYN_RPC_URL",
+          "description": "Optional Robinhood Chain RPC, only if the default is blocked on your network.",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

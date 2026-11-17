@@ -41,3 +41,9 @@ it("never serves files outside the build folder", async () => {
     assert.doesNotMatch(body, /do not serve/, p);
   }
 });
+
+it("publishes the MCP Registry domain proof (a public key) for obsyn.trade", async () => {
+  const res = await setup().request("/.well-known/mcp-registry-auth");
+  assert.equal(res.status, 200);
+  assert.match(await res.text(), /^v=MCPv1; k=ed25519; p=[A-Za-z0-9+/]{43}=$/);
+});
