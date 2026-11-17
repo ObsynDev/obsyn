@@ -15,7 +15,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
   {
     n: "00",
     title: "Live today",
-    blurb: "The core desk is live: post sealed bids and listings, read private answers, and settle in one contract transaction.",
+    blurb: "The core desk is live: post sealed bids and listings, read private answers, and settle in one contract transaction. Also live: partial fills, the exposure check, the price-impact estimate, the installable MCP package and $OBSYN with buy-and-burn.",
     items: [
       { t: "Sealed bids and listings", d: "Post a bid to buy or list a block to sell. Answers are encrypted to you in the sender's browser.", s: "live", size: "L" },
       { t: "OTC desk", d: "Swap-style widget: size in USD or tokens, ETH or USDG, reply window.", s: "live", size: "M" },
@@ -30,6 +30,12 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Reference price on offers", d: "Each offer is shown against the token's on-chain DEX price: '4.2% under market'.", s: "live", size: "S" },
       { t: "Deal receipts", d: "A public, shareable page per settled deal, rebuilt from the settlement transaction.", s: "live", size: "S" },
       { t: "Export / import private links", d: "Back up the keys to your bids and offers to a file and restore them on another device.", s: "live", size: "S" },
+      { t: "Platform token on Pons", d: "$OBSYN launched on a Pons bonding curve and plugged into the fee vault.", s: "live", size: "L", doc: "token" },
+      { t: "Buy-and-burn + holder discount", d: "Fees buy $OBSYN and burn it; holders pay 0.5% less.", s: "live", size: "L", doc: "token" },
+      { t: "Partial fills", d: "Several sellers fill one big bid (or several buyers share a listing), each part its own deal.", s: "live", size: "M", doc: "partial-fills" },
+      { t: "Exposure check", d: "On a ghost-mode deal, see which public hops link the one-time wallet back to you.", s: "live", size: "M", doc: "exposure-check" },
+      { t: "Installable MCP package", d: "One command to give any agent the desk, no repository needed (npx, from the GitHub release).", s: "live", size: "M", doc: "mcp-package" },
+      { t: "Price-impact estimate", d: "An estimate of what the same size would cost as a DEX market order, shown on the desk and the trade page.", s: "live", size: "S", doc: "price-impact" },
     ],
   },
   {
@@ -47,20 +53,14 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     items: [
       { t: "Independent third-party audit", d: "An outside firm audits the contract and fee vault before large sizes.", s: "next", size: "M" },
       { t: "Fee vault to a multisig", d: "Move the vault from a single wallet to a multisig with a separate keeper.", s: "next", size: "S" },
-      { t: "Partial fills", d: "Several sellers fill one big bid (or several buyers share a listing), each part its own deal.", s: "live", size: "M", doc: "partial-fills" },
       { t: "Team access", d: "Big buyers send a direct, private request to a project's team.", s: "planned", size: "M", doc: "team-access" },
-      { t: "Exposure check", d: "On a ghost-mode deal, see which public hops link the one-time wallet back to you.", s: "live", size: "M", doc: "exposure-check" },
-      { t: "Installable MCP package", d: "One command to give any agent the desk, no repository needed (npx, from the GitHub release).", s: "live", size: "M", doc: "mcp-package" },
-      { t: "Price-impact calculator", d: "What the same size would cost as a DEX market order, shown on the desk and the trade page.", s: "live", size: "S", doc: "price-impact" },
     ],
   },
   {
     n: "03",
-    title: "Large: the token and the network",
-    blurb: "The platform token goes live and privacy reaches past the desk.",
+    title: "Large: locked tokens and the network",
+    blurb: "Locked-token deals, and privacy that reaches past the desk.",
     items: [
-      { t: "Platform token on Pons", d: "Launch $OBSYN on a Pons bonding curve, then plug it into the fee vault.", s: "next", size: "L", doc: "token" },
-      { t: "Buy-and-burn + holder discount", d: "Fees buy $OBSYN and burn it; holders pay 0.5% less.", s: "next", size: "L", doc: "token" },
       { t: "Locked-token OTC for teams", d: "Sell vesting or locked tokens with the unlock schedule enforced in the contract.", s: "planned", size: "L", doc: "locked-otc" },
       { t: "Private RPC relay", d: "Hide which wallets you read and trade from, with decoy traffic.", s: "research", size: "L", doc: "private-relay" },
       { t: "Agent passports", d: "Agents prove things about their owner (size, history) without revealing who.", s: "research", size: "L", doc: "agent-passports" },

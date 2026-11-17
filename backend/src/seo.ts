@@ -29,7 +29,66 @@ const FAQ: [string, string][] = [
 
 const faqHtml = `<h2>FAQ</h2>${FAQ.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}`;
 
-const nav = `<nav><a href="/">Home</a> · <a href="/otc">OTC desk</a> · <a href="/markets">Markets</a> · <a href="/how">How it works</a> · <a href="/security">Security</a> · <a href="/docs">Docs</a> · <a href="/developers">Developers</a></nav>`;
+const nav = `<nav><a href="/">Home</a> · <a href="/otc">OTC desk</a> · <a href="/markets">Markets</a> · <a href="/how">How it works</a> · <a href="/security">Security</a> · <a href="/docs">Docs</a> · <a href="/roadmap">Roadmap</a> · <a href="/developers">Developers</a></nav>`;
+
+const ROADMAP: [string, string, [string, string][]][] = [
+  [
+    "00 · Live today",
+    "The core desk is live, plus partial fills, the exposure check, the price-impact estimate, the installable MCP package and $OBSYN with buy-and-burn.",
+    [
+      ["Sealed bids and listings", "Post a bid to buy or list a block to sell. Answers are encrypted to you in the sender's browser."],
+      ["OTC desk", "Size in USD or tokens, ETH or USDG, reply window."],
+      ["Signed answers + funds check", "Every answer is signed by its wallet; fakes are flagged, empty wallets shown."],
+      ["Payment locks first", "Sellers deposit only after the buyer has paid in."],
+      ["Ghost mode relayer", "Deliver from a one-time wallet; gas paid by the relayer."],
+      ["SDK, OpenAPI, local MCP server", "Agents and apps can do everything the site does."],
+      ["Contract on mainnet", "Escrow and fee vault live on Robinhood Chain, verified on the explorer and Sourcify (exact match)."],
+      ["Security audit by the Obsyn team", "Manual review, Slither, 41 contract tests, live-fork replays. Report published on GitHub."],
+      ["Trade page per token", "Paste any contract: price, market cap, your balance, one-click sell, open blocks for that token."],
+      ["Token list with logos", "Listed Robinhood Chain markets in the picker, with logos and checked contract addresses."],
+      ["Reference price on offers", "Each offer is shown against the token's on-chain DEX price."],
+      ["Deal receipts", "A public, shareable page per settled deal, rebuilt from the settlement transaction."],
+      ["Export / import private links", "Back up the keys to your bids and offers and restore them on another device."],
+      ["Platform token on Pons", "$OBSYN launched on a Pons bonding curve and plugged into the fee vault."],
+      ["Buy-and-burn + holder discount", "Fees buy $OBSYN and burn it; holders pay 0.5% less."],
+      ["Partial fills", "Several sellers fill one big bid (or several buyers share a listing), each part its own deal."],
+      ["Exposure check", "On a ghost-mode deal, see which public hops link the one-time wallet back to you."],
+      ["Installable MCP package", "One command to give any agent the desk, no repository needed."],
+      ["Price-impact estimate", "An estimate of what the same size would cost as a DEX market order."],
+    ],
+  ],
+  ["01 · Small: polish the desk", "Quick wins.", [["Notifications (next)", "Telegram and email alerts when an answer arrives or the other side deposits."]]],
+  [
+    "02 · Medium: more ways to trade",
+    "Bigger and more varied deals.",
+    [
+      ["Independent third-party audit (next)", "An outside firm audits the contract and fee vault before large sizes."],
+      ["Fee vault to a multisig (next)", "Move the vault from a single wallet to a multisig with a separate keeper."],
+      ["Team access (planned)", "Big buyers send a direct, private request to a project's team."],
+    ],
+  ],
+  [
+    "03 · Large: locked tokens and the network",
+    "Locked-token deals, and privacy past the desk.",
+    [
+      ["Locked-token OTC for teams (planned)", "Sell vesting or locked tokens with the unlock schedule enforced in the contract."],
+      ["Private RPC relay (research)", "Hide which wallets you read and trade from."],
+      ["Agent passports (research)", "Agents prove things about their owner without revealing who."],
+    ],
+  ],
+  [
+    "04 · XL: unlinkable settlement",
+    "Built carefully and audited first.",
+    [
+      ["Shielded settlement pool (research)", "Pay and get paid through a zero-knowledge pool."],
+      ["Independent relayer network (research)", "Anyone can run a relayer by bonding the token."],
+    ],
+  ],
+];
+
+const roadmapHtml = ROADMAP.map(
+  ([title, blurb, items]) => `<h2>${esc(title)}</h2><p>${esc(blurb)}</p><ul>${items.map(([t, d]) => `<li><b>${esc(t)}</b>: ${esc(d)}</li>`).join("")}</ul>`,
+).join("");
 
 const PAGES: Record<string, Page> = {
   "/": {
@@ -84,10 +143,16 @@ ${faqHtml}`,
     description: "How Obsyn works end to end: sealed answers, the settlement contract, fees, the platform token, agents, the SDK and the MCP server.",
     body: `<h1>Docs</h1><p>How Obsyn works end to end: posting blocks, sealed answers, the settlement contract, fees and the $OBSYN token, plus the SDK and MCP server for agents.</p>`,
   },
+  "/roadmap": {
+    title: "Roadmap · Obsyn",
+    description:
+      "What's live on Obsyn and what's next: sealed OTC desk, partial fills, exposure check, price-impact estimate, installable MCP package and $OBSYN buy-and-burn are live.",
+    body: `<h1>Roadmap</h1><p>From a private desk to unlinkable settlement. No dates: each step ships when it's built and tested.</p>${roadmapHtml}`,
+  },
   "/developers": {
     title: "Developers · Obsyn",
     description: "Give an AI agent the desk: an MCP server, a one-import JavaScript SDK and a plain HTTP API with no accounts.",
-    body: `<h1>Developers</h1><h2>Give an AI agent the desk</h2><p>An MCP server with tools to post, answer and settle blocks.</p><h2>One import, both sides</h2><p>A JavaScript SDK served at /api/sdk/obsyn.mjs.</p><h2>Plain HTTP, no accounts</h2><p>An OpenAPI-described REST API.</p><h2>Treat answers as hostile input</h2><p>Agents should validate every sealed answer before acting on it.</p>`,
+    body: `<h1>Developers</h1><h2>Give an AI agent the desk</h2><p>An MCP server with 11 tools to post, answer and settle blocks. Install it with one command: <code>npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.0/obsyn-mcp-0.1.0.tgz</code> (GitHub release, SHA-256 listed there).</p><h2>One import, both sides</h2><p>A JavaScript SDK served at /api/sdk/obsyn.mjs.</p><h2>Plain HTTP, no accounts</h2><p>An OpenAPI-described REST API.</p><h2>Treat answers as hostile input</h2><p>Agents should validate every sealed answer before acting on it.</p>`,
   },
 };
 
