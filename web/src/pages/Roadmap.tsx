@@ -79,10 +79,15 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
 
 /** Items that go live with $OBSYN: flipped at render, once the server provides the token address. */
 const TOKEN_ITEMS = new Set(["Platform token on Pons"]);
-const withLaunch = (it: Item): Item =>
-  TOKEN_ITEMS.has(it.t) && PLATFORM_TOKEN.address
-    ? { ...it, s: "live", d: `$OBSYN is live: ${PLATFORM_TOKEN.address.slice(0, 6)}…${PLATFORM_TOKEN.address.slice(-4)}. Next: plug it into the fee vault.` }
-    : it;
+const withLaunch = (it: Item): Item => {
+  const a = PLATFORM_TOKEN.address;
+  if (TOKEN_ITEMS.has(it.t) && a)
+    return { ...it, s: "live", d: `$OBSYN is live (${a.slice(0, 6)}…${a.slice(-4)}) and plugged into the fee vault.` };
+  // the vault was pointed at $OBSYN on-chain; the threshold shown comes from the server
+  if (it.t === "Buy-and-burn + holder discount" && a && PLATFORM_TOKEN.discountMin)
+    return { ...it, s: "live", d: `Holders of ${PLATFORM_TOKEN.discountMin}+ $OBSYN pay 0.5% less. Fees in the vault buy $OBSYN on its Pons curve and burn it.` };
+  return it;
+};
 
 export function Roadmap() {
   return (

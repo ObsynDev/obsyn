@@ -4,6 +4,8 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-17
 
+- **$OBSYN launched and plugged into the fee vault** (`setPlatformToken`, one time, permanent): holders of 1,000,000+ OBSYN pay 0.5% less fee; vault fees buy $OBSYN on its Pons curve and burn it. Tested first on a fork against the live curve.
+- Site-wide $OBSYN contract-address bar with copy and a Pons link.
 - **Security audit by the Obsyn team published** ([SECURITY-REVIEW.md](SECURITY-REVIEW.md)): manual review, Slither triage, 41 contract tests, live-fork replays. No critical or high contract issues.
 - **Contracts verified on Sourcify** with an exact match (runtime and creation bytecode).
 - The backend refuses deal terms whose referrer is the buyer, the seller or the payout address (self-referral would halve the protocol fee).

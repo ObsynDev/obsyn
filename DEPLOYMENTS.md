@@ -22,6 +22,18 @@ Compiler: solc 0.8.24, optimizer on (10,000 runs), EVM `cancun`. Built from `con
 - `usdg`: `0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168`
 - `owner` and `keeper`: `0x533452c0e3C3455D33d551964F14D352597b21e1`. This is currently a single wallet (an EOA), not a multisig. What the owner can and can't do is listed in [SECURITY.md](SECURITY.md#who-can-do-what). Ownership can move to a multisig later with the two-step `transferOwnership`, which is public on-chain.
 
+### $OBSYN plugged into the fee vault
+
+`BuyBurnVault.setPlatformToken` was called once (it can never be called again) on 2026-11-17 in [`0xa28306d9…`](https://robinhoodchain.blockscout.com/tx/0xa28306d997d26c80770840e92367100425a981b9c38d04cd82bc0487284173d5):
+
+| Setting | Value |
+|---|---|
+| Platform token ($OBSYN) | [`0x5D992fa5B7Da8EFde5FD36d24e81097Ed6aD4351`](https://robinhoodchain.blockscout.com/token/0x5D992fa5B7Da8EFde5FD36d24e81097Ed6aD4351) |
+| Pons bonding curve (pair: ETH) | [`0x1D6A7a3fAB6592cb5E6AA5873B915Bc6f93B0499`](https://robinhoodchain.blockscout.com/address/0x1D6A7a3fAB6592cb5E6AA5873B915Bc6f93B0499) |
+| Holder discount threshold | 1,000,000 OBSYN (0.1% of supply) |
+
+From now on a buyer or seller holding at least 1,000,000 OBSYN pays 0.5% less fee, and fees in the vault can only be spent buying $OBSYN and sending it to `0x…dEaD`.
+
 ### Off-chain addresses
 
 | Role | Address | Can do |
