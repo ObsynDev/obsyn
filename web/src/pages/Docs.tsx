@@ -193,6 +193,7 @@ const SECTIONS = [
   ["agents", "For agents: MCP, SDK, API"],
   ["privacy", "Privacy model"],
   ["contracts", "Contracts and how to verify"],
+  ["admin", "Why admin keys: 0"],
   ["permissions", "Who can do what"],
   ["safety", "Safety and worst cases"],
   ["data", "Data we keep and third parties"],
@@ -369,7 +370,12 @@ export function Docs() {
           <div>
             <span className="mono">ADMIN KEYS</span>
             <b className="mono">0</b>
-            <i>on the contract. No pause, no upgrade</i>
+            <i>
+              on the escrow. No pause, no upgrade.{" "}
+              <a href="#admin" onClick={go("admin")}>
+                Why →
+              </a>
+            </i>
           </div>
           <div>
             <span className="mono">SETTLEMENT</span>
@@ -692,7 +698,76 @@ node scripts/verify-deployment.mjs`}</Code>
             </p>
           </Sect>
 
-          <Sect id="permissions" n={10} title="Who can do what">
+          <Sect id="admin" n={10} title="Why admin keys: 0">
+            <p className="dx-p">
+              Many contracts have an admin key: one wallet that can pull funds, pause the contract, swap its code for a new version or
+              raise fees. If that key is abused or stolen, every user's money goes with it. The escrow that holds your deposits has none.
+            </p>
+            <div className="dx-two">
+              <div>
+                <b>What the escrow doesn't have</b>
+                <p>No owner. No admin role. No pause. No upgrade or proxy. No function to change fees (capped at 2.5% in the code). No way to send funds anywhere except as a deal's terms say.</p>
+              </div>
+              <div>
+                <b>What it does have</b>
+                <p>Its settings (USDG, the fee vault, the price feed) were fixed at deploy and can never change. The rules in the code are the only thing that moves money.</p>
+              </div>
+            </div>
+            <h3 className="dx-h3">Every function that changes anything</h3>
+            <table className="dx-table stack">
+              <thead>
+                <tr>
+                  <th>Function</th>
+                  <th>Who can call it, and what it does</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["depositPayment", "Only the buyer named in the deal. Locks the payment."],
+                  ["depositTokens", "Only the seller named in the deal. Delivers the tokens; if the payment is in, both sides swap in this transaction."],
+                  ["depositTokensFor", "A relayer, only with the seller's signature for this exact deal and this relayer (ghost mode)."],
+                  ["refund", "Anyone, but only after the deadline. Funds go back to the side that paid them, never anywhere else."],
+                  ["withdraw", "Anyone, for ETH the contract owes to that same caller (a payout that couldn't be pushed)."],
+                ].map(([f, d]) => (
+                  <tr key={f}>
+                    <td className="mono">
+                      <b>{f}</b>
+                    </td>
+                    <td>{d}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="dx-p">That's the complete list. Everything else in the contract only reads.</p>
+            <h3 className="dx-h3">Check it yourself</h3>
+            <ul className="dx-list">
+              <li>
+                <b>Read the code.</b> It's verified, so the source is public on the{" "}
+                <a href={`https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865?tab=contract`} target="_blank" rel="noreferrer">
+                  explorer
+                </a>{" "}
+                and{" "}
+                <a href="https://repo.sourcify.dev/4663/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865" target="_blank" rel="noreferrer">
+                  Sourcify
+                </a>{" "}
+                (exact match). Search it for <span className="mono">onlyOwner</span>, <span className="mono">pause</span>,{" "}
+                <span className="mono">upgrade</span>, <span className="mono">delegatecall</span> or <span className="mono">selfdestruct</span>: none exist.
+              </li>
+              <li>
+                <b>Confirm it isn't a proxy.</b> Upgradeable contracts keep their real code address in a standard storage slot (EIP-1967).
+                On the escrow both slots are empty:
+              </li>
+            </ul>
+            <Code>{`cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc --rpc-url https://4663.rpc.thirdweb.com
+cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103 --rpc-url https://4663.rpc.thirdweb.com
+# both return 0x0000…0000: no implementation to swap, no proxy admin`}</Code>
+            <p className="dx-note">
+              The one wallet with any power in Obsyn is the owner of the fee vault, which holds fees, never deposits, and can't block
+              anything in the escrow. See <a href="#permissions" onClick={go("permissions")}>Who can do what</a>.
+            </p>
+          </Sect>
+
+          <Sect id="permissions" n={11} title="Who can do what">
             <p className="dx-p">Enforced by the contracts, except reading and accepting answers, which the app handles with encryption and private links.</p>
             <table className="dx-table stack">
               <thead>
@@ -729,7 +804,7 @@ node scripts/verify-deployment.mjs`}</Code>
             </p>
           </Sect>
 
-          <Sect id="safety" n={11} title="Safety and worst cases">
+          <Sect id="safety" n={12} title="Safety and worst cases">
             <div className="dx-cards">
               {[
                 ["No admin keys", "The escrow has no owner, pause or upgrade. Only the deal's own rules move funds."],
@@ -768,7 +843,7 @@ node scripts/verify-deployment.mjs`}</Code>
             </Link>
           </Sect>
 
-          <Sect id="data" n={12} title="Data we keep and third parties">
+          <Sect id="data" n={13} title="Data we keep and third parties">
             <h3 className="dx-h3">On our server</h3>
             <table className="dx-table stack">
               <tbody>
@@ -798,7 +873,7 @@ node scripts/verify-deployment.mjs`}</Code>
             </table>
           </Sect>
 
-          <Sect id="troubleshooting" n={13} title="Troubleshooting">
+          <Sect id="troubleshooting" n={14} title="Troubleshooting">
             <table className="dx-table stack">
               <thead>
                 <tr>
@@ -819,7 +894,7 @@ node scripts/verify-deployment.mjs`}</Code>
             </table>
           </Sect>
 
-          <Sect id="coming" n={14} title="In development">
+          <Sect id="coming" n={15} title="In development">
             <p className="dx-p">The big pieces that aren't live yet. Details can change, and nothing ships before it's tested and reviewed.</p>
             {DOCS.map((d) => (
               <details key={d.id} id={d.id} className="dx-dev">
@@ -852,7 +927,7 @@ node scripts/verify-deployment.mjs`}</Code>
             </Link>
           </Sect>
 
-          <Sect id="terms" n={15} title="Terms">
+          <Sect id="terms" n={16} title="Terms">
             <ul className="dx-list">
               <li>Not financial, legal or tax advice. Nothing here promises a price or a return.</li>
               <li>The software is provided as is (MIT license). Trades settle on-chain and are final.</li>
@@ -861,7 +936,7 @@ node scripts/verify-deployment.mjs`}</Code>
             </ul>
           </Sect>
 
-          <Sect id="faq" n={16} title="FAQ">
+          <Sect id="faq" n={17} title="FAQ">
             <div className="l3-faq dx-faq">
               {DOC_FAQ.map(([q, a]) => (
                 <details key={q}>
