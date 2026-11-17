@@ -91,8 +91,23 @@ ${faqHtml}`,
   },
 };
 
+/** Facts every page states in plain HTML, for crawlers and research bots that don't run JavaScript. */
+export interface SiteFacts {
+  tokenAddress?: string | null;
+}
+
+const ESCROW = "0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865";
+const REPO = "https://github.com/ObsynDev/obsyn";
+
+function factsHtml(f: SiteFacts): string {
+  const token = f.tokenAddress
+    ? `<p><b>$OBSYN token contract (Robinhood Chain, chain id 4663):</b> <a href="https://robinhoodchain.blockscout.com/token/${esc(f.tokenAddress)}">${esc(f.tokenAddress)}</a></p>`
+    : "";
+  return `<footer>${token}<p><b>Settlement contract (OtcEscrow):</b> <a href="https://robinhoodchain.blockscout.com/address/${ESCROW}">${ESCROW}</a></p><p><b>Source code:</b> <a href="${REPO}">${REPO}</a> · <a href="${REPO}/blob/main/CHANGELOG.md">Changelog</a> · <a href="${REPO}/blob/main/SECURITY-REVIEW.md">Security audit by the Obsyn team</a> · <a href="${REPO}/blob/main/DEPLOYMENTS.md">Deployments</a></p><p><b>X:</b> <a href="https://x.com/Obsyntrade" rel="me">@Obsyntrade</a></p></footer>`;
+}
+
 /** index.html with the page's title, description, canonical URL and readable content for bots. */
-export function renderIndex(html: string, path: string, origin: string): string {
+export function renderIndex(html: string, path: string, origin: string, facts: SiteFacts = {}): string {
   const key = path.length > 1 ? path.replace(/\/+$/, "") : path;
   const page = PAGES[key];
   if (!page) return html;
@@ -106,6 +121,6 @@ export function renderIndex(html: string, path: string, origin: string): string 
     .replace(/(<meta name="twitter:description" content=")[^"]*/, `$1${esc(page.description)}`)
     .replace(/(<meta property="og:url" content=")[^"]*/, `$1${esc(url)}`)
     .replace("</head>", `<link rel="canonical" href="${esc(url)}" />\n</head>`);
-  out = out.replace('<div id="root"></div>', `<div id="root"><div class="ssr">${nav}${page.body}</div></div>`);
+  out = out.replace('<div id="root"></div>', `<div id="root"><div class="ssr">${nav}${page.body}${factsHtml(facts)}</div></div>`);
   return out;
 }

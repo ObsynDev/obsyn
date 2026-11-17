@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { renderIndex } from "./seo.ts";
+import { renderIndex, type SiteFacts } from "./seo.ts";
 import { extname, join, resolve, sep } from "node:path";
 import { Hono } from "hono";
 
@@ -38,7 +38,7 @@ const CSP = [
  * One public origin: the API under /api, the built web app everywhere else.
  * Unknown paths fall back to index.html so client-side routes (/bid/…, /rfq/…) work on reload.
  */
-export function createSite(api: Hono, webDist: string | null, publicUrl = "") {
+export function createSite(api: Hono, webDist: string | null, publicUrl = "", facts: SiteFacts = {}) {
   const site = new Hono();
 
   site.use("*", async (c, next) => {
@@ -63,7 +63,7 @@ export function createSite(api: Hono, webDist: string | null, publicUrl = "") {
     return site;
   }
   // Read per request (it is tiny) so a rebuilt dist never serves a stale index pointing at deleted assets.
-  const index = (path: string) => renderIndex(readFileSync(join(root, "index.html"), "utf8"), path, publicUrl.replace(/\/+$/, ""));
+  const index = (path: string) => renderIndex(readFileSync(join(root, "index.html"), "utf8"), path, publicUrl.replace(/\/+$/, ""), facts);
 
   site.get("*", (c) => {
     let rel: string;

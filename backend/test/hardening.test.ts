@@ -88,8 +88,12 @@ it("pages ship readable text, a per-page title and a canonical link for bots", a
     join(dir, "index.html"),
     '<html><head><title>Obsyn</title><meta name="description" content="x" /></head><body><div id="root"></div></body></html>',
   );
-  const site = createSite(new Hono(), dir, "https://obsyn.trade/");
+  const site = createSite(new Hono(), dir, "https://obsyn.trade/", { tokenAddress: "0x5D992fa5B7Da8EFde5FD36d24e81097Ed6aD4351" });
   const home = await (await site.request("/")).text();
+  // research bots read plain HTML: the token contract, the repo and X must be there without JavaScript
+  assert.match(home, /0x5D992fa5B7Da8EFde5FD36d24e81097Ed6aD4351/);
+  assert.match(home, /https:\/\/github\.com\/ObsynDev\/obsyn/);
+  assert.match(home, /x\.com\/Obsyntrade/);
   assert.match(home, /<h1>Trade size\. Stay private\.<\/h1>/);
   assert.match(home, /Can you take my funds\?/); // FAQ answers are in the HTML
   assert.match(home, /<link rel="canonical" href="https:\/\/obsyn\.trade" \/>/);
