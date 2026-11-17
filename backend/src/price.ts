@@ -109,9 +109,6 @@ export interface TokenInfo {
 /** Basic ERC-20 facts read from chain, for checking an address before trusting it. */
 export async function readTokenInfo(client: PublicClient, address: Address): Promise<TokenInfo> {
   address = getAddress(address);
-  const blockNumber = await client.getBlockNumber();
-  const code = await client.getCode({ address, blockNumber });
-  const isContract = !!code && code !== "0x";
   // A revert (or no such function) means "not supported": null. A network error is rethrown, so the
   // request fails and nothing wrong gets cached (e.g. permit:false during an RPC outage).
   const read = <T>(p: Promise<T>) =>
@@ -123,16 +120,20 @@ export async function readTokenInfo(client: PublicClient, address: Address): Pro
         throw e;
       },
     );
-  const [name, symbol, dec, supply, nonce, sep] = isContract
-    ? await Promise.all([
-        read(client.readContract({ address, abi: erc20Abi, functionName: "name", blockNumber })),
-        read(client.readContract({ address, abi: erc20Abi, functionName: "symbol", blockNumber })),
-        read(client.readContract({ address, abi: erc20Abi, functionName: "decimals", blockNumber })),
-        read(client.readContract({ address, abi: erc20Abi, functionName: "totalSupply", blockNumber })),
-        read(client.readContract({ address, abi: permitProbeAbi, functionName: "nonces", args: [address], blockNumber })),
-        read(client.readContract({ address, abi: permitProbeAbi, functionName: "DOMAIN_SEPARATOR", blockNumber })),
-      ])
-    : [null, null, null, null, null, null];
+  // code and every field in one parallel round (reads on a non-contract simply come back null)
+  // Reads use "latest" rather than pinning a block number: load-balanced RPCs can lag a block behind and
+  // reject a number they haven't seen yet ("unsupported block number").
+  const [blockNumber, code, name, symbol, dec, supply, nonce, sep] = await Promise.all([
+        client.getBlockNumber(),
+        client.getCode({ address }),
+        read(client.readContract({ address, abi: erc20Abi, functionName: "name" })),
+        read(client.readContract({ address, abi: erc20Abi, functionName: "symbol" })),
+        read(client.readContract({ address, abi: erc20Abi, functionName: "decimals" })),
+        read(client.readContract({ address, abi: erc20Abi, functionName: "totalSupply" })),
+        read(client.readContract({ address, abi: permitProbeAbi, functionName: "nonces", args: [address] })),
+        read(client.readContract({ address, abi: permitProbeAbi, functionName: "DOMAIN_SEPARATOR" })),
+      ]);
+  const isContract = !!code && code !== "0x";
   return {
     address,
     isContract,

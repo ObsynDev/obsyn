@@ -101,8 +101,10 @@ export function tokenInfo(address: Address): Promise<TokenInfo> {
     p = (async () => {
       // Ask our server first: it reads the chain for us, so this works even when the
       // visitor's own RPC is blocked (some ISPs block Robinhood Chain's RPC).
+      // our server first (retry once: a fresh read can hit a lagging RPC node)
+      const viaServer = () => api.token(address);
       try {
-        const t = await api.token(address);
+        const t = await viaServer().catch(() => new Promise<Awaited<ReturnType<typeof viaServer>>>((r, j) => setTimeout(() => viaServer().then(r, j), 800)));
         if (t.isContract && t.symbol && t.decimals !== null) return { address, symbol: t.symbol, name: t.name ?? t.symbol, decimals: t.decimals };
         if (!t.isContract) throw new Error("No token contract at this address on Robinhood Chain.");
       } catch (e) {

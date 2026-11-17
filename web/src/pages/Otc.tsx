@@ -54,15 +54,33 @@ function TokenPicker({ onPick, onClose }: { onPick: (t: TokenInfo) => void; onCl
     };
   }, []);
 
-  // pasted contract address → look it up on-chain
+  // pasted contract address → look it up on-chain, and pick it as soon as it resolves
+  // (a full address is unambiguous; waiting for a second click lost users while the read took a few seconds)
   useEffect(() => {
     const v = q.trim();
     if (!isAddress(v)) return setLookup({ state: "idle" });
+    let alive = true;
     setLookup({ state: "loading" });
     tokenInfo(getAddress(v)).then(
-      (t) => setLookup({ state: "ok", t }),
-      (e) => setLookup({ state: "err", msg: e?.message ?? "Not a token on Robinhood Chain." }),
+      (t) => {
+        if (!alive) return;
+        setLookup({ state: "ok", t });
+        onPick(t);
+      },
+      (e) => {
+        if (!alive) return;
+        const m = String(e?.message ?? "");
+        // our own clear messages pass through; raw RPC errors become a plain sentence
+        setLookup({
+          state: "err",
+          msg: m.startsWith("No token contract") ? m : "Couldn't read this token from Robinhood Chain right now. Check the address, or try again in a moment.",
+        });
+      },
     );
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
   const needle = q.trim().toLowerCase();
@@ -80,8 +98,22 @@ function TokenPicker({ onPick, onClose }: { onPick: (t: TokenInfo) => void; onCl
             ✕
           </button>
         </div>
-        <input autoFocus className="picker-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search, or paste a contract address" spellCheck={false} />
-        {lookup.state === "loading" && <p className="muted small picker-note">Reading the contract…</p>}
+        <input
+          autoFocus
+          className="picker-search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter picks: the pasted token (it auto-picks once read) or the first match
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            if (lookup.state === "ok" && lookup.t) onPick(lookup.t);
+            else if (!isAddress(q.trim()) && shown[0]) onPick(shown[0]);
+          }}
+          placeholder="Search, or paste a contract address"
+          spellCheck={false}
+        />
+        {lookup.state === "loading" && <p className="muted small picker-note">Reading the contract on Robinhood Chain… it's selected automatically when ready.</p>}
         {lookup.state === "err" && <p className="err small picker-note">{lookup.msg}</p>}
         <div className="picker-list">
           {lookup.state === "ok" && lookup.t && (
@@ -106,7 +138,7 @@ function TokenPicker({ onPick, onClose }: { onPick: (t: TokenInfo) => void; onCl
               </em>
             </button>
           ))}
-          {!shown.length && lookup.state !== "ok" && <p className="muted small picker-note">No match. Paste the token's contract address.</p>}
+          {!shown.length && lookup.state === "idle" && <p className="muted small picker-note">No match. Paste the token's contract address.</p>}
         </div>
         <p className="fine picker-note">Any ERC-20 on Robinhood Chain. Always check the contract address.</p>
       </div>
