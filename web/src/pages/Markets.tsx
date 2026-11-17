@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, type Candle, type ChartRange, type MarketChart, type MarketRow } from "../lib/api.ts";
 import { KeyButton, SlotButton } from "../lib/buttons.tsx";
+import { swapUrl } from "../lib/dex.ts";
 import { MARKETS, type KnownToken } from "../lib/tokens.ts";
 import { Copy, short } from "../lib/ui.tsx";
 import { TokenAvatar } from "./Terminal.tsx";
@@ -327,12 +328,21 @@ export function MarketBoard({ initial = "TSLA" }: { initial?: string }) {
           ) : (
             <div className="mb-chart empty pons">
               <p>
-                <b>No listed underlying.</b> {m.symbol} trades on Pons and Robinhood Chain. On this desk the price is whatever the sealed
-                answers to your block say, and only you read them.
+                <b>No listed underlying.</b>{" "}
+                {m.symbol === "OBSYN"
+                  ? "OBSYN graduated from its Pons curve and trades on a Uniswap v4 pool on Robinhood Chain."
+                  : `${m.symbol} trades on Pons and Robinhood Chain.`}{" "}
+                On this desk the price is whatever the sealed answers to your block say, and only you read them.
               </p>
-              <a className="mono" href="https://www.ponsfamily.com/" target="_blank" rel="noreferrer">
-                View on Pons ↗
-              </a>
+              {m.symbol === "OBSYN" ? (
+                <a className="mono" href="https://dexscreener.com/robinhood/0x9fe79f5726a87aa2758f14ba929e6fe4277a7718d6862aa039d61974c0542355" target="_blank" rel="noreferrer">
+                  View the Uniswap v4 pool ↗
+                </a>
+              ) : (
+                <a className="mono" href="https://www.ponsfamily.com/" target="_blank" rel="noreferrer">
+                  View on Pons ↗
+                </a>
+              )}
             </div>
           )}
 
@@ -382,6 +392,10 @@ export function MarketBoard({ initial = "TSLA" }: { initial?: string }) {
             </KeyButton>
             <SlotButton to={`/trade?side=sell&ca=${m.address}`}>SELL {m.symbol}</SlotButton>
           </div>
+          <a className="mb-dex mono" href={swapUrl(m.address, m.kind)} target="_blank" rel="noreferrer">
+            Small size? Swap {m.symbol} on Uniswap ↗
+          </a>
+          {m.kind !== "crypto" && <p className="mono dim small">Robinhood stock tokens aren't available everywhere. Check eligibility in your region.</p>}
           <p className="mono dim small">Max fee 2.5%, set in the contract. Reference price only; your block settles at the price you accept.</p>
         </aside>
       </div>
@@ -401,7 +415,7 @@ export function Markets() {
           {MARKETS.length} markets. <span className="tone">One sealed desk.</span>
         </h1>
         <p className="muted">
-          Robinhood stock tokens, two index ETFs and PONS, each checked on Robinhood Chain. Prices shown are the listed stock's,
+          $OBSYN, Robinhood stock tokens, two index ETFs and PONS, each checked on Robinhood Chain. Prices shown are the listed stock's,
           delayed. Your block settles at the price you accept. Any other ERC-20 works by address.
         </p>
       </header>

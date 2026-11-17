@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { api } from "./lib/api.ts";
 import { BRAND, fomoUrl, GitHubIcon, PLATFORM_TOKEN, Wordmark, XIcon } from "./lib/brand.tsx";
+import { swapUrl } from "./lib/dex.ts";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Copy, Link, short, usePath } from "./lib/ui.tsx";
 import { BuyerBid } from "./pages/BuyerBid.tsx";
@@ -155,6 +156,9 @@ export function App() {
               <span className="ca-buy-w">Buy on </span>fomo ↗
             </a>
           )}
+          <a href={swapUrl(PLATFORM_TOKEN.address)} target="_blank" rel="noreferrer" className="ca-bar-buy ca-bar-wide">
+            <span className="ca-buy-w">Swap on </span>Uniswap ↗
+          </a>
         </div>
       )}
       <header className={`top ${site ? "site" : "app"}${menu ? " menu-open" : ""}`}>

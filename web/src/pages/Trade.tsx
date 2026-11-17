@@ -11,6 +11,7 @@ import { MARKETS, PAY_TOKENS } from "../lib/tokens.ts";
 import { Err, fmtLeft, Link, navigate, useAction, useNow, usePoll } from "../lib/ui.tsx";
 import { TokenAvatar } from "./Terminal.tsx";
 import { DexImpact } from "./DexImpact.tsx";
+import { swapUrl } from "../lib/dex.ts";
 
 /**
  * /trade?ca=0x…&side=buy|sell — a trading page for one token: order ticket on the left,
@@ -327,6 +328,14 @@ export function Trade() {
                           {" · "}
                           <a href={mkt.pairUrl} target="_blank" rel="noreferrer">
                             chart ↗
+                          </a>
+                        </>
+                      )}
+                      {!tokErr && token && (
+                        <>
+                          {" · "}
+                          <a href={swapUrl(ca, MARKETS.find((m) => m.address === ca)?.kind)} target="_blank" rel="noreferrer" title="Small size on Uniswap; size goes to the desk">
+                            swap on Uniswap ↗
                           </a>
                         </>
                       )}

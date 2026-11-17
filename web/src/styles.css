@@ -5968,6 +5968,7 @@ html, body { overflow-x: clip; }
   .ca-bar .ca-full { display: none; }
   .ca-bar .ca-short { display: inline; }
   .ca-bar .ca-buy-w { display: none; }
+  .ca-bar .ca-bar-wide { display: none; }
 }
 
 /* My blocks: backup */
@@ -6180,3 +6181,7 @@ html, body { overflow-x: clip; }
   .obm-strip { gap: 8px 16px; padding: 12px 14px; }
   .obm-ref { margin-left: 0; width: 100%; }
 }
+
+/* links out to the DEX (small size) and to the desk for $OBSYN */
+.mb-dex { display: inline-block; margin: 2px 0 4px; font-size: 12.5px; color: var(--green); }
+.tk-otc { color: #fff3e6 !important; font-weight: 600; }

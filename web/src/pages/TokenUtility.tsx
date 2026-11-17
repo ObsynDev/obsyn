@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { fomoUrl, PLATFORM_TOKEN } from "../lib/brand.tsx";
 import { BurnRoute } from "./BurnRoute.tsx";
+import { swapUrl } from "../lib/dex.ts";
 import { HolderCheck, ObsynMarketStrip, useObsynMarket } from "./ObsynMarket.tsx";
 import { reducedMotion } from "../lib/motion.tsx";
-import { Copy, short } from "../lib/ui.tsx";
+import { Copy, Link, short } from "../lib/ui.tsx";
 
 /**
  * What holding the platform token does. Only what the contracts enforce:
@@ -128,6 +129,18 @@ export function TokenUtility() {
             <a className="mono" href={fomoUrl()!} target="_blank" rel="noreferrer">
               Buy ${T} on fomo ↗
             </a>
+          </>
+        )}
+        {PLATFORM_TOKEN.address && (
+          <>
+            <span className="tk-sep" />
+            <a className="mono" href={swapUrl(PLATFORM_TOKEN.address)} target="_blank" rel="noreferrer">
+              Swap on Uniswap ↗
+            </a>
+            <span className="tk-sep" />
+            <Link to={`/trade?ca=${PLATFORM_TOKEN.address}`} className="mono tk-otc">
+              Trade ${T} OTC, no slippage →
+            </Link>
           </>
         )}
       </div>

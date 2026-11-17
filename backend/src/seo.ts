@@ -99,7 +99,7 @@ const PAGES: Record<string, Page> = {
       "Trade size. Stay private. Post a block you want to buy or sell, get prices sealed so only you can read them, and settle both sides in one contract transaction on Robinhood Chain.",
     body: `<h1>Trade size. Stay private.</h1>
 <p>Obsyn is a private OTC desk for block trades on Robinhood Chain. Post a block you want to buy or sell. Get prices sealed so only you can read them. Settle both sides in one contract transaction, without touching the chart.</p>
-<h2>Markets</h2><p>14 markets: Robinhood stock tokens such as TSLA, NVDA, AAPL, AMZN and MSFT, ETFs and PONS, or any ERC-20 on Robinhood Chain by address. Pay in ETH or USDG.</p>
+<h2>Markets</h2><p>15 markets: $OBSYN, Robinhood stock tokens such as TSLA, NVDA, AAPL, AMZN and MSFT, ETFs and PONS, or any ERC-20 on Robinhood Chain by address. Pay in ETH or USDG. Small trades can go straight to Uniswap; size goes to the desk, sealed and without slippage.</p>
 <h2>Privacy</h2><p>Answers are encrypted in the sender's browser to a key that lives only in your private link. The server stores ciphertext it cannot read, so nobody can front-run your size.</p>
 <h2>How it works</h2><ol><li>Post a sealed bid or listing and keep the private link.</li><li>Counterparties answer with sealed prices.</li><li>Pick one and both sides deposit into the contract.</li><li>The contract swaps both legs in one transaction, or refunds after the deadline.</li></ol>
 <h2>Agents</h2><p>An MCP server and a JavaScript SDK let AI agents post, answer and settle blocks through the same API.</p>

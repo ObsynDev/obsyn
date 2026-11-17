@@ -10,6 +10,7 @@ import { getAddress, type Address } from "viem";
  * The on-chain token can trade away from it.
  */
 export const MARKETS: { symbol: string; name: string; address: Address; kind: "stock" | "etf" | "crypto"; ref: string | null }[] = [
+  { symbol: "OBSYN", name: "Obsyn", address: "0x5D992fa5B7Da8EFde5FD36d24e81097Ed6aD4351", kind: "crypto", ref: null },
   { symbol: "TSLA", name: "Tesla", address: "0x322F0929c4625eD5bAd873c95208D54E1c003b2d", kind: "stock", ref: "TSLA" },
   { symbol: "NVDA", name: "NVIDIA", address: "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC", kind: "stock", ref: "NVDA" },
   { symbol: "AAPL", name: "Apple", address: "0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9", kind: "stock", ref: "AAPL" },

@@ -4,6 +4,10 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-18
 
+- **$OBSYN is a featured market** (15 markets now): in the desk's token picker, the token strip and /markets, with a "Trade $OBSYN OTC, no slippage" link in the token section.
+- **Swap on Uniswap links** for small size: on every market (stocks pay in USDG, crypto in ETH), on each token's trade page and next to the $OBSYN contract address. Obsyn doesn't route these swaps; they open Uniswap on Robinhood Chain. Stock-token pages note that eligibility depends on your region.
+- **Holder discount check** (any wallet: qualifies, or how much more and what it costs) and the **$OBSYN market** (price, market cap, liquidity, 24h) from its Uniswap v4 pool, on the homepage and /stats.
+
 - **$OBSYN graduated** from the Pons bonding curve; it now trades on Uniswap v4 (OBSYN/ETH). Copy updated. The vault needs a Uniswap v4 route (adapter) to keep buying and burning; until it is queued and its 2-day wait passes, fees collect in the vault.
 - **V4BurnAdapter** (`contracts/src/V4BurnAdapter.sol`): the vault's new buy route. ETH → OBSYN on the v4 pool; USDG → WETH (Uniswap v3) → ETH → OBSYN. No owner, holds nothing between calls, only the vault can call it. 9 tests, 8 on a fork of the live contracts; review notes in SECURITY-REVIEW.md. Deployed at `0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67` (Sourcify exact match) and queued in the vault; it can be switched on from 2026-11-19 20:18 UTC.
 
