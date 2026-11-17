@@ -5958,3 +5958,12 @@ html, body { overflow-x: clip; }
 .foot-hey { display: inline-block; margin-top: 14px; line-height: 0; border-radius: 8px; opacity: 0.92; transition: opacity 0.2s; }
 .foot-hey:hover { opacity: 1; }
 .foot-hey img { display: block; max-width: 100%; height: auto; border-radius: 8px; }
+
+/* partial fills */
+.otc-partial { display: flex; align-items: center; gap: 8px; margin: 10px 2px 2px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.otc-partial input, .tr-partial input { accent-color: var(--green); width: 16px; height: 16px; flex: none; }
+.tr-partial { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 13px; }
+.tr-partial span { display: grid; gap: 2px; }
+.tr-partial i { font-style: normal; color: var(--muted); }
+.fills .fill-bar { height: 8px; border-radius: 999px; background: var(--panel-2, #151a22); overflow: hidden; margin: 6px 0 4px; }
+.fills .fill-bar span { display: block; height: 100%; background: linear-gradient(90deg, #ff9a63, var(--green)); border-radius: 999px; transition: width 0.4s ease; }

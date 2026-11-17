@@ -63,7 +63,14 @@ export function SellerOffer({ id }: { id: string }) {
     if (mode === "ghost" && (await ghostSupported(rfq.token)) === false) throw new Error(NO_GHOST(tok.symbol));
 
     let amount = rfq.amount;
-    if (!amount) {
+    const left = rfq.amount ? BigInt(rfq.amount) - BigInt(rfq.filledAmount ?? "0") : null;
+    if (rfq.amount && rfq.partial) {
+      // part of a partial bid: default to everything that's left
+      const base = offerAmount.trim() ? parseUnits(offerAmount.replace(/[,\s]/g, ""), tok.decimals) : left!;
+      if (base <= 0n) throw new Error("Enter how many tokens you are offering.");
+      if (base > left!) throw new Error(`Only ${fmtAmount(left!, tok.decimals, 4)} ${tok.symbol} is left to fill.`);
+      amount = base.toString();
+    } else if (!amount) {
       const base = parseUnits(offerAmount.replace(/[,\s]/g, "") || "0", tok.decimals);
       if (base <= 0n) throw new Error("Enter how many tokens you are offering.");
       amount = base.toString();
@@ -180,6 +187,15 @@ export function SellerOffer({ id }: { id: string }) {
           )}
           <Err msg={connect.error} />
 
+          {rfq.amount && rfq.partial && (
+            <label>
+              How many {tok.symbol} are you offering?{" "}
+              <span className="muted">
+                (partial fills allowed: up to {fmtAmount(BigInt(rfq.amount) - BigInt(rfq.filledAmount ?? "0"), tok.decimals, 4)} left; empty = all of it)
+              </span>
+              <input value={offerAmount} onChange={(e) => setOfferAmount(e.target.value)} inputMode="decimal" placeholder={fmtAmount(BigInt(rfq.amount) - BigInt(rfq.filledAmount ?? "0"), tok.decimals, 4)} />
+            </label>
+          )}
           {!rfq.amount && (
             <label>
               How many {tok.symbol} are you offering? <span className="muted">(the buyer asked for about ${(rfq.sizeUsd ?? 0).toLocaleString("en-US")} worth)</span>
@@ -194,7 +210,7 @@ export function SellerOffer({ id }: { id: string }) {
                 ≈ {unit.toPrecision(6)} {pay.symbol} per {tok.symbol}
                 {(() => {
                   try {
-                    const amt = rfq.amount ? BigInt(rfq.amount) : parseUnits(offerAmount.replace(/[,\s]/g, "") || "0", tok.decimals);
+                    const amt = rfq.amount && !(rfq.partial && offerAmount.trim()) ? BigInt(rfq.amount) : parseUnits(offerAmount.replace(/[,\s]/g, "") || "0", tok.decimals);
                     const pct = vsMarket({ market, amount: amt, tokenDecimals: tok.decimals, price: parseUnits(price.replace(/,/g, ""), pay.decimals), payToken: rfq.payToken, payDecimals: pay.decimals });
                     return pct === null ? null : ` · ${vsLabel(pct)}`;
                   } catch {

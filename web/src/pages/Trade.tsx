@@ -49,6 +49,7 @@ export function Trade() {
   const [size, setSize] = useState(""); // USD on buy, tokens on sell
   const [win, setWin] = useState(86400);
   const [note, setNote] = useState("");
+  const [partial, setPartial] = useState(true);
   const [describe, setDescribe] = useState("");
   const [cfg, setCfg] = useState<ServerConfig | null>(null);
   const now = useNow();
@@ -169,6 +170,7 @@ export function Trade() {
       body = { side, token: token.address, payToken: pay, amount: base.toString(), replySeconds: win, encPubKey };
     }
     if (note.trim()) body.note = note.trim().slice(0, 140);
+    body.allowPartial = partial;
     const res = await api.createRfq(body);
     const link = `/bid/${res.id}#t=${res.manageToken}&k=${toUrl(keys.secretKey)}`;
     saved.addBid({ id: res.id, side, link, token: token.symbol, createdAt: Date.now() });
@@ -388,6 +390,13 @@ export function Trade() {
             </div>
           </div>
 
+          <label className="tr-partial">
+            <input type="checkbox" checked={partial} onChange={(e) => setPartial(e.target.checked)} />
+            <span>
+              <b>Allow partial fills</b>
+              <i>{side === "buy" ? "Several sellers can each fill part of your size." : "Several buyers can each take part of your block."} Each part settles as its own deal.</i>
+            </span>
+          </label>
           <details className="tr-adv">
             <summary>Advanced</summary>
             <label className="tr-label">

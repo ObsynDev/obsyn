@@ -367,6 +367,7 @@ export function Otc() {
   }, []);
   const [win, setWin] = useState(86400);
   const [picking, setPicking] = useState(false);
+  const [partial, setPartial] = useState(true);
 
   const submit = useAction(async () => {
     if (!token) throw new Error("Select the token first.");
@@ -376,11 +377,11 @@ export function Otc() {
     if (side === "buy") {
       const v = Number(usd.replace(/[,\s$]/g, ""));
       if (!isFinite(v) || v < 5) throw new Error("Minimum $5.");
-      body = { side, token: token.address, payToken: pay, sizeUsd: v, replySeconds: win, encPubKey };
+      body = { side, token: token.address, payToken: pay, sizeUsd: v, replySeconds: win, encPubKey, allowPartial: partial };
     } else {
       const base = parseUnits(amount.replace(/[,\s]/g, "") || "0", token.decimals);
       if (base <= 0n) throw new Error("Enter how many tokens you are selling.");
-      body = { side, token: token.address, payToken: pay, amount: base.toString(), replySeconds: win, encPubKey };
+      body = { side, token: token.address, payToken: pay, amount: base.toString(), replySeconds: win, encPubKey, allowPartial: partial };
     }
     const res = await api.createRfq(body);
     const link = `/bid/${res.id}#t=${res.manageToken}&k=${toUrl(keys.secretKey)}`;
@@ -502,6 +503,10 @@ export function Otc() {
             ))}
           </span>
         </div>
+        <label className="otc-partial">
+          <input type="checkbox" checked={partial} onChange={(e) => setPartial(e.target.checked)} />
+          <span>Allow partial fills: {side === "buy" ? "several sellers can each fill part" : "several buyers can each take part"}</span>
+        </label>
 
         <Err msg={submit.error} />
         <KeyButton type="submit" block tone={side === "buy" ? "green" : "red"} disabled={submit.busy}>

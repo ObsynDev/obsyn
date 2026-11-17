@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits, getAddress, isAddress, toHex, zeroAddress, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { api, ApiError, type DealInfo, type Rfq, type SealedQuote, type ServerConfig } from "../lib/api.ts";
+import { api, ApiError, type DealInfo, type Fills, type Rfq, type SealedQuote, type ServerConfig } from "../lib/api.ts";
 import { balanceOfAsset, connectWallet, ghostSupported, NO_GHOST, termsFromJson, termsToJson, tokenInfo, verifyAnswerSig, type Terms, type TokenInfo } from "../lib/chain.ts";
 import { answerMessage, fromUrl, hashParams, keysFromSecret, sideOf, unseal, type BuyerBid as BuyerBidMsg, type Offer } from "../lib/sealed.ts";
 import { referral, saved } from "../lib/store.ts";
@@ -39,6 +39,7 @@ export function BuyerBid({ id }: { id: string }) {
   const [tok, setTok] = useState<TokenInfo | null>(null);
   const [pay, setPay] = useState<TokenInfo | null>(null);
   const [deal, setDeal] = useState<DealInfo | null>(null);
+  const [fills, setFills] = useState<Fills | null>(null);
   const [fundWindow, setFundWindow] = useState(3600);
   const [err, setErr] = useState<string | null>(null);
   // sell listings only: how the seller wants to settle
@@ -54,7 +55,8 @@ export function BuyerBid({ id }: { id: string }) {
         setTok(await tokenInfo(r.token));
         setPay(await tokenInfo(r.payToken));
         if (sideOf(r) === "sell") ghostSupported(r.token).then(setGhostOk);
-        if (r.status === "accepted") setDeal(await api.getDeal(id, token));
+        if (r.partial) setFills(await api.deals(id, token));
+        else if (r.status === "accepted") setDeal(await api.getDeal(id, token));
       })
       .catch((e) => setErr(e.message));
   }, [id, token]);
@@ -79,7 +81,9 @@ export function BuyerBid({ id }: { id: string }) {
       const uint = (v: unknown) => typeof v === "string" && /^\d{1,78}$/.test(v);
       if (!o || typeof o !== "object" || !uint(o.price) || !uint(o.amount) || BigInt(o.amount) === 0n) continue;
       // Fixed-size postings only take answers for exactly that size; USD-sized bids take any size.
-      if (rfq.amount && o.amount !== rfq.amount) continue;
+      if (rfq.partial && q.status !== "pending") continue; // already taken (or turned down)
+      if (rfq.amount && !rfq.partial && o.amount !== rfq.amount) continue;
+      if (rfq.amount && rfq.partial && BigInt(o.amount) > BigInt(rfq.amount) - BigInt(rfq.filledAmount ?? "0")) continue;
       if (side === "buy" && (!isAddress(String(o.sellerPayout)) || !uint(o.relayerFee))) continue;
       const from = side === "buy" ? o.seller : o.buyer;
       if (!from || !isAddress(from)) continue;
@@ -189,8 +193,16 @@ export function BuyerBid({ id }: { id: string }) {
         salt,
       };
     }
-    setDeal(await api.accept(id, token, a.q.id, termsToJson(terms)));
-    setRfq({ ...rfq, status: "accepted" });
+    const res = await api.accept(id, token, a.q.id, termsToJson(terms));
+    if (rfq.partial) {
+      // the posting stays open until fills cover it; refresh what's filled
+      const [r2, f2] = await Promise.all([api.getRfq(id), api.deals(id, token)]);
+      setRfq(r2);
+      setFills(f2);
+    } else {
+      setDeal(res);
+      setRfq({ ...rfq, status: "accepted" });
+    }
   });
 
   const cancel = useAction(async () => {
@@ -335,6 +347,30 @@ export function BuyerBid({ id }: { id: string }) {
         </section>
       )}
 
+      {rfq.partial && fills && (fills.deals.length > 0 || rfq.amount) && (
+        <section className="card fills">
+          <div className="card-head">
+            <h2>Fills</h2>
+            <span className="muted">
+              {rfq.amount
+                ? `${fmtAmount(BigInt(fills.filledAmount ?? "0"), tok.decimals, 4)} of ${fmtAmount(rfq.amount, tok.decimals, 4)} ${tok.symbol} filled`
+                : `${fills.deals.length} fill${fills.deals.length === 1 ? "" : "s"} so far`}
+              {" · "}each fill is its own deal
+            </span>
+          </div>
+          {rfq.amount && (
+            <div className="fill-bar" aria-hidden="true">
+              <span style={{ width: `${Math.min(100, Number((BigInt(fills.filledAmount ?? "0") * 1000n) / BigInt(rfq.amount)) / 10)}%` }} />
+            </div>
+          )}
+          {fills.deals.length === 0 && <p className="muted small">Accept one or more answers above. Each one settles on its own.</p>}
+        </section>
+      )}
+      {rfq.partial &&
+        fills?.escrow &&
+        fills.deals.map((d) => (
+          <DealPanel key={d.dealId} escrow={fills.escrow!} dealId={d.dealId} terms={termsFromJson(d.terms)} role={role} ghostKey={role === "seller" ? ghostKey : undefined} rfqId={id} />
+        ))}
       {deal && deal.escrow && (
         <DealPanel
           escrow={deal.escrow}
@@ -346,7 +382,7 @@ export function BuyerBid({ id }: { id: string }) {
         />
       )}
       {deal && !deal.escrow && <p className="err">Trading isn't live yet: the server has no contract address configured.</p>}
-      {rfq.status === "accepted" && !deal && <p className="muted">Loading deal…</p>}
+      {rfq.status === "accepted" && !deal && !rfq.partial && <p className="muted">Loading deal…</p>}
     </div>
   );
 }

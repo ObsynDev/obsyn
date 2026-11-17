@@ -24,6 +24,8 @@ export interface RfqRow {
   deal_id: string | null;
   settle_tx?: string | null;
   terms_json: string | null;
+  /** 1 = several answers can each fill part of it (partial fills) */
+  partial?: number;
 }
 
 export interface QuoteRow {
@@ -35,6 +37,10 @@ export interface QuoteRow {
   ciphertext: string;
   created_at: number;
   status: QuoteStatus;
+  /** set when this answer was accepted: its own deal (partial fills give each fill its own deal) */
+  deal_id?: string | null;
+  terms_json?: string | null;
+  settle_tx?: string | null;
 }
 
 export function openDb(path: string): DatabaseSync {
@@ -77,5 +83,9 @@ export function openDb(path: string): DatabaseSync {
   if (!cols.some((c) => c.name === "side")) db.exec("ALTER TABLE rfqs ADD COLUMN side TEXT NOT NULL DEFAULT 'buy'");
   // migration: the settlement transaction, for public deal receipts
   if (!cols.some((c) => c.name === "settle_tx")) db.exec("ALTER TABLE rfqs ADD COLUMN settle_tx TEXT");
+  // migration: partial fills (each accepted answer is its own deal)
+  if (!cols.some((c) => c.name === "partial")) db.exec("ALTER TABLE rfqs ADD COLUMN partial INTEGER NOT NULL DEFAULT 0");
+  const qcols = db.prepare("PRAGMA table_info(quotes)").all() as { name: string }[];
+  for (const col of ["deal_id", "terms_json", "settle_tx"]) if (!qcols.some((c) => c.name === col)) db.exec(`ALTER TABLE quotes ADD COLUMN ${col} TEXT`);
   return db;
 }

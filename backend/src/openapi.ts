@@ -191,6 +191,14 @@ export const openapi = {
         responses: { 200: ok("Token info", { type: "object" }), 400: err("Bad address"), 502: err("Read failed") },
       },
     },
+    "/rfqs/{id}/deals": {
+      get: {
+        summary: "Every deal on a posting, one per accepted answer (partial fills). Needs the manage token",
+        security: [{ bearer: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: { 200: ok("Deals", { type: "object" }), 401: err("Wrong or missing manage token"), 404: err("Not found") },
+      },
+    },
     "/receipts/{tx}": {
       get: {
         summary: "Public receipt of a settled deal, rebuilt from its settlement transaction: terms, fee split, block and time",

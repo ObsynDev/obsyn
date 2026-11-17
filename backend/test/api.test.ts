@@ -45,7 +45,7 @@ function setup() {
     readReceipt: async (tx) => {
       // 0x11…11 settled `settledDeal`; 0x22…22 settled some other deal; anything else isn't a settlement
       const other = tx === `0x${"22".repeat(32)}`;
-      if (tx !== `0x${"11".repeat(32)}` && !other) throw new Error("this transaction didn't settle a deal");
+      if (tx !== `0x${"11".repeat(32)}` && tx !== `0x1${"a".repeat(63)}` && !other) throw new Error("this transaction didn't settle a deal");
       const id = other ? `0x${"99".repeat(32)}` : settledDeal;
       return { txHash: tx, dealId: id as `0x${string}`, block: "1", timestamp: 1, settledBy: "depositTokens", terms: {}, protocolFee: "0", referrerFee: "0", relayerFee: "0", sellerProceeds: "0" };
     },
@@ -101,6 +101,82 @@ describe("sealed RFQ flow", () => {
       ...extra,
     });
   }
+
+  it("partial fills: several answers each fill part of a fixed-size bid, each with its own deal", async () => {
+    const rfq = await createRfq({ allowPartial: true }); // 1000 tokens
+    assert.equal(rfq.status, 201);
+    const pubKey = (await call(app, "GET", `/rfqs/${rfq.json.id}`)).json.buyerEncPubKey;
+    const quote = async () => {
+      const nonce = nacl.randomBytes(24);
+      const box = nacl.box(enc({ price: "1", seller: SELLER, sellerPayout: PAYOUT, ghost: false }), nonce, unb64(pubKey), sellerKeys.secretKey);
+      return (await call(app, "POST", `/rfqs/${rfq.json.id}/quotes`, { sellerEncPubKey: b64(sellerKeys.publicKey), nonce: b64(nonce), ciphertext: b64(box) })).json;
+    };
+    const [q1, q2, q3] = [await quote(), await quote(), await quote()];
+    const E18 = 10n ** 18n;
+    const accept = (q: { quoteId: string }, amount: bigint, salt: string) =>
+      call(app, "POST", `/rfqs/${rfq.json.id}/accept`, { quoteId: q.quoteId, terms: termsFor({ amount: (amount * E18).toString(), salt: `0x${salt.repeat(64)}` }) }, rfq.json.manageToken);
+
+    const a1 = await accept(q1, 400n, "1");
+    assert.equal(a1.status, 200, JSON.stringify(a1.json));
+    assert.equal(a1.json.complete, false);
+    let pub = (await call(app, "GET", `/rfqs/${rfq.json.id}`)).json;
+    assert.equal(pub.status, "open", "still open for more fills");
+    assert.equal(pub.filled, 1);
+    assert.equal(pub.filledAmount, (400n * E18).toString());
+    assert.equal((await call(app, "GET", "/rfqs")).json.some((r: { id: string }) => r.id === rfq.json.id), true, "still listed");
+
+    assert.equal((await accept(q1, 100n, "4")).status, 409, "an answer can't be accepted twice");
+    assert.equal((await accept(q2, 700n, "2")).status, 400, "more than what's left");
+    const a2 = await accept(q2, 500n, "2");
+    assert.equal(a2.status, 200);
+    const a3 = await accept(q3, 100n, "3");
+    assert.equal(a3.status, 200);
+    assert.equal(a3.json.complete, true);
+    pub = (await call(app, "GET", `/rfqs/${rfq.json.id}`)).json;
+    assert.equal(pub.status, "accepted", "complete once fills cover the size");
+    assert.equal(pub.filled, 3);
+
+    // the poster sees every deal; each answerer sees only their own
+    const deals = await call(app, "GET", `/rfqs/${rfq.json.id}/deals`, undefined, rfq.json.manageToken);
+    assert.deepEqual(deals.json.deals.map((d: { dealId: string }) => d.dealId), [a1.json.dealId, a2.json.dealId, a3.json.dealId]);
+    assert.equal((await call(app, "GET", `/rfqs/${rfq.json.id}/deals`)).status, 401);
+    const v2 = await call(app, "GET", `/quotes/${q2.quoteId}`, undefined, q2.quoteToken);
+    assert.equal(v2.json.dealId, a2.json.dealId);
+    assert.equal(v2.json.terms.amount, (500n * E18).toString());
+
+    // a settlement report for the second fill is recorded on that fill
+    settledDeal = a2.json.dealId;
+    const tx = `0x1${"a".repeat(63)}`; // a fresh tx (receipts are cached per tx)
+    assert.equal((await call(app, "POST", `/rfqs/${rfq.json.id}/settled`, { txHash: tx })).status, 200);
+    assert.equal((await call(app, "GET", `/deals/${a2.json.dealId}/receipt`)).json.txHash, tx);
+    assert.equal((await call(app, "GET", `/deals/${a1.json.dealId}/receipt`)).status, 404);
+  });
+
+  it("partial fills: cancelling keeps the deals already accepted", async () => {
+    const rfq = await createRfq({ allowPartial: true });
+    const pubKey = (await call(app, "GET", `/rfqs/${rfq.json.id}`)).json.buyerEncPubKey;
+    const nonce = nacl.randomBytes(24);
+    const box = nacl.box(enc({ price: "1", seller: SELLER, sellerPayout: PAYOUT, ghost: false }), nonce, unb64(pubKey), sellerKeys.secretKey);
+    const q = (await call(app, "POST", `/rfqs/${rfq.json.id}/quotes`, { sellerEncPubKey: b64(sellerKeys.publicKey), nonce: b64(nonce), ciphertext: b64(box) })).json;
+    const acc = await call(app, "POST", `/rfqs/${rfq.json.id}/accept`, { quoteId: q.quoteId, terms: termsFor({ amount: "1000000000000000000" }) }, rfq.json.manageToken);
+    assert.equal(acc.status, 200);
+    assert.equal((await call(app, "POST", `/rfqs/${rfq.json.id}/cancel`, {}, rfq.json.manageToken)).status, 200);
+    assert.equal((await call(app, "GET", `/quotes/${q.quoteId}`, undefined, q.quoteToken)).json.status, "accepted");
+    assert.equal((await call(app, "GET", `/rfqs/${rfq.json.id}/deals`, undefined, rfq.json.manageToken)).json.deals.length, 1);
+  });
+
+  it("without allowPartial a bid still takes exactly one answer for its full size", async () => {
+    const rfq = await createRfq({});
+    const pubKey = (await call(app, "GET", `/rfqs/${rfq.json.id}`)).json.buyerEncPubKey;
+    const nonce = nacl.randomBytes(24);
+    const box = nacl.box(enc({ price: "1", seller: SELLER, sellerPayout: PAYOUT, ghost: false }), nonce, unb64(pubKey), sellerKeys.secretKey);
+    const q = (await call(app, "POST", `/rfqs/${rfq.json.id}/quotes`, { sellerEncPubKey: b64(sellerKeys.publicKey), nonce: b64(nonce), ciphertext: b64(box) })).json;
+    assert.equal((await call(app, "POST", `/rfqs/${rfq.json.id}/accept`, { quoteId: q.quoteId, terms: termsFor({ amount: "1000000000000000000" }) }, rfq.json.manageToken)).status, 400);
+    const ok = await call(app, "POST", `/rfqs/${rfq.json.id}/accept`, { quoteId: q.quoteId, terms: termsFor() }, rfq.json.manageToken);
+    assert.equal(ok.status, 200);
+    assert.equal(ok.json.complete, true);
+    assert.equal((await call(app, "GET", `/rfqs/${rfq.json.id}`)).json.status, "accepted");
+  });
 
   it("refuses terms where a party names itself as referrer", async () => {
     const rfq = await createRfq({});

@@ -37,6 +37,9 @@ interface ServerConfig {
 }
 
 interface Rfq {
+  partial?: boolean;
+  filled?: number;
+  filledAmount?: string | null;
   id: string;
   /** buy: a buyer posted it, sellers answer. sell: a seller posted it, buyers answer. */
   side?: "buy" | "sell";
@@ -292,7 +295,7 @@ export class OtcAgent {
 
   private async post(
     side: "buy" | "sell",
-    a: { token: string; amount?: string; sizeUsd?: number; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string },
+    a: { token: string; amount?: string; sizeUsd?: number; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string; allowPartial?: boolean },
   ) {
     const tok = await this.token(getAddress(a.token));
     if (!a.amount && !(side === "buy" && a.sizeUsd)) throw new Error(side === "buy" ? "Give amount (tokens) or sizeUsd." : "Give amount (tokens).");
@@ -307,6 +310,7 @@ export class OtcAgent {
       replySeconds: Math.round(a.replyMinutes * 60),
       encPubKey: b64(keys.publicKey),
       note: a.note,
+      allowPartial: a.allowPartial || undefined,
     });
     const s = this.loadState();
     s.bids[res.id] = { manageToken: res.manageToken, boxSecret: b64(keys.secretKey), createdAt: Date.now(), side };
@@ -316,12 +320,12 @@ export class OtcAgent {
 
   /** Buyer posts first: sellers answer with sealed offers. */
   /** Size by token amount, or by USD (sellers then say how many tokens they offer). */
-  createBid(a: { token: string; amount?: string; sizeUsd?: number; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string }) {
+  createBid(a: { token: string; amount?: string; sizeUsd?: number; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string; allowPartial?: boolean }) {
     return this.post("buy", a);
   }
 
   /** Seller posts first ("sell privately"): buyers answer with sealed bids. */
-  createListing(a: { token: string; amount: string; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string }) {
+  createListing(a: { token: string; amount: string; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string; allowPartial?: boolean }) {
     return this.post("sell", a);
   }
 
@@ -362,7 +366,8 @@ export class OtcAgent {
         // must never break reading the others.
         if (!o || typeof o !== "object" || !isUint(o.price) || !isUint(o.amount) || BigInt(o.amount) === 0n) return null;
         // A fixed-size posting only accepts answers for exactly that size; a USD-sized bid takes any size.
-        if (rfq.amount && o.amount !== rfq.amount) return null;
+        if (rfq.amount && !rfq.partial && o.amount !== rfq.amount) return null;
+        if (rfq.amount && rfq.partial && BigInt(o.amount) > BigInt(rfq.amount) - BigInt(rfq.filledAmount ?? "0")) return null;
         if (side === "buy" && (!isAddress(String(o.seller)) || !isAddress(String(o.sellerPayout)) || !isUint(o.relayerFee))) return null;
         if (side === "sell" && !isAddress(String(o.buyer))) return null;
 
@@ -517,6 +522,13 @@ export class OtcAgent {
     const price = parseUnits(a.totalPrice, pay.decimals).toString();
     // Fixed-size postings set the amount; a USD-sized bid lets each seller name how many tokens they offer.
     let amount = rfq.amount;
+    if (amount && rfq.partial && a.amount) {
+      const tok = await this.token(rfq.token);
+      const part = parseUnits(a.amount, tok.decimals);
+      const left = BigInt(amount) - BigInt(rfq.filledAmount ?? "0");
+      if (part <= 0n || part > left) throw new Error(`You can fill up to ${formatUnits(left, tok.decimals)} ${tok.symbol} of this block.`);
+      amount = part.toString();
+    }
     if (!amount) {
       if (!a.amount) throw new Error(`This bid is sized in USD (~$${rfq.sizeUsd}). Say how many tokens you offer with amount.`);
       const tok = await this.token(rfq.token);

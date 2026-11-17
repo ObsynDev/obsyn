@@ -13,6 +13,8 @@ export function BuyerAnswer({ rfq, tok, pay }: { rfq: Rfq; tok: TokenInfo; pay: 
   const [wallet, setWallet] = useState<string | null>(null);
   const [price, setPrice] = useState("");
   const [message, setMessage] = useState("");
+  const [part, setPart] = useState("");
+  const remaining = rfq.amount ? BigInt(rfq.amount) - BigInt(rfq.filledAmount ?? "0") : 0n;
   const market = useMarket(rfq.token);
 
   const connect = useAction(async () => {
@@ -25,7 +27,13 @@ export function BuyerAnswer({ rfq, tok, pay }: { rfq: Rfq; tok: TokenInfo; pay: 
     if (!wallet) throw new Error("Connect the wallet you'll pay from.");
     const priceBase = parseUnits(price.replace(/,/g, ""), pay.decimals);
     if (priceBase <= 0n) throw new Error("Price must be above zero.");
-    const bid: BuyerBid = { amount: rfq.amount, price: priceBase.toString(), buyer: wallet, message: message.trim() || undefined };
+    let amount = rfq.amount;
+    if (rfq.partial && part.trim()) {
+      const base = parseUnits(part.replace(/[,\s]/g, ""), tok.decimals);
+      if (base <= 0n || base > remaining) throw new Error(`You can bid for up to ${fmtAmount(remaining, tok.decimals, 4)} ${tok.symbol}.`);
+      amount = base.toString();
+    } else if (rfq.partial) amount = remaining.toString();
+    const bid: BuyerBid = { amount, price: priceBase.toString(), buyer: wallet, message: message.trim() || undefined };
     // Sign with the wallet the bid names, so the seller can tell it isn't a fake in someone else's name.
     const { wallet: w, account } = await connectWallet();
     if (account !== getAddress(wallet)) throw new Error(`Switch your wallet back to ${wallet}.`);
@@ -90,6 +98,12 @@ export function BuyerAnswer({ rfq, tok, pay }: { rfq: Rfq; tok: TokenInfo; pay: 
           )}
           <Err msg={connect.error} />
 
+          {rfq.partial && (
+            <label>
+              How many {tok.symbol} do you want? <span className="muted">(partial fills allowed: up to {fmtAmount(remaining, tok.decimals, 4)}; empty = all of it)</span>
+              <input value={part} onChange={(e) => setPart(e.target.value)} inputMode="decimal" placeholder={fmtAmount(remaining, tok.decimals, 4)} />
+            </label>
+          )}
           <label>
             Total you'd pay ({pay.symbol}) for all {fmtAmount(rfq.amount ?? "0", tok.decimals, 2)} {tok.symbol}
             <input value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" placeholder="0.0" required />

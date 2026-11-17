@@ -42,7 +42,7 @@ class BadRequest extends Error {}
 
 const bearer = (c: Context) => c.req.header("authorization")?.replace(/^Bearer\s+/i, "");
 
-function publicRfq(r: RfqRow, quoteCount: number) {
+function publicRfq(r: RfqRow, quoteCount: number, fills: { count: number; amount: string | null } = { count: 0, amount: null }) {
   return {
     id: r.id,
     side: r.side,
@@ -59,6 +59,11 @@ function publicRfq(r: RfqRow, quoteCount: number) {
     expiresAt: r.expires_at,
     status: r.status,
     quoteCount,
+    /** several answers can each fill part of this block */
+    partial: !!r.partial,
+    /** accepted fills so far, and (for a fixed size) how much of it they cover, in token base units */
+    filled: fills.count,
+    filledAmount: fills.amount,
   };
 }
 
@@ -118,6 +123,18 @@ export function createApp(deps: Deps) {
   const countQuotes = db.prepare("SELECT COUNT(*) AS n FROM quotes WHERE rfq_id = ?");
   const rfq = (id: string) => getRfq.get(id) as unknown as RfqRow | undefined;
   const quoteCount = (id: string) => Number((countQuotes.get(id) as { n: number }).n);
+  const acceptedQuotes = db.prepare("SELECT * FROM quotes WHERE rfq_id = ? AND status = 'accepted' ORDER BY created_at");
+  /** accepted fills of a posting and how much of a fixed size they cover */
+  const fillsOf = (r: RfqRow) => {
+    const rows = acceptedQuotes.all(r.id) as unknown as QuoteRow[];
+    let sum = 0n;
+    for (const q of rows) if (q.terms_json) sum += BigInt(JSON.parse(q.terms_json).amount);
+    return { rows, count: rows.length, amount: rows.length ? sum.toString() : null, sum };
+  };
+  const pub = (r: RfqRow) => {
+    const f = fillsOf(r);
+    return publicRfq(r, quoteCount(r.id), { count: f.count, amount: f.amount });
+  };
 
   const payTokenFor = (v: string): Address => {
     if (v === "ETH") return zeroAddress;
@@ -156,6 +173,8 @@ export function createApp(deps: Deps) {
       encPubKey: z.string().refine((s) => isB64(s, 32), "must be a base64 32-byte NaCl box public key").optional(),
       buyerEncPubKey: z.string().refine((s) => isB64(s, 32), "must be a base64 32-byte NaCl box public key").optional(),
       note: z.string().max(280).optional(),
+      /** let several answers each fill part of the block (each becomes its own deal) */
+      allowPartial: z.boolean().optional(),
     })
     .refine((v) => v.encPubKey || v.buyerEncPubKey, "give encPubKey")
     .refine((v) => v.amount || (v.side === "buy" && v.sizeUsd), "give amount (token base units); buy bids may give sizeUsd instead");
@@ -168,8 +187,8 @@ export function createApp(deps: Deps) {
     const manageToken = newToken();
     const t = now();
     db.prepare(
-      `INSERT INTO rfqs (id, side, manage_hash, token, pay_token, amount, size_usd, buyer_enc_pubkey, note, expires_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO rfqs (id, side, manage_hash, token, pay_token, amount, size_usd, buyer_enc_pubkey, note, expires_at, created_at, partial)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       body.side,
@@ -182,6 +201,7 @@ export function createApp(deps: Deps) {
       body.note ?? null,
       t + body.replySeconds,
       t,
+      body.allowPartial ? 1 : 0,
     );
     // The manage token is shown once. The share link carries no secret: the other side only needs the id.
     return c.json({ id, manageToken, shareUrl: `${cfg.publicUrl}/rfq/${id}`, expiresAt: t + body.replySeconds }, 201);
@@ -205,13 +225,13 @@ export function createApp(deps: Deps) {
     const rows = db
       .prepare(`SELECT * FROM rfqs WHERE ${where.join(" AND ")} ORDER BY created_at DESC LIMIT 100`)
       .all(...args) as unknown as RfqRow[];
-    return c.json(rows.map((r) => publicRfq(r, quoteCount(r.id))));
+    return c.json(rows.map(pub));
   });
 
   app.get("/rfqs/:id", (c) => {
     const r = rfq(c.req.param("id"));
     if (!r) return c.json({ error: "not found" }, 404);
-    return c.json(publicRfq(r, quoteCount(r.id)));
+    return c.json(pub(r));
   });
 
   app.post("/rfqs/:id/cancel", (c) => {
@@ -220,7 +240,7 @@ export function createApp(deps: Deps) {
     if (!tokenMatches(bearer(c), r.manage_hash)) return c.json({ error: "unauthorized" }, 401);
     if (r.status !== "open") return c.json({ error: `rfq is ${r.status}` }, 409);
     db.prepare("UPDATE rfqs SET status = 'cancelled' WHERE id = ?").run(r.id);
-    db.prepare("UPDATE quotes SET status = 'rejected' WHERE rfq_id = ?").run(r.id);
+    db.prepare("UPDATE quotes SET status = 'rejected' WHERE rfq_id = ? AND status = 'pending'").run(r.id);
     return c.json({ ok: true });
   });
 
@@ -284,11 +304,15 @@ export function createApp(deps: Deps) {
       | QuoteRow
       | undefined;
     if (!q) return c.json({ error: "quote not found" }, 404);
+    if (q.status !== "pending") return c.json({ error: `that answer is already ${q.status}` }, 409);
+    const partial = !!r.partial;
+    const fills = fillsOf(r);
 
     const problems: string[] = [];
     if (terms.token !== r.token) problems.push("terms.token differs from the rfq token");
     if (terms.payToken !== r.pay_token) problems.push("terms.payToken differs from the rfq payToken");
-    if (r.amount && terms.amount !== BigInt(r.amount)) problems.push("terms.amount differs from the rfq amount");
+    if (r.amount && !partial && terms.amount !== BigInt(r.amount)) problems.push("terms.amount differs from the rfq amount");
+    if (r.amount && partial && terms.amount > BigInt(r.amount) - fills.sum) problems.push("terms.amount is more than what's left to fill");
     if (terms.deadline <= BigInt(now() + 60)) problems.push("terms.deadline must be at least 60s away");
     if (terms.deadline > BigInt(now() + MAX_DEAL_WINDOW)) problems.push("terms.deadline is more than 7 days away");
     if (terms.buyer === terms.seller) problems.push("buyer and seller must differ");
@@ -301,19 +325,29 @@ export function createApp(deps: Deps) {
 
     const id = dealId(terms);
     const termsJson = JSON.stringify(termsToJson(terms));
+    // A fixed size is complete once fills cover it; a whole-block posting is complete at its first deal.
+    const complete = !partial || (r.amount !== null && fills.sum + terms.amount >= BigInt(r.amount));
     db.exec("BEGIN");
     try {
+      // the first deal also goes on the posting itself, for clients that read a single deal
+      const first = fills.count === 0;
       const res = db
-        .prepare("UPDATE rfqs SET status = 'accepted', accepted_quote_id = ?, deal_id = ?, terms_json = ? WHERE id = ? AND status = 'open'")
-        .run(q.id, id, termsJson, r.id);
+        .prepare(
+          `UPDATE rfqs SET status = ?, accepted_quote_id = CASE WHEN ? THEN ? ELSE accepted_quote_id END,
+             deal_id = CASE WHEN ? THEN ? ELSE deal_id END, terms_json = CASE WHEN ? THEN ? ELSE terms_json END
+           WHERE id = ? AND status = 'open'`,
+        )
+        .run(complete ? "accepted" : "open", first ? 1 : 0, q.id, first ? 1 : 0, id, first ? 1 : 0, termsJson, r.id);
       if (Number(res.changes) !== 1) throw new Error("race");
-      db.prepare("UPDATE quotes SET status = CASE WHEN id = ? THEN 'accepted' ELSE 'rejected' END WHERE rfq_id = ?").run(q.id, r.id);
+      const won = db.prepare("UPDATE quotes SET status = 'accepted', deal_id = ?, terms_json = ? WHERE id = ? AND status = 'pending'").run(id, termsJson, q.id);
+      if (Number(won.changes) !== 1) throw new Error("race");
+      if (complete) db.prepare("UPDATE quotes SET status = 'rejected' WHERE rfq_id = ? AND status = 'pending'").run(r.id);
       db.exec("COMMIT");
     } catch {
       db.exec("ROLLBACK");
       return c.json({ error: "rfq is no longer open" }, 409);
     }
-    return c.json({ dealId: id, terms: termsToJson(terms), escrow: cfg.escrow, chainId: cfg.chainId });
+    return c.json({ dealId: id, terms: termsToJson(terms), escrow: cfg.escrow, chainId: cfg.chainId, quoteId: q.id, complete });
   });
 
   /** The poster re-reads the accepted deal (e.g. after reopening their private link). */
@@ -321,13 +355,29 @@ export function createApp(deps: Deps) {
     const r = rfq(c.req.param("id"));
     if (!r) return c.json({ error: "not found" }, 404);
     if (!tokenMatches(bearer(c), r.manage_hash)) return c.json({ error: "unauthorized" }, 401);
-    if (r.status !== "accepted" || !r.terms_json) return c.json({ error: "no accepted deal yet" }, 404);
+    if (!r.terms_json) return c.json({ error: "no accepted deal yet" }, 404);
     return c.json({
       dealId: r.deal_id,
       quoteId: r.accepted_quote_id,
       terms: JSON.parse(r.terms_json),
       escrow: cfg.escrow,
       chainId: cfg.chainId,
+    });
+  });
+
+  /** Every deal on this posting: one per accepted answer (partial fills), oldest first. */
+  app.get("/rfqs/:id/deals", (c) => {
+    const r = rfq(c.req.param("id"));
+    if (!r) return c.json({ error: "not found" }, 404);
+    if (!tokenMatches(bearer(c), r.manage_hash)) return c.json({ error: "unauthorized" }, 401);
+    const f = fillsOf(r);
+    return c.json({
+      partial: !!r.partial,
+      complete: r.status === "accepted",
+      filledAmount: f.amount,
+      escrow: cfg.escrow,
+      chainId: cfg.chainId,
+      deals: f.rows.map((q) => ({ quoteId: q.id, dealId: q.deal_id, terms: q.terms_json ? JSON.parse(q.terms_json) : null, settleTx: q.settle_tx ?? null })),
     });
   });
 
@@ -360,7 +410,8 @@ export function createApp(deps: Deps) {
   app.get("/deals/:dealId/receipt", (c) => {
     const id = c.req.param("dealId").toLowerCase();
     if (!isHash(id)) return c.json({ error: "invalid deal id" }, 400);
-    const row = db.prepare("SELECT settle_tx FROM rfqs WHERE deal_id = ? AND settle_tx IS NOT NULL").get(id) as { settle_tx: string } | undefined;
+    const row = (db.prepare("SELECT settle_tx FROM quotes WHERE deal_id = ? AND settle_tx IS NOT NULL").get(id) ??
+      db.prepare("SELECT settle_tx FROM rfqs WHERE deal_id = ? AND settle_tx IS NOT NULL").get(id)) as { settle_tx: string } | undefined;
     if (!row) return c.json({ error: "no receipt yet" }, 404);
     return c.json({ txHash: row.settle_tx });
   });
@@ -372,7 +423,8 @@ export function createApp(deps: Deps) {
   app.post("/rfqs/:id/settled", async (c) => {
     const r = rfq(c.req.param("id"));
     if (!r) return c.json({ error: "not found" }, 404);
-    if (!r.deal_id) return c.json({ error: "no accepted deal" }, 409);
+    const dealIds = new Set([r.deal_id, ...fillsOf(r).rows.map((q) => q.deal_id)].filter(Boolean).map((d) => d!.toLowerCase()));
+    if (!dealIds.size) return c.json({ error: "no accepted deal" }, 409);
     const body = (await c.req.json().catch(() => null)) as { txHash?: unknown } | null;
     const tx = typeof body?.txHash === "string" ? body.txHash : "";
     if (!isHash(tx)) return c.json({ error: "invalid transaction hash" }, 400);
@@ -382,8 +434,10 @@ export function createApp(deps: Deps) {
     } catch (e) {
       return c.json({ error: (e as Error).message }, 400);
     }
-    if (rec.dealId.toLowerCase() !== r.deal_id.toLowerCase()) return c.json({ error: "that transaction settled a different deal" }, 400);
-    db.prepare("UPDATE rfqs SET settle_tx = ? WHERE id = ?").run(tx.toLowerCase(), r.id);
+    const settled = rec.dealId.toLowerCase();
+    if (!dealIds.has(settled)) return c.json({ error: "that transaction settled a different deal" }, 400);
+    db.prepare("UPDATE quotes SET settle_tx = ? WHERE rfq_id = ? AND lower(deal_id) = ?").run(tx.toLowerCase(), r.id, settled);
+    if (r.deal_id && r.deal_id.toLowerCase() === settled) db.prepare("UPDATE rfqs SET settle_tx = ? WHERE id = ?").run(tx.toLowerCase(), r.id);
     return c.json({ ok: true, txHash: tx.toLowerCase() });
   });
 
@@ -397,9 +451,9 @@ export function createApp(deps: Deps) {
     return c.json({
       id: q.id,
       status: q.status,
-      rfq: publicRfq(r, quoteCount(r.id)),
-      dealId: won ? r.deal_id : null,
-      terms: won && r.terms_json ? JSON.parse(r.terms_json) : null,
+      rfq: pub(r),
+      dealId: won ? (q.deal_id ?? r.deal_id) : null,
+      terms: won ? JSON.parse(q.terms_json ?? r.terms_json ?? "null") : null,
       escrow: cfg.escrow,
       chainId: cfg.chainId,
     });

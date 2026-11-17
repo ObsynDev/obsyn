@@ -30,6 +30,20 @@ export interface Rfq {
   expiresAt: number;
   status: "open" | "accepted" | "cancelled";
   quoteCount: number;
+  /** several answers can each fill part of it */
+  partial?: boolean;
+  filled?: number;
+  /** token base units already covered by accepted fills (fixed-size postings) */
+  filledAmount?: string | null;
+}
+
+export interface Fills {
+  partial: boolean;
+  complete: boolean;
+  filledAmount: string | null;
+  escrow: Address | null;
+  chainId: number;
+  deals: { quoteId: string; dealId: Hex; terms: TermsJson; settleTx: Hex | null }[];
 }
 
 export interface SealedQuote {
@@ -162,13 +176,15 @@ export const api = {
     replySeconds: number;
     encPubKey: string;
     note?: string;
+    allowPartial?: boolean;
   }) => req<{ id: string; manageToken: string; expiresAt: number }>("POST", "/rfqs", body),
   cancelRfq: (id: string, t: string) => req<{ ok: true }>("POST", `/rfqs/${id}/cancel`, {}, t),
   listQuotes: (id: string, t: string) => req<SealedQuote[]>("GET", `/rfqs/${id}/quotes`, undefined, t),
   submitQuote: (id: string, body: { sellerEncPubKey: string; nonce: string; ciphertext: string }) =>
     req<{ quoteId: string; quoteToken: string }>("POST", `/rfqs/${id}/quotes`, body),
   accept: (id: string, t: string, quoteId: string, terms: TermsJson) =>
-    req<DealInfo>("POST", `/rfqs/${id}/accept`, { quoteId, terms }, t),
+    req<DealInfo & { complete?: boolean }>("POST", `/rfqs/${id}/accept`, { quoteId, terms }, t),
+  deals: (id: string, t: string) => req<Fills>("GET", `/rfqs/${id}/deals`, undefined, t),
   getDeal: (id: string, t: string) => req<DealInfo & { quoteId: string }>("GET", `/rfqs/${id}/deal`, undefined, t),
   getQuote: (id: string, t: string) =>
     req<{ id: string; status: SealedQuote["status"]; rfq: Rfq; dealId: Hex | null; terms: TermsJson | null }>(

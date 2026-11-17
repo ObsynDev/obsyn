@@ -47,7 +47,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     items: [
       { t: "Independent third-party audit", d: "An outside firm audits the contract and fee vault before large sizes.", s: "next", size: "M" },
       { t: "Fee vault to a multisig", d: "Move the vault from a single wallet to a multisig with a separate keeper.", s: "next", size: "S" },
-      { t: "Partial fills", d: "Several sellers fill one big bid, each with their own sealed offer.", s: "planned", size: "M", doc: "partial-fills" },
+      { t: "Partial fills", d: "Several sellers fill one big bid (or several buyers share a listing), each part its own deal.", s: "live", size: "M", doc: "partial-fills" },
       { t: "Team access", d: "Big buyers send a direct, private request to a project's team.", s: "planned", size: "M", doc: "team-access" },
       { t: "Exposure check", d: "After a ghost-mode deal, see how easily your main wallet can be linked.", s: "planned", size: "M", doc: "exposure-check" },
       { t: "Installable MCP package", d: "One command to give any agent the desk, no repository needed.", s: "planned", size: "M" },
