@@ -5967,6 +5967,7 @@ html, body { overflow-x: clip; }
   .ca-bar { gap: 8px; font-size: 12px; }
   .ca-bar .ca-full { display: none; }
   .ca-bar .ca-short { display: inline; }
+  .ca-bar .ca-buy-w { display: none; }
 }
 
 /* My blocks: backup */

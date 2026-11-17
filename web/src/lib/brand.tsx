@@ -32,13 +32,21 @@ export function XIcon({ size = 16 }: { size?: number }) {
  *  - address: the token's contract address on Robinhood Chain (from Pons)
  *  - ponsUrl: its page on Pons
  *  - discountMin: the holding (whole tokens) set in BuyBurnVault.setPlatformToken
+ *  - fomoUrl: its page on fomo (shown only for the token it names)
  */
 export const PLATFORM_TOKEN = {
   symbol: "OBSYN",
   address: null as `0x${string}` | null,
   ponsUrl: null as string | null,
   discountMin: null as string | null,
+  fomoUrl: "https://fomo.family/tokens/robinhood/0x5d992fa5b7da8efde5fd36d24e81097ed6ad4351?r=NeatTightBass",
 };
+
+/** The fomo link, only when it is for the token the server says is live. */
+export function fomoUrl(): string | null {
+  const a = PLATFORM_TOKEN.address?.toLowerCase();
+  return a && PLATFORM_TOKEN.fomoUrl.toLowerCase().includes(a) ? PLATFORM_TOKEN.fomoUrl : null;
+}
 
 /**
  * Logo mark ("Tile"): an ember tile holding a slanted "o", cut on the diagonal with the two

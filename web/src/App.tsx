@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { api } from "./lib/api.ts";
-import { BRAND, GitHubIcon, PLATFORM_TOKEN, Wordmark, XIcon } from "./lib/brand.tsx";
+import { BRAND, fomoUrl, GitHubIcon, PLATFORM_TOKEN, Wordmark, XIcon } from "./lib/brand.tsx";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Copy, Link, short, usePath } from "./lib/ui.tsx";
 import { BuyerBid } from "./pages/BuyerBid.tsx";
@@ -147,7 +147,12 @@ export function App() {
           <Copy text={PLATFORM_TOKEN.address} />
           {PLATFORM_TOKEN.ponsUrl && (
             <a href={PLATFORM_TOKEN.ponsUrl} target="_blank" rel="noreferrer" className="ca-bar-buy">
-              Buy on Pons ↗
+              <span className="ca-buy-w">Buy on </span>Pons ↗
+            </a>
+          )}
+          {fomoUrl() && (
+            <a href={fomoUrl()!} target="_blank" rel="noreferrer" className="ca-bar-buy">
+              <span className="ca-buy-w">Buy on </span>fomo ↗
             </a>
           )}
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PLATFORM_TOKEN } from "../lib/brand.tsx";
+import { fomoUrl, PLATFORM_TOKEN } from "../lib/brand.tsx";
 import { reducedMotion } from "../lib/motion.tsx";
 import { Copy, short } from "../lib/ui.tsx";
 
@@ -111,6 +111,14 @@ export function TokenUtility() {
           </a>
         ) : (
           <span className="mono dim">Launching on Pons</span>
+        )}
+        {fomoUrl() && (
+          <>
+            <span className="tk-sep" />
+            <a className="mono" href={fomoUrl()!} target="_blank" rel="noreferrer">
+              Buy ${T} on fomo ↗
+            </a>
+          </>
         )}
       </div>
 
