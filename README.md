@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/ObsynDev/obsyn/actions/workflows/ci.yml/badge.svg)](https://github.com/ObsynDev/obsyn/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Contracts verified on Sourcify](https://img.shields.io/badge/Sourcify-exact%20match-brightgreen)](DEPLOYMENTS.md)
 
-[![obsyn on HEY Research Lab](https://heyresearch.xyz/api/badge/obsyndev-obsyn)](https://heyresearch.xyz/project/obsyndev-obsyn)
+[![obsyn on HEY Research Lab](https://heyresearch.xyz/api/badge/obsyn)](https://heyresearch.xyz/project/obsyn)
 
 **Trade size. Stay private.** Private OTC block trades on Robinhood Chain: sealed bids and offers that only the poster can read, one-transaction settlement through an adminless contract, and a gasless "ghost mode" for sellers.
 
