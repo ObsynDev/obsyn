@@ -4,7 +4,7 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-18
 
-- **MCP 0.1.1:** also ships as a one-click MCPB bundle (`obsyn-mcp-0.1.1.mcpb`) with a settings form, and is described for the official MCP Registry as `trade.obsyn/mcp` (`packages/obsyn-mcp/server.json`; obsyn.trade proves the name at `/.well-known/mcp-registry-auth`). Blank settings now count as unset.
+- **MCP 0.1.1:** also ships as a one-click MCPB bundle (`obsyn-mcp-0.1.1.mcpb`) with a settings form, and is listed in the official MCP Registry as `trade.obsyn/mcp` (`packages/obsyn-mcp/server.json`; obsyn.trade proves the name at `/.well-known/mcp-registry-auth`). Blank settings now count as unset.
 - **Public CI:** every push runs the contract tests, the backend suite (including end-to-end agent trades on a local chain) and the web build.
 
 - **Exposure check:** a ghost-mode deal page shows which public on-chain hops link the one-time wallet back to you: the funding transfer (and from which wallet), whether the payment returns to that same wallet, and that the relayer paid the gas. Built in the browser from what it saw and the deal terms; nothing is sent anywhere.

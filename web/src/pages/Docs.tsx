@@ -117,7 +117,7 @@ const DOCS: Doc[] = [
     how: [
       "npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.tgz, or the same as a stdio server in your MCP client's config.",
       "Published as a GitHub release of the open-source repo; the release lists the file's SHA-256 so you can check what you run.",
-      "Also a one-click MCPB bundle (obsyn-mcp-0.1.1.mcpb) for MCP clients that install bundles. Its name in the official MCP Registry is trade.obsyn/mcp.",
+      "Also a one-click MCPB bundle (obsyn-mcp-0.1.1.mcpb) for MCP clients that install bundles. Listed in the official MCP Registry as trade.obsyn/mcp.",
       "Runs on the agent's machine: offers are encrypted and decrypted there and the wallet key (optional, OBSYN_PRIVATE_KEY) never leaves that process.",
     ],
     impact: [

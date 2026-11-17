@@ -26,7 +26,7 @@ The file is published as a GitHub release of the open-source repo; every release
 
 ### One-click bundle
 
-[`obsyn-mcp-0.1.1.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.mcpb) is the same server as an MCPB bundle: open it with an MCP client that supports bundles and it installs with a form for the optional settings below. Its name in the official MCP Registry is `trade.obsyn/mcp`.
+[`obsyn-mcp-0.1.1.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.1.1/obsyn-mcp-0.1.1.mcpb) is the same server as an MCPB bundle: open it with an MCP client that supports bundles and it installs with a form for the optional settings below. Listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=trade.obsyn) as `trade.obsyn/mcp`.
 
 ## Settings (environment variables)
 
