@@ -9,6 +9,8 @@ export interface ServerConfig {
   usdg: Address | null;
   /** public WalletConnect / Reown project id; null = browser wallets only */
   walletConnectProjectId?: string | null;
+  /** $OBSYN, filled in from the server once it launches (PLATFORM_TOKEN_* env vars) */
+  platformToken?: { address: Address | null; ponsUrl: string | null; discountMin: string | null };
   relayer: { enabled: boolean; address: Address | null; minFee: { eth: string; usdg: string } };
 }
 

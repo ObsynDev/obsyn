@@ -5921,3 +5921,7 @@ html, body { overflow-x: clip; }
 @media (max-width: 380px) {
   .top.site > .cta { display: none; }
 }
+
+/* "Why admin keys 0?" button under the stat */
+.why-btn { display: inline-flex; align-items: center; margin-top: 10px; padding: 6px 11px; border-radius: 999px; border: 1px solid rgb(255 106 43 / 0.45); background: rgb(255 106 43 / 0.08); color: var(--green); font: 600 12px var(--mono); letter-spacing: 0.02em; text-decoration: none; white-space: nowrap; transition: background 0.2s, border-color 0.2s; width: fit-content; }
+.why-btn:hover { background: rgb(255 106 43 / 0.16); border-color: rgb(255 106 43 / 0.75); }

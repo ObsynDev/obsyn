@@ -135,6 +135,7 @@ export function createApp(deps: Deps) {
       escrow: cfg.escrow,
       usdg: cfg.usdg,
       walletConnectProjectId: cfg.walletConnectProjectId,
+      platformToken: cfg.platformToken ?? { address: null, ponsUrl: null, discountMin: null },
       relayer: relayer.info(),
     }),
   );

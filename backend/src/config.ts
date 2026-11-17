@@ -14,6 +14,30 @@ export interface Config {
   /** Why RELAYER_PRIVATE_KEY was ignored, if it was (never contains the value itself). */
   relayerKeyProblem: string | null;
   relayerMinFee: { eth: bigint; usdg: bigint };
+  /**
+   * The $OBSYN token, once launched. Set PLATFORM_TOKEN_ADDRESS (and optionally PLATFORM_TOKEN_PONS_URL,
+   * PLATFORM_TOKEN_DISCOUNT_MIN) on the server and the whole site picks it up: no code change, no rebuild.
+   */
+  platformToken?: { address: Address | null; ponsUrl: string | null; discountMin: string | null };
+}
+
+/** Lenient: a bad value is ignored (with a warning) rather than taking the site down. */
+function parsePlatformToken(env: NodeJS.ProcessEnv): NonNullable<Config["platformToken"]> {
+  const raw = env.PLATFORM_TOKEN_ADDRESS?.trim();
+  let address: Address | null = null;
+  if (raw) {
+    try {
+      address = getAddress(raw);
+    } catch {
+      console.warn("PLATFORM_TOKEN_ADDRESS is not a valid address; ignored.");
+    }
+  }
+  const url = env.PLATFORM_TOKEN_PONS_URL?.trim() || null;
+  const ponsUrl = url && /^https:\/\/[^\s"'<>]+$/.test(url) ? url : null;
+  if (url && !ponsUrl) console.warn("PLATFORM_TOKEN_PONS_URL must be an https:// link; ignored.");
+  const min = env.PLATFORM_TOKEN_DISCOUNT_MIN?.replace(/[,_\s]/g, "") || null;
+  const discountMin = min && /^\d{1,30}$/.test(min) ? Number(min).toLocaleString("en-US") : null;
+  return { address, ponsUrl, discountMin };
 }
 
 function addr(v: string | undefined): Address | null {
@@ -51,5 +75,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       eth: BigInt(env.RELAYER_MIN_FEE_ETH ?? "200000000000000"), // 0.0002 ETH
       usdg: BigInt(env.RELAYER_MIN_FEE_USDG ?? "500000"), // 0.5 USDG
     },
+    platformToken: parsePlatformToken(env),
   };
 }

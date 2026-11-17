@@ -4,7 +4,7 @@ import { api, type ServerConfig } from "../lib/api.ts";
 import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { explorerAddr } from "../lib/chain.ts";
 import { Reveal } from "../lib/motion.tsx";
-import { Copy, short } from "../lib/ui.tsx";
+import { Copy, Link, short } from "../lib/ui.tsx";
 
 const GUARANTEES: [string, string][] = [
   ["No admin, ever", "No owner, no admin key, no pause, no upgrade. Settings are fixed at deploy."],
@@ -58,7 +58,7 @@ export function Security() {
         </div>
         <div className="dx-stats">
           <div>
-            <span className="mono">CONTRACT</span>
+            <span className="mono">SETTLEMENT CONTRACT</span>
             <b className={cfg?.escrow ? "ok-text" : "warn-text"}>{cfg ? (cfg.escrow ? "Live" : "Not live") : "…"}</b>
             <i>{cfg?.escrow ? short(cfg.escrow) : "settlement switches on at deploy"}</i>
           </div>
@@ -66,6 +66,9 @@ export function Security() {
             <span className="mono">ADMIN KEYS</span>
             <b className="mono">0</b>
             <i>no owner, pause or upgrade</i>
+            <Link to="/docs#admin" className="why-btn">
+              Why admin keys 0? →
+            </Link>
           </div>
           <div>
             <span className="mono">AUDIT</span>

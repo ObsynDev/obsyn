@@ -32,6 +32,9 @@ Keep the service at **1 replica**: SQLite is single-writer.
 | `USDG_ADDRESS` | official USDG on Robinhood Chain |
 | `RELAYER_PRIVATE_KEY` | a dedicated hot key with a little ETH (optional; enables ghost mode) |
 | `RELAYER_MIN_FEE_ETH` / `RELAYER_MIN_FEE_USDG` | optional, base units |
+| `PLATFORM_TOKEN_ADDRESS` | $OBSYN contract address, once it launches. The site shows it everywhere (token section, docs, roadmap) with no rebuild |
+| `PLATFORM_TOKEN_PONS_URL` | optional, the token's Pons page (https) for the "Buy on Pons" button |
+| `PLATFORM_TOKEN_DISCOUNT_MIN` | optional, whole tokens a holder needs for the 0.5% fee discount (match what you set in `setPlatformToken`) |
 
 `PORT` is set by Railway automatically. Mark `RELAYER_PRIVATE_KEY` as sealed.
 

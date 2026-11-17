@@ -370,12 +370,10 @@ export function Docs() {
           <div>
             <span className="mono">ADMIN KEYS</span>
             <b className="mono">0</b>
-            <i>
-              on the escrow. No pause, no upgrade.{" "}
-              <a href="#admin" onClick={go("admin")}>
-                Why →
-              </a>
-            </i>
+            <i>on the escrow. No pause, no upgrade</i>
+            <a href="#admin" onClick={go("admin")} className="why-btn">
+              Why admin keys 0? →
+            </a>
           </div>
           <div>
             <span className="mono">SETTLEMENT</span>

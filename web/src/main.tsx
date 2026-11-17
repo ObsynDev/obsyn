@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
 import { api, type ServerConfig } from "./lib/api.ts";
 import { captureReferral } from "./lib/store.ts";
+import { PLATFORM_TOKEN } from "./lib/brand.tsx";
 import { makeWalletConfig, WalletProviders } from "./lib/wallet.tsx";
 import "./styles.css";
 
@@ -22,6 +23,9 @@ api
   .config()
   .catch(() => FALLBACK)
   .then((cfg) => {
+    // $OBSYN details come from the server, so launching the token needs no rebuild
+    const pt = cfg.platformToken;
+    if (pt?.address) Object.assign(PLATFORM_TOKEN, { address: pt.address, ponsUrl: pt.ponsUrl, discountMin: pt.discountMin });
     createRoot(document.getElementById("root")!).render(
       <StrictMode>
         <WalletProviders config={makeWalletConfig(cfg)}>

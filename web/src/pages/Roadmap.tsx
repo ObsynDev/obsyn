@@ -1,3 +1,4 @@
+import { PLATFORM_TOKEN } from "../lib/brand.tsx";
 import { Link } from "../lib/ui.tsx";
 
 type Status = "live" | "next" | "planned" | "research";
@@ -22,6 +23,10 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Payment locks first", d: "Sellers deposit only after the buyer has paid in.", s: "live", size: "S" },
       { t: "Ghost mode relayer", d: "Deliver from a one-time wallet; gas paid by the relayer.", s: "live", size: "M" },
       { t: "SDK, OpenAPI, local MCP server", d: "Agents and apps can do everything the site does.", s: "live", size: "M" },
+      { t: "Contract on mainnet", d: "Escrow and fee vault live on Robinhood Chain, verified on the explorer and Sourcify (exact match).", s: "live", size: "S" },
+      { t: "Security audit by the Obsyn team", d: "Manual review, Slither, 41 contract tests, live-fork replays. Report published on GitHub.", s: "live", size: "M" },
+      { t: "Trade page per token", d: "Paste any contract: price, market cap, your balance, one-click sell, open blocks for that token.", s: "live", size: "M" },
+      { t: "Token list with logos", d: "Listed Robinhood Chain markets in the picker, with logos and checked contract addresses.", s: "live", size: "S" },
     ],
   },
   {
@@ -29,11 +34,9 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     title: "Small: polish the desk",
     blurb: "Quick wins that make deals faster and easier to trust.",
     items: [
-      { t: "Contract on mainnet", d: "Deploy the contract and fee vault on Robinhood Chain so deals settle for real.", s: "next", size: "S" },
       { t: "Reference price on offers", d: "Show each offer against the on-chain spot price: '4.2% under market'.", s: "next", size: "S" },
       { t: "Notifications", d: "Telegram and email alerts when an answer arrives or the other side deposits.", s: "next", size: "S" },
       { t: "Deal receipts", d: "A public, shareable page per settled deal, read live from the contract.", s: "planned", size: "S" },
-      { t: "Token list with logos", d: "Curated Robinhood Chain tokens in the picker, with verified contract addresses.", s: "planned", size: "S" },
       { t: "Export / import private links", d: "Back up the keys to your bids and offers across devices.", s: "planned", size: "S" },
     ],
   },
@@ -42,7 +45,8 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     title: "Medium: more ways to trade",
     blurb: "Features that open the desk to bigger and more varied deals.",
     items: [
-      { t: "Professional audit", d: "External audit of the contract and fee vault before large sizes.", s: "next", size: "M" },
+      { t: "Independent third-party audit", d: "An outside firm audits the contract and fee vault before large sizes.", s: "next", size: "M" },
+      { t: "Fee vault to a multisig", d: "Move the vault from a single wallet to a multisig with a separate keeper.", s: "next", size: "S" },
       { t: "Partial fills", d: "Several sellers fill one big bid, each with their own sealed offer.", s: "planned", size: "M", doc: "partial-fills" },
       { t: "Team access", d: "Big buyers send a direct, private request to a project's team.", s: "planned", size: "M", doc: "team-access" },
       { t: "Exposure check", d: "After a ghost-mode deal, see how easily your main wallet can be linked.", s: "planned", size: "M", doc: "exposure-check" },
@@ -55,8 +59,8 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     title: "Large: the token and the network",
     blurb: "The platform token goes live and privacy reaches past the desk.",
     items: [
-      { t: "Platform token on Pons", d: "Launch on a Pons bonding curve, then plug it into the fee vault.", s: "planned", size: "L", doc: "token" },
-      { t: "Buy-and-burn + holder discount", d: "Fees buy the token and burn it; holders pay 0.5% less.", s: "planned", size: "L", doc: "token" },
+      { t: "Platform token on Pons", d: "Launch $OBSYN on a Pons bonding curve, then plug it into the fee vault.", s: "next", size: "L", doc: "token" },
+      { t: "Buy-and-burn + holder discount", d: "Fees buy $OBSYN and burn it; holders pay 0.5% less.", s: "next", size: "L", doc: "token" },
       { t: "Locked-token OTC for teams", d: "Sell vesting or locked tokens with the unlock schedule enforced in the contract.", s: "planned", size: "L", doc: "locked-otc" },
       { t: "Private RPC relay", d: "Hide which wallets you read and trade from, with decoy traffic.", s: "research", size: "L", doc: "private-relay" },
       { t: "Agent passports", d: "Agents prove things about their owner (size, history) without revealing who.", s: "research", size: "L", doc: "agent-passports" },
@@ -72,6 +76,13 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     ],
   },
 ];
+
+/** Items that go live with $OBSYN: flipped at render, once the server provides the token address. */
+const TOKEN_ITEMS = new Set(["Platform token on Pons"]);
+const withLaunch = (it: Item): Item =>
+  TOKEN_ITEMS.has(it.t) && PLATFORM_TOKEN.address
+    ? { ...it, s: "live", d: `$OBSYN is live: ${PLATFORM_TOKEN.address.slice(0, 6)}…${PLATFORM_TOKEN.address.slice(-4)}. Next: plug it into the fee vault.` }
+    : it;
 
 export function Roadmap() {
   return (
@@ -103,7 +114,7 @@ export function Roadmap() {
               </div>
             </div>
             <div className="rm-items">
-              {p.items.map((it) => (
+              {p.items.map(withLaunch).map((it) => (
                 <div key={it.t} className={`rm-item st-${it.s}`}>
                   <div className="rm-item-top">
                     <span className={`rm-status st-${it.s}`}>{STATUS_LABEL[it.s]}</span>
