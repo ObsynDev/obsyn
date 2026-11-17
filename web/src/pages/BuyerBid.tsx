@@ -7,6 +7,7 @@ import { answerMessage, fromUrl, hashParams, keysFromSecret, sideOf, unseal, typ
 import { referral, saved } from "../lib/store.ts";
 import { Copy, Err, fmtAmount, fmtLeft, Pill, short, useAction, useNow, usePoll } from "../lib/ui.tsx";
 import { DealPanel } from "./DealPanel.tsx";
+import { useMarket, vsLabel, vsMarket } from "../lib/market.ts";
 
 const FUND_WINDOWS = [
   { label: "1 hour", s: 3600 },
@@ -59,6 +60,7 @@ export function BuyerBid({ id }: { id: string }) {
   }, [id, token]);
 
   const side = rfq ? sideOf(rfq) : "buy";
+  const market = useMarket(rfq?.token);
   const role = side === "buy" ? "buyer" : "seller";
 
   const quotes = usePoll(
@@ -284,6 +286,17 @@ export function BuyerBid({ id }: { id: string }) {
                     {a.message && ` · "${a.message.slice(0, 200)}"`}
                   </div>
                   <div className="checks">
+                    {(() => {
+                      // a buyer wants under market, a seller wants over
+                      const pct = vsMarket({ market, amount: BigInt(a.amount), tokenDecimals: tok.decimals, price: a.price, payToken: rfq.payToken, payDecimals: pay.decimals });
+                      if (pct === null) return null;
+                      const good = side === "buy" ? pct <= 0 : pct >= 0;
+                      return (
+                        <span title="Against the token's on-chain DEX price. Reference only.">
+                          <Pill tone={Math.abs(pct) < 0.05 ? "muted" : good ? "ok" : "warn"}>{vsLabel(pct)}</Pill>
+                        </span>
+                      );
+                    })()}
                     {!checks[a.q.id] ? (
                       <Pill tone="muted">checking…</Pill>
                     ) : (
@@ -329,6 +342,7 @@ export function BuyerBid({ id }: { id: string }) {
           terms={termsFromJson(deal.terms)}
           role={role}
           ghostKey={role === "seller" ? ghostKey : undefined}
+          rfqId={id}
         />
       )}
       {deal && !deal.escrow && <p className="err">Trading isn't live yet: the server has no contract address configured.</p>}

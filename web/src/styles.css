@@ -5940,3 +5940,17 @@ html, body { overflow-x: clip; }
   .ca-bar .ca-full { display: none; }
   .ca-bar .ca-short { display: inline; }
 }
+
+/* My blocks: backup */
+.backup-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 10px; }
+.backup-actions label.btn { cursor: pointer; }
+
+/* public deal receipt */
+.receipt .rc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.rc-badge { font: 700 11px var(--mono); letter-spacing: 0.14em; color: #7ad38a; background: rgb(122 211 138 / 0.12); border: 1px solid rgb(122 211 138 / 0.35); padding: 4px 9px; border-radius: 999px; }
+.rc-main { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.rc-main > div { display: grid; gap: 4px; }
+.rc-amount { font-size: 26px; letter-spacing: -0.02em; }
+.receipt .kv a { color: var(--green); text-decoration: none; }
+.rc-foot { text-align: center; }
+.rc-foot a { color: var(--green); }

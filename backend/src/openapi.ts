@@ -191,6 +191,28 @@ export const openapi = {
         responses: { 200: ok("Token info", { type: "object" }), 400: err("Bad address"), 502: err("Read failed") },
       },
     },
+    "/receipts/{tx}": {
+      get: {
+        summary: "Public receipt of a settled deal, rebuilt from its settlement transaction: terms, fee split, block and time",
+        parameters: [{ name: "tx", in: "path", required: true, schema: { type: "string", pattern: "^0x[0-9a-fA-F]{64}$" } }],
+        responses: { 200: ok("Receipt", { type: "object" }), 400: err("Bad hash"), 404: err("Not an Obsyn settlement") },
+      },
+    },
+    "/deals/{dealId}/receipt": {
+      get: {
+        summary: "Settlement transaction of a deal, once a party has reported it",
+        parameters: [{ name: "dealId", in: "path", required: true, schema: { type: "string", pattern: "^0x[0-9a-fA-F]{64}$" } }],
+        responses: { 200: ok("Transaction hash", { type: "object" }), 400: err("Bad id"), 404: err("No receipt yet") },
+      },
+    },
+    "/rfqs/{id}/settled": {
+      post: {
+        summary: "Report the transaction that settled this posting's deal. Verified on-chain before it's recorded; no token needed",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["txHash"], properties: { txHash: { type: "string" } } } } } },
+        responses: { 200: ok("Recorded", { type: "object" }), 400: err("Not this deal's settlement"), 404: err("Not found"), 409: err("No accepted deal") },
+      },
+    },
     "/token/{address}/market": {
       get: {
         summary:

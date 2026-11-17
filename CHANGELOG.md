@@ -4,6 +4,9 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-17
 
+- **Reference price on offers:** each decrypted offer or bid shows how it compares with the token's on-chain DEX price ("15% over market"), and price fields show the same while you type. Reference only.
+- **Deal receipts:** `/receipt/<tx>` is a public page per settled deal, rebuilt from the settlement transaction (terms from its input, fees from its `Settled` event). Whichever side completes the deal reports the transaction; the server checks it on-chain before recording it, and both sides get a "View receipt" link.
+- **Backup of private links:** My blocks can download your private links to a file and import them on another browser or device. Imports accept only well-formed Obsyn links.
 - **$OBSYN launched and plugged into the fee vault** (`setPlatformToken`, one time, permanent): holders of 1,000,000+ OBSYN pay 0.5% less fee; vault fees buy $OBSYN on its Pons curve and burn it. Tested first on a fork against the live curve.
 - Site-wide $OBSYN contract-address bar with copy and a Pons link.
 - **Security audit by the Obsyn team published** ([SECURITY-REVIEW.md](SECURITY-REVIEW.md)): manual review, Slither triage, 41 contract tests, live-fork replays. No critical or high contract issues.

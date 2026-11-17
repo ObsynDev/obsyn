@@ -113,7 +113,8 @@ it("relays a gasless ghost deposit that settles the deal", { skip: !canRun && "a
 
   // buyer funds first
   await send(await buyer.writeContract({ address: usdg, abi: erc20Abi, functionName: "approve", args: [escrow, terms.price] }));
-  await send(await buyer.writeContract({ address: escrow, abi: OtcEscrowAbi, functionName: "depositPayment", args: [terms] }));
+  const payTx = await buyer.writeContract({ address: escrow, abi: OtcEscrowAbi, functionName: "depositPayment", args: [terms] });
+  await send(payTx);
 
   const cfg = loadConfig({
     CHAIN_ID: String(foundry.id),
@@ -166,4 +167,18 @@ it("relays a gasless ghost deposit that settles the deal", { skip: !canRun && "a
 
   const [status] = await pc.readContract({ address: escrow, abi: OtcEscrowAbi, functionName: "deals", args: [id] });
   assert.equal(status, 2); // Settled
+
+  // the public receipt is rebuilt from the chain alone and matches the deal
+  const { readReceipt } = await import("../src/receipt.ts");
+  const rec = await readReceipt(pc as any, escrow, txHash);
+  assert.equal(rec.dealId, id);
+  assert.equal(rec.settledBy, "depositTokensFor");
+  assert.equal(rec.terms.amount, terms.amount.toString());
+  assert.equal(rec.terms.price, terms.price.toString());
+  assert.equal(rec.protocolFee, "400000000");
+  assert.equal(rec.relayerFee, "2000000");
+  assert.equal(rec.sellerProceeds, (20_000_000_000n - 400_000_000n - 2_000_000n).toString());
+  assert.ok(rec.timestamp > 0);
+  // the buyer's deposit tx is not a settlement
+  await assert.rejects(readReceipt(pc as any, escrow, payTx), /didn't settle/);
 });

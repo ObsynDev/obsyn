@@ -4,6 +4,7 @@ import { api, type Rfq } from "../lib/api.ts";
 import { connectWallet, type TokenInfo } from "../lib/chain.ts";
 import { answerMessage, seal, unb64, type BuyerBid } from "../lib/sealed.ts";
 import { saved } from "../lib/store.ts";
+import { useMarket, vsLabel, vsMarket } from "../lib/market.ts";
 import { Err, fmtAmount, fmtLeft, navigate, Pill, short, useAction, useNow } from "../lib/ui.tsx";
 
 /** /rfq/:id on a sell listing: a buyer answers with a sealed bid. */
@@ -12,6 +13,7 @@ export function BuyerAnswer({ rfq, tok, pay }: { rfq: Rfq; tok: TokenInfo; pay: 
   const [wallet, setWallet] = useState<string | null>(null);
   const [price, setPrice] = useState("");
   const [message, setMessage] = useState("");
+  const market = useMarket(rfq.token);
 
   const connect = useAction(async () => {
     const { account } = await connectWallet();
@@ -94,6 +96,14 @@ export function BuyerAnswer({ rfq, tok, pay }: { rfq: Rfq; tok: TokenInfo; pay: 
             {unit !== null && isFinite(unit) && (
               <small className="muted">
                 ≈ {unit.toPrecision(6)} {pay.symbol} per {tok.symbol}
+                {(() => {
+                  try {
+                    const pct = vsMarket({ market, amount: BigInt(rfq.amount ?? "0"), tokenDecimals: tok.decimals, price: parseUnits(price.replace(/,/g, ""), pay.decimals), payToken: rfq.payToken, payDecimals: pay.decimals });
+                    return pct === null ? null : ` · ${vsLabel(pct)}`;
+                  } catch {
+                    return null;
+                  }
+                })()}
               </small>
             )}
           </label>

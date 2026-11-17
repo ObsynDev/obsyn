@@ -10,6 +10,7 @@ import type { Config } from "./config.ts";
 import type { QuoteRow, RfqRow } from "./db.ts";
 import { parseSource, type PriceQuote, type PriceSource, type TokenInfo } from "./price.ts";
 import { createTokenMarkets, type TokenMarket } from "./dexmarket.ts";
+import type { DealReceipt } from "./receipt.ts";
 import { createReferencePrices, findMarket, MARKETS, RANGES, type Range, type RefQuote } from "./markets.ts";
 import { NO_PERMIT, RelayError, type Relayer } from "./relayer.ts";
 import { hashToken, isB64, newId, newToken, tokenMatches } from "./secrets.ts";
@@ -25,6 +26,8 @@ export interface Deps {
   refQuote?: (ticker: string, range: Range) => Promise<RefQuote>;
   /** DEX market snapshot of any token (defaults to cached DexScreener lookups) */
   tokenMarket?: (token: Address) => Promise<TokenMarket>;
+  /** rebuild a settled deal's receipt from its settlement transaction */
+  readReceipt?: (txHash: Hex) => Promise<DealReceipt>;
   now?: () => number; // unix seconds, injectable for tests
 }
 
@@ -326,6 +329,62 @@ export function createApp(deps: Deps) {
       escrow: cfg.escrow,
       chainId: cfg.chainId,
     });
+  });
+
+  // ─────────────────────────── deal receipts ───────────────────────────
+  // Public and read from the chain: the settlement tx carries the terms, its Settled event the fees.
+  const receipts = new Map<string, DealReceipt>(); // settled txs never change
+  const receiptFor = async (hash: Hex) => {
+    const k = hash.toLowerCase();
+    const hit = receipts.get(k);
+    if (hit) return hit;
+    if (!deps.readReceipt) throw new Error("receipts not configured");
+    const r = await deps.readReceipt(hash);
+    if (receipts.size > 5000) receipts.clear();
+    receipts.set(k, r);
+    return r;
+  };
+  const isHash = (v: string) => /^0x[0-9a-fA-F]{64}$/.test(v);
+
+  app.get("/receipts/:tx", async (c) => {
+    const tx = c.req.param("tx");
+    if (!isHash(tx)) return c.json({ error: "invalid transaction hash" }, 400);
+    try {
+      return c.json(await receiptFor(tx as Hex));
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 404);
+    }
+  });
+
+  /** Find a deal's receipt by its id (once a party has reported the settlement transaction). */
+  app.get("/deals/:dealId/receipt", (c) => {
+    const id = c.req.param("dealId").toLowerCase();
+    if (!isHash(id)) return c.json({ error: "invalid deal id" }, 400);
+    const row = db.prepare("SELECT settle_tx FROM rfqs WHERE deal_id = ? AND settle_tx IS NOT NULL").get(id) as { settle_tx: string } | undefined;
+    if (!row) return c.json({ error: "no receipt yet" }, 404);
+    return c.json({ txHash: row.settle_tx });
+  });
+
+  /**
+   * Either side reports the transaction that settled their deal. No token needed: the server reads the
+   * chain and only records it if that transaction really settled this posting's deal.
+   */
+  app.post("/rfqs/:id/settled", async (c) => {
+    const r = rfq(c.req.param("id"));
+    if (!r) return c.json({ error: "not found" }, 404);
+    if (!r.deal_id) return c.json({ error: "no accepted deal" }, 409);
+    const body = (await c.req.json().catch(() => null)) as { txHash?: unknown } | null;
+    const tx = typeof body?.txHash === "string" ? body.txHash : "";
+    if (!isHash(tx)) return c.json({ error: "invalid transaction hash" }, 400);
+    let rec: DealReceipt;
+    try {
+      rec = await receiptFor(tx as Hex);
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 400);
+    }
+    if (rec.dealId.toLowerCase() !== r.deal_id.toLowerCase()) return c.json({ error: "that transaction settled a different deal" }, 400);
+    db.prepare("UPDATE rfqs SET settle_tx = ? WHERE id = ?").run(tx.toLowerCase(), r.id);
+    return c.json({ ok: true, txHash: tx.toLowerCase() });
   });
 
   /** The responder checks on their quote; once accepted they get the exact terms to deposit against. */

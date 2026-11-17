@@ -41,6 +41,14 @@ function setup() {
     db: openDb(":memory:"),
     relayer: fakeRelayer,
     readPrice: async (token) => ({ token, quote: "ETH", price: 0.001, source: "test", blockNumber: "1" }),
+    // receipts: a fake chain where tx 0x11…11 settled whichever deal `settledDeal` names
+    readReceipt: async (tx) => {
+      // 0x11…11 settled `settledDeal`; 0x22…22 settled some other deal; anything else isn't a settlement
+      const other = tx === `0x${"22".repeat(32)}`;
+      if (tx !== `0x${"11".repeat(32)}` && !other) throw new Error("this transaction didn't settle a deal");
+      const id = other ? `0x${"99".repeat(32)}` : settledDeal;
+      return { txHash: tx, dealId: id as `0x${string}`, block: "1", timestamp: 1, settledBy: "depositTokens", terms: {}, protocolFee: "0", referrerFee: "0", relayerFee: "0", sellerProceeds: "0" };
+    },
     now: () => clock,
   });
 }
@@ -53,6 +61,8 @@ async function call(app: ReturnType<typeof setup>, method: string, path: string,
   });
   return { status: res.status, json: (await res.json()) as any };
 }
+
+let settledDeal = `0x${"00".repeat(32)}`;
 
 function termsFor(over: Partial<Record<string, string>> = {}) {
   return {
@@ -105,6 +115,30 @@ describe("sealed RFQ flow", () => {
     }
     const ok = await call(app, "POST", `/rfqs/${rfq.json.id}/accept`, { quoteId: q.json.quoteId, terms: termsFor() }, rfq.json.manageToken);
     assert.equal(ok.status, 200, JSON.stringify(ok.json));
+  });
+
+  it("records a reported settlement only if it really settled this deal, then serves the receipt", async () => {
+    const rfq = await createRfq({});
+    const pubKey = (await call(app, "GET", `/rfqs/${rfq.json.id}`)).json.buyerEncPubKey;
+    const nonce = nacl.randomBytes(24);
+    const box = nacl.box(enc({ price: "25000000000", seller: SELLER, sellerPayout: PAYOUT, ghost: false }), nonce, unb64(pubKey), sellerKeys.secretKey);
+    const q = await call(app, "POST", `/rfqs/${rfq.json.id}/quotes`, { sellerEncPubKey: b64(sellerKeys.publicKey), nonce: b64(nonce), ciphertext: b64(box) });
+    const tx = `0x${"11".repeat(32)}`;
+    // before accept: nothing to settle
+    assert.equal((await call(app, "POST", `/rfqs/${rfq.json.id}/settled`, { txHash: tx })).status, 409);
+    const acc = await call(app, "POST", `/rfqs/${rfq.json.id}/accept`, { quoteId: q.json.quoteId, terms: termsFor() }, rfq.json.manageToken);
+    assert.equal(acc.status, 200);
+    settledDeal = acc.json.dealId;
+    // a tx that settled another deal is refused
+    assert.equal((await call(app, "POST", `/rfqs/${rfq.json.id}/settled`, { txHash: `0x${"22".repeat(32)}` })).status, 400);
+    assert.equal((await call(app, "POST", `/rfqs/${rfq.json.id}/settled`, { txHash: `0x${"33".repeat(32)}` })).status, 400);
+    assert.equal((await call(app, "POST", `/rfqs/${rfq.json.id}/settled`, { txHash: "nope" })).status, 400);
+    assert.equal((await call(app, "GET", `/deals/${acc.json.dealId}/receipt`)).status, 404);
+    // the real one is recorded and findable by deal id
+    const ok = await call(app, "POST", `/rfqs/${rfq.json.id}/settled`, { txHash: tx });
+    assert.equal(ok.status, 200, JSON.stringify(ok.json));
+    assert.equal((await call(app, "GET", `/deals/${acc.json.dealId}/receipt`)).json.txHash, tx);
+    assert.equal((await call(app, "GET", `/receipts/${tx}`)).json.dealId, acc.json.dealId);
   });
 
   it("runs bid → sealed offer → accept → seller sees terms", async () => {

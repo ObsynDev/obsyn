@@ -95,6 +95,19 @@ export interface MarketRow {
   } | null;
   desk: { open: number; buy: number; sell: number };
 }
+/** Public receipt of a settled deal, rebuilt from the chain */
+export interface DealReceipt {
+  txHash: Hex;
+  dealId: Hex;
+  block: string;
+  timestamp: number;
+  settledBy: "depositPayment" | "depositTokens" | "depositTokensFor";
+  terms: Record<string, string>;
+  protocolFee: string;
+  referrerFee: string;
+  relayerFee: string;
+  sellerProceeds: string;
+}
 /** DEX snapshot of any token (reference only; deals settle at the sealed price) */
 export interface TokenMarket {
   address: Address;
@@ -170,5 +183,8 @@ export const api = {
       `/token/${address}`,
     ),
   tokenMarket: (address: string) => req<TokenMarket>("GET", `/token/${address}/market`),
+  receipt: (tx: string) => req<DealReceipt>("GET", `/receipts/${tx}`),
+  dealReceipt: (dealId: string) => req<{ txHash: Hex }>("GET", `/deals/${dealId}/receipt`),
+  reportSettled: (rfqId: string, txHash: string) => req<{ ok: true; txHash: Hex }>("POST", `/rfqs/${rfqId}/settled`, { txHash }),
   relayDeposit: (body: unknown) => req<{ txHash: Hex; dealId: Hex }>("POST", "/relay/deposit", body),
 };

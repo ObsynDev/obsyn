@@ -18,7 +18,8 @@ import {
   type Terms,
   type TokenInfo,
 } from "../lib/chain.ts";
-import { Copy, Err, fmtAmount, fmtLeft, Pill, short, useAction, useNow, usePoll } from "../lib/ui.tsx";
+import { Copy, Err, fmtAmount, fmtLeft, Link, Pill, short, useAction, useNow, usePoll } from "../lib/ui.tsx";
+import { api } from "../lib/api.ts";
 
 /** The terms as the tuple an explorer's "Write contract → refund" field expects. */
 const termsTuple = (t: Terms) =>
@@ -31,12 +32,15 @@ export function DealPanel({
   terms,
   role,
   ghostKey,
+  rfqId,
 }: {
   escrow: Address;
   dealId: Hex;
   terms: Terms;
   role: "buyer" | "seller";
   ghostKey?: Hex;
+  /** the posting this deal came from, to report the settlement for a public receipt */
+  rfqId?: string;
 }) {
   const now = useNow();
   const [tok, setTok] = useState<TokenInfo | null>(null);
@@ -71,7 +75,27 @@ export function DealPanel({
               : await refund(escrow, terms);
     if (r.status !== "success") throw new Error("Transaction reverted");
     setTx(r.transactionHash);
+    // if this deposit completed the deal, tell the server so both sides get a receipt link
+    if (rfqId && (kind === "buy" || kind === "sell" || kind === "ghost")) {
+      const after = await dealState(escrow, dealId).catch(() => null);
+      if (after?.status === "settled") api.reportSettled(rfqId, r.transactionHash).then(() => setReceiptTx(r.transactionHash), () => setReceiptTx(r.transactionHash));
+    }
   });
+
+  // once settled, find the receipt (reported by whichever side completed the deal)
+  const [receiptTx, setReceiptTx] = useState<Hex | null>(null);
+  const settledNow = state.data?.status === "settled";
+  useEffect(() => {
+    if (!settledNow || receiptTx) return;
+    let alive = true;
+    const look = () => api.dealReceipt(dealId).then((x) => alive && setReceiptTx(x.txHash), () => {});
+    look();
+    const t = setInterval(look, 8000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [settledNow, receiptTx, dealId]);
 
   const s = state.data;
   const expired = Number(terms.deadline) <= now;
@@ -213,7 +237,17 @@ export function DealPanel({
         </>
       )}
 
-      {s?.status === "settled" && <p className="ok">Done. Both sides were swapped in one transaction.</p>}
+      {s?.status === "settled" && (
+        <p className="ok">
+          Done. Both sides were swapped in one transaction.
+          {receiptTx && (
+            <>
+              {" "}
+              <Link to={`/receipt/${receiptTx}`}>View receipt ↗</Link>
+            </>
+          )}
+        </p>
+      )}
 
       {ghostKey && (
         <details className="muted">

@@ -5,6 +5,7 @@ import { api, type Rfq, type ServerConfig } from "../lib/api.ts";
 import { connectWallet, ghostSupported, NO_GHOST, tokenInfo, type TokenInfo } from "../lib/chain.ts";
 import { answerMessage, seal, sideOf, unb64, type Offer } from "../lib/sealed.ts";
 import { BuyerAnswer } from "./BuyerAnswer.tsx";
+import { useMarket, vsLabel, vsMarket } from "../lib/market.ts";
 import { saved } from "../lib/store.ts";
 import { Err, fmtAmount, fmtLeft, navigate, Pill, short, useAction, useNow } from "../lib/ui.tsx";
 
@@ -28,6 +29,7 @@ export function SellerOffer({ id }: { id: string }) {
   const [offerAmount, setOfferAmount] = useState("");
   const [payout, setPayout] = useState("");
   const [message, setMessage] = useState("");
+  const market = useMarket(rfq?.token);
 
   useEffect(() => {
     Promise.all([api.getRfq(id), api.config()])
@@ -190,6 +192,15 @@ export function SellerOffer({ id }: { id: string }) {
             {unit !== null && isFinite(unit) && (
               <small className="muted">
                 ≈ {unit.toPrecision(6)} {pay.symbol} per {tok.symbol}
+                {(() => {
+                  try {
+                    const amt = rfq.amount ? BigInt(rfq.amount) : parseUnits(offerAmount.replace(/[,\s]/g, "") || "0", tok.decimals);
+                    const pct = vsMarket({ market, amount: amt, tokenDecimals: tok.decimals, price: parseUnits(price.replace(/,/g, ""), pay.decimals), payToken: rfq.payToken, payDecimals: pay.decimals });
+                    return pct === null ? null : ` · ${vsLabel(pct)}`;
+                  } catch {
+                    return null;
+                  }
+                })()}
               </small>
             )}
           </label>

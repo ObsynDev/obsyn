@@ -69,7 +69,7 @@ export function SellerStatus({ id }: { id: string }) {
       {terms && !mine && (
         <p className="muted">This browser has no copy of your original {noun}, so check the numbers below yourself before depositing.</p>
       )}
-      {terms && d.dealId && mismatch.length === 0 && <DealPanelWithEscrow dealId={d.dealId} terms={terms} role={role} ghostKey={ghostKey} />}
+      {terms && d.dealId && mismatch.length === 0 && <DealPanelWithEscrow dealId={d.dealId} terms={terms} role={role} ghostKey={ghostKey} rfqId={d.rfq.id} />}
     </div>
   );
 }
@@ -79,14 +79,16 @@ function DealPanelWithEscrow({
   terms,
   role,
   ghostKey,
+  rfqId,
 }: {
   dealId: Hex;
   terms: ReturnType<typeof termsFromJson>;
   role: "buyer" | "seller";
   ghostKey?: Hex;
+  rfqId?: string;
 }) {
   const cfg = usePoll(api.config, 60_000, []);
   if (!cfg.data) return null;
   if (!cfg.data.escrow) return <p className="err">Trading isn't live yet: the server has no contract address configured.</p>;
-  return <DealPanel escrow={cfg.data.escrow} dealId={dealId} terms={terms} role={role} ghostKey={role === "seller" ? ghostKey : undefined} />;
+  return <DealPanel escrow={cfg.data.escrow} dealId={dealId} terms={terms} role={role} ghostKey={role === "seller" ? ghostKey : undefined} rfqId={rfqId} />;
 }

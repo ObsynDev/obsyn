@@ -27,6 +27,9 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Security audit by the Obsyn team", d: "Manual review, Slither, 41 contract tests, live-fork replays. Report published on GitHub.", s: "live", size: "M" },
       { t: "Trade page per token", d: "Paste any contract: price, market cap, your balance, one-click sell, open blocks for that token.", s: "live", size: "M" },
       { t: "Token list with logos", d: "Listed Robinhood Chain markets in the picker, with logos and checked contract addresses.", s: "live", size: "S" },
+      { t: "Reference price on offers", d: "Each offer is shown against the token's on-chain DEX price: '4.2% under market'.", s: "live", size: "S" },
+      { t: "Deal receipts", d: "A public, shareable page per settled deal, rebuilt from the settlement transaction.", s: "live", size: "S" },
+      { t: "Export / import private links", d: "Back up the keys to your bids and offers to a file and restore them on another device.", s: "live", size: "S" },
     ],
   },
   {
@@ -34,10 +37,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     title: "Small: polish the desk",
     blurb: "Quick wins that make deals faster and easier to trust.",
     items: [
-      { t: "Reference price on offers", d: "Show each offer against the on-chain spot price: '4.2% under market'.", s: "next", size: "S" },
       { t: "Notifications", d: "Telegram and email alerts when an answer arrives or the other side deposits.", s: "next", size: "S" },
-      { t: "Deal receipts", d: "A public, shareable page per settled deal, read live from the contract.", s: "planned", size: "S" },
-      { t: "Export / import private links", d: "Back up the keys to your bids and offers across devices.", s: "planned", size: "S" },
     ],
   },
   {

@@ -22,6 +22,7 @@ export interface RfqRow {
   status: RfqStatus;
   accepted_quote_id: string | null;
   deal_id: string | null;
+  settle_tx?: string | null;
   terms_json: string | null;
 }
 
@@ -74,5 +75,7 @@ export function openDb(path: string): DatabaseSync {
   // migration: sell-side listings (existing rows are buy-side bids)
   const cols = db.prepare("PRAGMA table_info(rfqs)").all() as { name: string }[];
   if (!cols.some((c) => c.name === "side")) db.exec("ALTER TABLE rfqs ADD COLUMN side TEXT NOT NULL DEFAULT 'buy'");
+  // migration: the settlement transaction, for public deal receipts
+  if (!cols.some((c) => c.name === "settle_tx")) db.exec("ALTER TABLE rfqs ADD COLUMN settle_tx TEXT");
   return db;
 }

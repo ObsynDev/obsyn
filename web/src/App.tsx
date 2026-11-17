@@ -13,6 +13,7 @@ import { SellerStatus } from "./pages/SellerStatus.tsx";
 import { MyLinks, Terminal } from "./pages/Terminal.tsx";
 import { Otc } from "./pages/Otc.tsx";
 import { Trade } from "./pages/Trade.tsx";
+import { Receipt } from "./pages/Receipt.tsx";
 import { Roadmap } from "./pages/Roadmap.tsx";
 import { Markets } from "./pages/Markets.tsx";
 import { Docs } from "./pages/Docs.tsx";
@@ -25,6 +26,7 @@ function route(path: string) {
   if ((m = /^\/bid\/([\w-]+)$/.exec(path))) return <BuyerBid id={m[1]} />;
   if ((m = /^\/rfq\/([\w-]+)$/.exec(path))) return <SellerOffer id={m[1]} />;
   if ((m = /^\/offer\/([\w-]+)$/.exec(path))) return <SellerStatus id={m[1]} />;
+  if ((m = /^\/receipt\/(0x[0-9a-fA-F]{64})$/.exec(path))) return <Receipt tx={m[1] as `0x${string}`} />;
   switch (path) {
     case "/":
       return <Landing />;

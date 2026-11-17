@@ -4,7 +4,7 @@ import { formatUnits, zeroAddress, type Address } from "viem";
 import { api, type Rfq } from "../lib/api.ts";
 import { tokenInfo, type TokenInfo } from "../lib/chain.ts";
 import { sideOf } from "../lib/sealed.ts";
-import { saved } from "../lib/store.ts";
+import { exportBackup, importBackup, saved } from "../lib/store.ts";
 import { Copy, Link, short, useNow, usePoll } from "../lib/ui.tsx";
 import { NewBlock } from "./NewBlock.tsx";
 
@@ -366,10 +366,51 @@ export function Terminal() {
 
 /** /mine: the private links this browser has saved. */
 export function MyLinks() {
+  const [, setTick] = useState(0);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const bids = saved.bids();
   const offers = saved.offers();
+
+  const download = () => {
+    const blob = new Blob([exportBackup()], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `obsyn-private-links-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    setMsg({ ok: true, text: "Backup downloaded. Keep it private: whoever has this file controls your blocks." });
+  };
+  const upload = async (f: File | undefined) => {
+    if (!f) return;
+    try {
+      if (f.size > 2_000_000) throw new Error("That file is too large to be a backup.");
+      const r = importBackup(await f.text());
+      setTick((t) => t + 1);
+      setMsg({ ok: true, text: `Imported ${r.bids} block${r.bids === 1 ? "" : "s"} and ${r.offers} answer${r.offers === 1 ? "" : "s"}${r.skipped ? ` (skipped ${r.skipped} that didn't look like Obsyn links)` : ""}.` });
+    } catch (e) {
+      setMsg({ ok: false, text: (e as Error).message });
+    }
+  };
+
   return (
     <div className="narrow">
+      <section className="card backup">
+        <div className="card-head">
+          <h2>Backup</h2>
+          <span className="muted">Move your private links to another browser or device.</span>
+        </div>
+        <div className="backup-actions">
+          <button type="button" className="btn" onClick={download} disabled={!bids.length && !offers.length}>
+            Download backup
+          </button>
+          <label className="btn ghost">
+            Import backup
+            <input type="file" accept="application/json,.json" hidden onChange={(e) => upload(e.target.files?.[0])} />
+          </label>
+        </div>
+        <p className="muted small">The file holds the keys to your blocks. Anyone who has it can read your answers and accept for you, so keep it like a password.</p>
+        {msg && <p className={msg.ok ? "ok small" : "err small"}>{msg.text}</p>}
+      </section>
       <section className="card">
         <div className="card-head">
           <h2>Your private links</h2>
