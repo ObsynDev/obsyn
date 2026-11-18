@@ -19,6 +19,16 @@ export interface Config {
    * PLATFORM_TOKEN_DISCOUNT_MIN) on the server and the whole site picks it up: no code change, no rebuild.
    */
   platformToken?: { address: Address | null; ponsUrl: string | null; discountMin: string | null };
+  /**
+   * The token the configured escrow also accepts as payment (OtcEscrowV2's burnToken). Fees on deals
+   * paid in it are burned by the contract. Unset with the original OtcEscrow (ETH and USDG only).
+   */
+  escrowBurnToken?: Address | null;
+  /**
+   * The escrow used before ESCROW_ADDRESS was switched (OtcEscrow v1). Deals stored without an escrow
+   * were made on it, so their pages, receipts, stats and ghost relays keep pointing there.
+   */
+  escrowLegacy?: Address | null;
 }
 
 /** Lenient: a bad value is ignored (with a warning) rather than taking the site down. */
@@ -76,5 +86,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       usdg: BigInt(env.RELAYER_MIN_FEE_USDG ?? "500000"), // 0.5 USDG
     },
     platformToken: parsePlatformToken(env),
+    escrowBurnToken: addr(env.ESCROW_BURN_TOKEN),
+    escrowLegacy: addr(env.ESCROW_LEGACY_ADDRESS),
   };
 }

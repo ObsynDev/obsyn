@@ -6,6 +6,7 @@ import { newBoxKeys, toUrl } from "../lib/sealed.ts";
 import { saved } from "../lib/store.ts";
 import { Err, navigate, useAction } from "../lib/ui.tsx";
 import { TokenAvatar } from "./Terminal.tsx";
+import { PAY_TITLE, useKeepPayValid, usePayOptions, type PaySymbol } from "../lib/pay.ts";
 
 const WINDOWS = [
   { label: "15m", s: 900 },
@@ -31,10 +32,12 @@ export function NewBlock({ initialSide, onClose }: { initialSide: "buy" | "sell"
   const [side, setSide] = useState<"buy" | "sell">(initialSide);
   const [token, setToken] = useState("");
   const [amount, setAmount] = useState("");
-  const [pay, setPay] = useState<"ETH" | "USDG">("USDG");
+  const [pay, setPay] = useState<PaySymbol>("USDG");
   const [win, setWin] = useState(3600);
   const [note, setNote] = useState("");
   const { info, err: tokenErr } = useToken(token.trim());
+  const payOpts = usePayOptions(["USDG", "ETH"], info?.address);
+  useKeepPayValid(pay, payOpts.options, setPay);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -114,8 +117,8 @@ export function NewBlock({ initialSide, onClose }: { initialSide: "buy" | "sell"
           <div className="field">
             <span>{side === "buy" ? "Pay with" : "Get paid in"}</span>
             <div className="chips">
-              {(["USDG", "ETH"] as const).map((p) => (
-                <button type="button" key={p} className={pay === p ? "on" : ""} onClick={() => setPay(p)}>
+              {payOpts.options.map((p) => (
+                <button type="button" key={p} className={pay === p ? "on" : ""} onClick={() => setPay(p)} title={PAY_TITLE[p]}>
                   {p}
                 </button>
               ))}

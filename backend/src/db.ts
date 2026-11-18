@@ -26,6 +26,8 @@ export interface RfqRow {
   terms_json: string | null;
   /** 1 = several answers can each fill part of it (partial fills) */
   partial?: number;
+  /** the escrow the first deal settles on (null: made before this was recorded, i.e. the legacy escrow) */
+  escrow?: string | null;
 }
 
 export interface QuoteRow {
@@ -41,6 +43,8 @@ export interface QuoteRow {
   deal_id?: string | null;
   terms_json?: string | null;
   settle_tx?: string | null;
+  /** the escrow this answer's deal settles on */
+  escrow?: string | null;
 }
 
 export function openDb(path: string): DatabaseSync {
@@ -85,7 +89,9 @@ export function openDb(path: string): DatabaseSync {
   if (!cols.some((c) => c.name === "settle_tx")) db.exec("ALTER TABLE rfqs ADD COLUMN settle_tx TEXT");
   // migration: partial fills (each accepted answer is its own deal)
   if (!cols.some((c) => c.name === "partial")) db.exec("ALTER TABLE rfqs ADD COLUMN partial INTEGER NOT NULL DEFAULT 0");
+  // migration: which escrow a deal settles on (rows without one predate the escrow switch)
+  if (!cols.some((c) => c.name === "escrow")) db.exec("ALTER TABLE rfqs ADD COLUMN escrow TEXT");
   const qcols = db.prepare("PRAGMA table_info(quotes)").all() as { name: string }[];
-  for (const col of ["deal_id", "terms_json", "settle_tx"]) if (!qcols.some((c) => c.name === col)) db.exec(`ALTER TABLE quotes ADD COLUMN ${col} TEXT`);
+  for (const col of ["deal_id", "terms_json", "settle_tx", "escrow"]) if (!qcols.some((c) => c.name === col)) db.exec(`ALTER TABLE quotes ADD COLUMN ${col} TEXT`);
   return db;
 }

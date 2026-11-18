@@ -23,7 +23,7 @@ export class RelayError extends Error {
 
 export interface Relayer {
   info(): { enabled: boolean; address: Address | null; problem: string | null; minFee: { eth: string; usdg: string } };
-  relayDeposit(terms: Terms, permit: Permit, sellerSig: Hex): Promise<{ txHash: Hex; dealId: Hex }>;
+  relayDeposit(terms: Terms, permit: Permit, sellerSig: Hex, escrow?: Address): Promise<{ txHash: Hex; dealId: Hex }>;
 }
 
 /** EIP-712 typed data the seller (ghost wallet) signs so this relayer may deposit for it. */
@@ -54,15 +54,21 @@ export function createRelayer(cfg: Config): Relayer {
       minFee: { eth: cfg.relayerMinFee.eth.toString(), usdg: cfg.relayerMinFee.usdg.toString() },
     }),
 
-    async relayDeposit(terms, permit, sellerSig) {
+    async relayDeposit(terms, permit, sellerSig, wanted) {
       if (!enabled || !walletClient || !relayerAddress || !cfg.escrow) {
         throw new RelayError(503, "relayer is not configured");
       }
-      const escrow = cfg.escrow;
+      // the current escrow, or the legacy one for deals made before the switch; nothing else
+      const known = [cfg.escrow, cfg.escrowLegacy].filter((a): a is Address => !!a);
+      const escrow = wanted ? known.find((a) => a.toLowerCase() === wanted.toLowerCase()) : cfg.escrow;
+      if (!escrow) throw new RelayError(400, "unknown escrow");
       const id = dealId(terms);
       const now = BigInt(Math.floor(Date.now() / 1000));
       if (terms.deadline <= now + 30n) throw new RelayError(400, "deal deadline too close");
 
+      if (terms.payToken !== zeroAddress && terms.payToken.toLowerCase() !== cfg.usdg?.toLowerCase()) {
+        throw new RelayError(400, "ghost mode is only available for deals paid in ETH or USDG");
+      }
       const minFee = terms.payToken === zeroAddress ? cfg.relayerMinFee.eth : cfg.relayerMinFee.usdg;
       if (terms.relayerFee < minFee) throw new RelayError(400, `relayerFee below minimum ${minFee}`);
 

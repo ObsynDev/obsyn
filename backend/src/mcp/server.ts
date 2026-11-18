@@ -53,7 +53,7 @@ export function createMcpServer(agent: OtcAgent) {
       inputSchema: {
         token: z.string().describe("Token address on Robinhood Chain"),
         amount: z.string().describe("How many tokens you are selling, in whole units, e.g. '50000'"),
-        payWith: z.enum(["ETH", "USDG"]).describe("What buyers pay in"),
+        payWith: z.enum(["ETH", "USDG", "OBSYN"]).describe("What buyers pay in. OBSYN only when the server lists it in /health payTokens; its fee is burned"),
         replyMinutes: z.number().min(15).max(1440).default(60).describe("How long buyers can bid (15–1440)"),
         note: z.string().max(280).optional().describe("Public note to buyers"),
         allowPartial: z.boolean().optional().describe("Let several buyers each take part of the block (each becomes its own deal)"),
@@ -72,7 +72,7 @@ export function createMcpServer(agent: OtcAgent) {
         token: z.string().describe("Token address on Robinhood Chain"),
         amount: z.string().optional().describe("How many tokens, in whole units, e.g. '25000'"),
         sizeUsd: z.number().min(5).optional().describe("Or size the bid in USD; sellers then say how many tokens they offer"),
-        payWith: z.enum(["ETH", "USDG"]),
+        payWith: z.enum(["ETH", "USDG", "OBSYN"]),
         replyMinutes: z.number().min(15).max(1440).default(60).describe("How long sellers can reply (15–1440)"),
         note: z.string().max(280).optional().describe("Public note to sellers"),
         allowPartial: z.boolean().optional().describe("Let several sellers each fill part of the bid (each becomes its own deal)"),
@@ -181,7 +181,7 @@ export function createMcpServer(agent: OtcAgent) {
   const rule = z.object({
     side: z.enum(["sell", "buy"]).describe("sell: answer buy bids with offers. buy: answer sell listings with bids"),
     token: z.string().describe("Token address on Robinhood Chain"),
-    payWith: z.enum(["ETH", "USDG", "any"]).optional(),
+    payWith: z.enum(["ETH", "USDG", "OBSYN", "any"]).optional(),
     maxTotal: z.string().describe("Most tokens over the whole run, whole units"),
     maxPerDeal: z.string().describe("Most tokens per deal, whole units"),
     priceVsMarketPct: z.number().describe("Price against the token's DEX price: +5 = 5% above, -3 = 3% below"),

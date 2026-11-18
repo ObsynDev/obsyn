@@ -82,6 +82,7 @@ export function Receipt({ tx }: { tx: Hex }) {
           <dd>
             {f(totalFee.toString())}
             {BigInt(r.referrerFee) > 0n && <span className="muted small"> (half to the referrer)</span>}
+            {pay.symbol === "OBSYN" && <span className="muted small"> · burned</span>}
           </dd>
           {BigInt(r.relayerFee) > 0n && (
             <>

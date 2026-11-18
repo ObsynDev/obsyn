@@ -251,6 +251,7 @@ export async function ghostDeposit(escrow: Address, t: Terms, ghostKey: Hex) {
 
   const { txHash } = await api.relayDeposit({
     terms: termsToJson(t),
+    escrow,
     sellerSig,
     permit: {
       deadline: permitDeadline.toString(),

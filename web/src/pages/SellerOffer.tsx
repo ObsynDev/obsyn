@@ -3,9 +3,10 @@ import { formatUnits, getAddress, isAddress, parseUnits, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { api, type Rfq, type ServerConfig } from "../lib/api.ts";
 import { connectWallet, ghostSupported, NO_GHOST, tokenInfo, type TokenInfo } from "../lib/chain.ts";
+import { ghostPayable, NO_GHOST_PAY } from "../lib/pay.ts";
 import { answerMessage, seal, sideOf, unb64, type Offer } from "../lib/sealed.ts";
 import { BuyerAnswer } from "./BuyerAnswer.tsx";
-import { useMarket, vsLabel, vsMarket } from "../lib/market.ts";
+import { useMarket, usePayUsd, vsLabel, vsMarket } from "../lib/market.ts";
 import { saved } from "../lib/store.ts";
 import { Err, fmtAmount, fmtLeft, navigate, Pill, short, useAction, useNow } from "../lib/ui.tsx";
 
@@ -30,6 +31,7 @@ export function SellerOffer({ id }: { id: string }) {
   const [payout, setPayout] = useState("");
   const [message, setMessage] = useState("");
   const market = useMarket(rfq?.token);
+  const payUsd = usePayUsd(rfq?.payToken);
 
   useEffect(() => {
     Promise.all([api.getRfq(id), api.config()])
@@ -60,6 +62,7 @@ export function SellerOffer({ id }: { id: string }) {
     const relayerFee =
       mode === "ghost" ? BigInt(pay.symbol === "ETH" ? cfg.relayer.minFee.eth : cfg.relayer.minFee.usdg) : 0n;
     if (mode === "ghost" && !cfg.relayer.enabled) throw new Error("Ghost mode is unavailable: the relayer is offline.");
+    if (mode === "ghost" && !ghostPayable(rfq.payToken, cfg.usdg)) throw new Error(NO_GHOST_PAY);
     if (mode === "ghost" && (await ghostSupported(rfq.token)) === false) throw new Error(NO_GHOST(tok.symbol));
 
     let amount = rfq.amount;
@@ -101,6 +104,8 @@ export function SellerOffer({ id }: { id: string }) {
 
   if (loadErr) return <p className="err">{loadErr}</p>;
   if (!rfq || !tok || !pay) return <p className="muted">Loading…</p>;
+  // ghost mode needs a deal paid in ETH or USDG, and a token with gasless approvals
+  const noGhost = cfg && !ghostPayable(rfq.payToken, cfg.usdg) ? NO_GHOST_PAY : ghostOk === false ? NO_GHOST(tok.symbol) : null;
   if (sideOf(rfq) === "sell") return <BuyerAnswer rfq={rfq} tok={tok} pay={pay} />;
 
   const left = rfq.expiresAt - now;
@@ -156,13 +161,13 @@ export function SellerOffer({ id }: { id: string }) {
               type="button"
               className={mode === "ghost" ? "on" : ""}
               onClick={() => setMode("ghost")}
-              disabled={ghostOk === false}
-              title={ghostOk === false ? NO_GHOST(tok.symbol) : undefined}
+              disabled={!!noGhost}
+              title={noGhost ?? undefined}
             >
               Ghost mode
             </button>
           </div>
-          {ghostOk === false && <p className="muted small">{NO_GHOST(tok.symbol)}</p>}
+          {noGhost && <p className="muted small">{noGhost}</p>}
 
           {mode === "wallet" ? (
             wallet ? (
@@ -211,7 +216,7 @@ export function SellerOffer({ id }: { id: string }) {
                 {(() => {
                   try {
                     const amt = rfq.amount && !(rfq.partial && offerAmount.trim()) ? BigInt(rfq.amount) : parseUnits(offerAmount.replace(/[,\s]/g, "") || "0", tok.decimals);
-                    const pct = vsMarket({ market, amount: amt, tokenDecimals: tok.decimals, price: parseUnits(price.replace(/,/g, ""), pay.decimals), payToken: rfq.payToken, payDecimals: pay.decimals });
+                    const pct = vsMarket({ market, amount: amt, tokenDecimals: tok.decimals, price: parseUnits(price.replace(/,/g, ""), pay.decimals), payToken: rfq.payToken, payDecimals: pay.decimals, payUsd });
                     return pct === null ? null : ` · ${vsLabel(pct)}`;
                   } catch {
                     return null;

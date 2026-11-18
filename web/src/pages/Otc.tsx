@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMarket } from "../lib/market.ts";
+import { PAY_TITLE, useKeepPayValid, usePayOptions, type PaySymbol } from "../lib/pay.ts";
 import { DexImpact } from "./DexImpact.tsx";
 import { BRAND } from "../lib/brand.tsx";
 import { MARKETS, market } from "../lib/tokens.ts";
@@ -360,7 +361,7 @@ export function Otc() {
   const [side, setSide] = useState<"buy" | "sell">(() => (new URLSearchParams(window.location.search).get("side") === "sell" ? "sell" : "buy"));
   const [usd, setUsd] = useState("");
   const [amount, setAmount] = useState("");
-  const [pay, setPay] = useState<"ETH" | "USDG">("USDG");
+  const [pay, setPay] = useState<PaySymbol>("USDG");
   const [token, setToken] = useState<TokenInfo | null>(null);
   // /otc?token=0x… (from the market board) preselects the token
   useEffect(() => {
@@ -371,6 +372,8 @@ export function Otc() {
   const [picking, setPicking] = useState(false);
   const [partial, setPartial] = useState(true);
   const market = useMarket(token?.address);
+  const payOpts = usePayOptions(["ETH", "USDG"], token?.address);
+  useKeepPayValid(pay, payOpts.options, setPay);
   const usdNum = Number(usd.replace(/[,\s$]/g, ""));
   const sellUsd = market?.priceUsd && Number(amount.replace(/[,\s]/g, "")) > 0 ? Number(amount.replace(/[,\s]/g, "")) * market.priceUsd : null;
 
@@ -449,8 +452,8 @@ export function Otc() {
                 <span className="dim">Minimum $5</span>
                 <span className="otc-pay">
                   Pay with
-                  {(["ETH", "USDG"] as const).map((p) => (
-                    <button type="button" key={p} className={pay === p ? "on" : ""} onClick={() => setPay(p)}>
+                  {payOpts.options.map((p) => (
+                    <button type="button" key={p} className={pay === p ? "on" : ""} onClick={() => setPay(p)} title={PAY_TITLE[p]}>
                       {p}
                     </button>
                   ))}
@@ -488,8 +491,8 @@ export function Otc() {
               <div className="otc-row">
                 <span className="otc-amt otc-sealed mono">sealed bids</span>
                 <span className="otc-pay">
-                  {(["ETH", "USDG"] as const).map((p) => (
-                    <button type="button" key={p} className={pay === p ? "on" : ""} onClick={() => setPay(p)}>
+                  {payOpts.options.map((p) => (
+                    <button type="button" key={p} className={pay === p ? "on" : ""} onClick={() => setPay(p)} title={PAY_TITLE[p]}>
                       {p}
                     </button>
                   ))}

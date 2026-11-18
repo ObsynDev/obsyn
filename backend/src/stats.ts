@@ -19,10 +19,10 @@ const vaultAbi = parseAbi([
 
 /** What the stats need from the chain; injectable for tests. */
 export interface StatsChain {
-  /** 0 none, 1 open, 2 settled, 3 refunded */
-  dealStatus(id: Hex): Promise<number>;
+  /** 0 none, 1 open, 2 settled, 3 refunded. `escrow`: the deal's own (null: made before it was recorded) */
+  dealStatus(id: Hex, escrow?: Address | null): Promise<number>;
   /** protocol and referrer fee the escrow takes for these terms */
-  fees(t: Terms): Promise<{ protocol: bigint; referrer: bigint }>;
+  fees(t: Terms, escrow?: Address | null): Promise<{ protocol: bigint; referrer: bigint }>;
   vault(): Promise<{
     address: Address;
     totalBurned: bigint;
@@ -34,16 +34,17 @@ export interface StatsChain {
   }>;
 }
 
-export function chainStats(client: PublicClient, escrow: Address, platformToken: Address | null): StatsChain {
+export function chainStats(client: PublicClient, escrow: Address, platformToken: Address | null, legacy: Address | null = null): StatsChain {
   let vaultAddr: Promise<Address> | null = null;
   const vault = () => (vaultAddr ??= client.readContract({ address: escrow, abi: OtcEscrowAbi, functionName: "feeRecipient" }) as Promise<Address>);
+  const on = (e?: Address | null) => e ?? legacy ?? escrow;
   return {
-    async dealStatus(id) {
-      const [s] = (await client.readContract({ address: escrow, abi: OtcEscrowAbi, functionName: "deals", args: [id] })) as readonly [number, ...unknown[]];
+    async dealStatus(id, e) {
+      const [s] = (await client.readContract({ address: on(e), abi: OtcEscrowAbi, functionName: "deals", args: [id] })) as readonly [number, ...unknown[]];
       return Number(s);
     },
-    async fees(t) {
-      const [protocol, referrer] = (await client.readContract({ address: escrow, abi: OtcEscrowAbi, functionName: "quoteSettlement", args: [t] })) as readonly [bigint, bigint, bigint];
+    async fees(t, e) {
+      const [protocol, referrer] = (await client.readContract({ address: on(e), abi: OtcEscrowAbi, functionName: "quoteSettlement", args: [t] })) as readonly [bigint, bigint, bigint];
       return { protocol, referrer };
     },
     async vault() {
@@ -61,15 +62,20 @@ export function chainStats(client: PublicClient, escrow: Address, platformToken:
   };
 }
 
-type Deal = { id: Hex; terms: Terms; settleTx: string | null; acceptedAt: number };
-type Amounts = { eth: string; usdg: string };
+type Deal = { id: Hex; terms: Terms; settleTx: string | null; acceptedAt: number; escrow: Address | null };
+/** per pay currency, in base units; obsyn: deals paid in $OBSYN (OtcEscrowV2) */
+type Amounts = { eth: string; usdg: string; obsyn: string };
+type Sums = { eth: bigint; usdg: bigint; obsyn: bigint };
+const zero = (): Sums => ({ eth: 0n, usdg: 0n, obsyn: 0n });
 
 export interface StatsSummary {
   deals: { accepted: number; settled: number; refunded: number; open: number };
   /** settled volume, by what the buyers paid, in base units (ETH: wei, USDG: its decimals) */
   volume: Amounts;
-  /** fees the escrow took on settled deals: to the vault, and to referrers */
+  /** fees the escrow took on settled deals: to the vault (fees paid in $OBSYN are burned instead), and to referrers */
   fees: { protocol: Amounts; referrer: Amounts };
+  /** $OBSYN burned by the escrow itself at settlement (the protocol fee on deals paid in $OBSYN) */
+  burnedOnSettle: string;
   volumeUsd: number | null;
   ethUsd: number | null;
   postings: { total: number; open: number; answers: number };
@@ -97,7 +103,10 @@ export function createStats(opts: {
   db: DatabaseSync;
   chain: StatsChain | null;
   usdg: Address | null;
+  /** the token the escrow accepts as payment and burns its fee in (OtcEscrowV2) */
+  burnToken?: Address | null;
   ethUsd: () => Promise<number | null>;
+  burnTokenUsd?: () => Promise<number | null>;
   now: () => number;
   ttlSec?: number;
 }) {
@@ -107,22 +116,22 @@ export function createStats(opts: {
   const final = new Map<string, { status: number; fees?: { protocol: bigint; referrer: bigint } }>();
 
   const allDeals = db.prepare(`
-    SELECT deal_id, terms_json, settle_tx, created_at FROM quotes WHERE deal_id IS NOT NULL AND terms_json IS NOT NULL
+    SELECT deal_id, terms_json, settle_tx, created_at, escrow FROM quotes WHERE deal_id IS NOT NULL AND terms_json IS NOT NULL
     UNION ALL
-    SELECT r.deal_id, r.terms_json, r.settle_tx, r.created_at FROM rfqs r
+    SELECT r.deal_id, r.terms_json, r.settle_tx, r.created_at, r.escrow FROM rfqs r
       WHERE r.deal_id IS NOT NULL AND r.terms_json IS NOT NULL
         AND NOT EXISTS (SELECT 1 FROM quotes q WHERE lower(q.deal_id) = lower(r.deal_id))`);
 
   function deals(): Deal[] {
     const seen = new Set<string>();
     const out: Deal[] = [];
-    for (const row of allDeals.all() as { deal_id: string; terms_json: string; settle_tx: string | null; created_at: number }[]) {
+    for (const row of allDeals.all() as { deal_id: string; terms_json: string; settle_tx: string | null; created_at: number; escrow: string | null }[]) {
       const id = row.deal_id.toLowerCase();
       if (seen.has(id)) continue;
       const parsed = TermsSchema.safeParse(JSON.parse(row.terms_json));
       if (!parsed.success) continue;
       seen.add(id);
-      out.push({ id: id as Hex, terms: parsed.data as Terms, settleTx: row.settle_tx, acceptedAt: row.created_at });
+      out.push({ id: id as Hex, terms: parsed.data as Terms, settleTx: row.settle_tx, acceptedAt: row.created_at, escrow: row.escrow ? getAddress(row.escrow) : null });
     }
     return out;
   }
@@ -131,9 +140,9 @@ export function createStats(opts: {
     const hit = final.get(d.id);
     if (hit) return hit;
     if (!chain) return { status: d.settleTx ? 2 : 1 };
-    const status = await chain.dealStatus(d.id);
+    const status = await chain.dealStatus(d.id, d.escrow);
     if (status === 2) {
-      const entry = { status, fees: await chain.fees(d.terms) };
+      const entry = { status, fees: await chain.fees(d.terms, d.escrow) };
       final.set(d.id, entry);
       return entry;
     }
@@ -142,11 +151,14 @@ export function createStats(opts: {
   }
 
   const isUsdg = (a: Address) => !!usdg && a.toLowerCase() === usdg.toLowerCase();
-  const add = (m: { eth: bigint; usdg: bigint }, payToken: Address, v: bigint) => {
+  const burnToken = opts.burnToken ?? null;
+  const isBurnToken = (a: Address) => !!burnToken && a.toLowerCase() === burnToken.toLowerCase();
+  const add = (m: Sums, payToken: Address, v: bigint) => {
     if (payToken === zeroAddress) m.eth += v;
     else if (isUsdg(payToken)) m.usdg += v;
+    else if (isBurnToken(payToken)) m.obsyn += v;
   };
-  const str = (m: { eth: bigint; usdg: bigint }): Amounts => ({ eth: m.eth.toString(), usdg: m.usdg.toString() });
+  const str = (m: Sums): Amounts => ({ eth: m.eth.toString(), usdg: m.usdg.toString(), obsyn: m.obsyn.toString() });
 
   let cached: { at: number; value: StatsSummary } | null = null;
   let inflight: Promise<StatsSummary> | null = null;
@@ -154,9 +166,9 @@ export function createStats(opts: {
   async function build(): Promise<StatsSummary> {
     const list = deals();
     const states = await Promise.all(list.map((d) => state(d).catch(() => ({ status: -1 }) as { status: number; fees?: undefined })));
-    const volume = { eth: 0n, usdg: 0n };
-    const protocol = { eth: 0n, usdg: 0n };
-    const referrer = { eth: 0n, usdg: 0n };
+    const volume = zero();
+    const protocol = zero();
+    const referrer = zero();
     const counts = { accepted: list.length, settled: 0, refunded: 0, open: 0 };
     const tokens = new Set<string>();
     list.forEach((d, i) => {
@@ -176,8 +188,12 @@ export function createStats(opts: {
     const posts = db.prepare("SELECT COUNT(*) AS total, SUM(CASE WHEN status = 'open' AND expires_at > ? THEN 1 ELSE 0 END) AS open FROM rfqs").get(t) as { total: number; open: number | null };
     const answers = db.prepare("SELECT COUNT(*) AS n FROM quotes").get() as { n: number };
     const ethUsd = await opts.ethUsd().catch(() => null);
+    const obsynUsd = volume.obsyn > 0n && opts.burnTokenUsd ? await opts.burnTokenUsd().catch(() => null) : null;
     const usdgDecimals = 6;
-    const volumeUsd = ethUsd === null && volume.eth > 0n ? null : Number(volume.usdg) / 10 ** usdgDecimals + (Number(volume.eth) / 1e18) * (ethUsd ?? 0);
+    const unpriced = (ethUsd === null && volume.eth > 0n) || (obsynUsd === null && volume.obsyn > 0n);
+    const volumeUsd = unpriced
+      ? null
+      : Number(volume.usdg) / 10 ** usdgDecimals + (Number(volume.eth) / 1e18) * (ethUsd ?? 0) + (Number(volume.obsyn) / 1e18) * (obsynUsd ?? 0);
     let vault: StatsSummary["vault"] = null;
     if (chain) {
       try {
@@ -198,6 +214,7 @@ export function createStats(opts: {
       deals: counts,
       volume: str(volume),
       fees: { protocol: str(protocol), referrer: str(referrer) },
+      burnedOnSettle: protocol.obsyn.toString(),
       volumeUsd: volumeUsd === null ? null : Math.round(volumeUsd * 100) / 100,
       ethUsd,
       postings: { total: posts.total, open: posts.open ?? 0, answers: answers.n },
@@ -218,7 +235,7 @@ export function createStats(opts: {
 
   async function referrals(who: Address): Promise<ReferralSummary> {
     const mine = deals().filter((d) => d.terms.referrer.toLowerCase() === who.toLowerCase());
-    const earned = { eth: 0n, usdg: 0n };
+    const earned = zero();
     let settled = 0;
     const recent: ReferralSummary["recent"] = [];
     for (const d of mine) {

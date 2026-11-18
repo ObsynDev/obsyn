@@ -129,7 +129,8 @@ function BlockCard({ r, now }: { r: Rfq; now: number }) {
 
         <div className="block-mid">
           <span className="pill pay">
-            {r.payToken === zeroAddress ? "Ξ" : "$"} {pay?.symbol ?? "…"}
+            {r.payToken === zeroAddress ? "Ξ " : pay?.symbol === "USDG" ? "$ " : ""}
+            {pay?.symbol ?? "…"}
           </span>
           <span className="pill sealed" title="Answers are encrypted to the poster. Nobody else sees prices.">
             PRICE ••••••

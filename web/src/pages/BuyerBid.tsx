@@ -3,11 +3,12 @@ import { formatUnits, getAddress, isAddress, toHex, zeroAddress, type Address, t
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { api, ApiError, type DealInfo, type Fills, type Rfq, type SealedQuote, type ServerConfig } from "../lib/api.ts";
 import { balanceOfAsset, connectWallet, ghostSupported, NO_GHOST, termsFromJson, termsToJson, tokenInfo, verifyAnswerSig, type Terms, type TokenInfo } from "../lib/chain.ts";
+import { ghostPayable, NO_GHOST_PAY } from "../lib/pay.ts";
 import { answerMessage, fromUrl, hashParams, keysFromSecret, sideOf, unseal, type BuyerBid as BuyerBidMsg, type Offer } from "../lib/sealed.ts";
 import { referral, saved } from "../lib/store.ts";
 import { Copy, Err, fmtAmount, fmtLeft, Pill, short, useAction, useNow, usePoll } from "../lib/ui.tsx";
 import { DealPanel } from "./DealPanel.tsx";
-import { useMarket, vsLabel, vsMarket } from "../lib/market.ts";
+import { useMarket, usePayUsd, vsLabel, vsMarket } from "../lib/market.ts";
 
 const FUND_WINDOWS = [
   { label: "1 hour", s: 3600 },
@@ -63,6 +64,7 @@ export function BuyerBid({ id }: { id: string }) {
 
   const side = rfq ? sideOf(rfq) : "buy";
   const market = useMarket(rfq?.token);
+  const payUsd = usePayUsd(rfq?.payToken);
   const role = side === "buy" ? "buyer" : "seller";
 
   const quotes = usePoll(
@@ -164,6 +166,7 @@ export function BuyerBid({ id }: { id: string }) {
       let relayerFee = 0n;
       if (ghost) {
         if (!cfg?.relayer.enabled) throw new Error("Ghost mode is unavailable: the relayer is offline.");
+        if (!ghostPayable(rfq.payToken, cfg.usdg)) throw new Error(NO_GHOST_PAY);
         if ((await ghostSupported(rfq.token)) === false) throw new Error(NO_GHOST(tok?.symbol ?? "This token"));
         const key = ghostKey ?? generatePrivateKey();
         seller = privateKeyToAccount(key).address;
@@ -218,6 +221,8 @@ export function BuyerBid({ id }: { id: string }) {
   if (!token || !secret) return <p className="err">This private link is incomplete. Open the full link you saved when posting.</p>;
   if (err) return <p className="err">{err}</p>;
   if (!rfq || !tok || !pay) return <p className="muted">Loading…</p>;
+  // ghost mode needs a deal paid in ETH or USDG, and a token with gasless approvals
+  const noGhost = cfg && !ghostPayable(rfq.payToken, cfg.usdg) ? NO_GHOST_PAY : ghostOk === false ? NO_GHOST(tok.symbol) : null;
 
   const left = rfq.expiresAt - now;
   const others = side === "buy" ? "sellers" : "buyers";
@@ -266,13 +271,13 @@ export function BuyerBid({ id }: { id: string }) {
                   type="button"
                   className={ghost ? "on" : ""}
                   onClick={() => setGhost(true)}
-                  disabled={ghostOk === false}
-                  title={ghostOk === false ? NO_GHOST(tok.symbol) : undefined}
+                  disabled={!!noGhost}
+                  title={noGhost ?? undefined}
                 >
                   Ghost mode
                 </button>
               </div>
-              {ghostOk === false && <p className="muted small">{NO_GHOST(tok.symbol)}</p>}
+              {noGhost && <p className="muted small">{noGhost}</p>}
               {ghost && (
                 <p className="muted small">
                   A one-time wallet is made in this browser. After accepting you move the tokens into it and the relayer deposits
@@ -305,7 +310,7 @@ export function BuyerBid({ id }: { id: string }) {
                   <div className="checks">
                     {(() => {
                       // a buyer wants under market, a seller wants over
-                      const pct = vsMarket({ market, amount: BigInt(a.amount), tokenDecimals: tok.decimals, price: a.price, payToken: rfq.payToken, payDecimals: pay.decimals });
+                      const pct = vsMarket({ market, amount: BigInt(a.amount), tokenDecimals: tok.decimals, price: a.price, payToken: rfq.payToken, payDecimals: pay.decimals, payUsd });
                       if (pct === null) return null;
                       const good = side === "buy" ? pct <= 0 : pct >= 0;
                       return (
@@ -374,7 +379,7 @@ export function BuyerBid({ id }: { id: string }) {
       {rfq.partial &&
         fills?.escrow &&
         fills.deals.map((d) => (
-          <DealPanel key={d.dealId} escrow={fills.escrow!} dealId={d.dealId} terms={termsFromJson(d.terms)} role={role} ghostKey={role === "seller" ? ghostKey : undefined} rfqId={id} />
+          <DealPanel key={d.dealId} escrow={d.escrow ?? fills.escrow!} dealId={d.dealId} terms={termsFromJson(d.terms)} role={role} ghostKey={role === "seller" ? ghostKey : undefined} rfqId={id} />
         ))}
       {deal && deal.escrow && (
         <DealPanel

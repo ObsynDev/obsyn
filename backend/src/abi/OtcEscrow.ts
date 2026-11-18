@@ -1,4 +1,4 @@
-// Generated from contracts/out by forge build. Do not edit.
+// Generated from contracts/out by forge build (OtcEscrowV2: the original escrow plus paying in the platform token). Do not edit.
 export const OtcEscrowAbi = [
   {
     "type": "constructor",
@@ -17,9 +17,40 @@ export const OtcEscrowAbi = [
         "name": "feeRecipient_",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "burnToken_",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "BURN_TOKEN_FEE_BPS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "DEAD",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -140,12 +171,25 @@ export const OtcEscrowAbi = [
   },
   {
     "type": "function",
+    "name": "burnToken",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "dealId",
     "inputs": [
       {
         "name": "t",
         "type": "tuple",
-        "internalType": "struct OtcEscrow.Terms",
+        "internalType": "struct OtcEscrowV2.Terms",
         "components": [
           {
             "name": "buyer",
@@ -228,7 +272,7 @@ export const OtcEscrowAbi = [
       {
         "name": "status",
         "type": "uint8",
-        "internalType": "enum OtcEscrow.Status"
+        "internalType": "enum OtcEscrowV2.Status"
       },
       {
         "name": "buyerFunded",
@@ -255,7 +299,7 @@ export const OtcEscrowAbi = [
       {
         "name": "t",
         "type": "tuple",
-        "internalType": "struct OtcEscrow.Terms",
+        "internalType": "struct OtcEscrowV2.Terms",
         "components": [
           {
             "name": "buyer",
@@ -325,7 +369,7 @@ export const OtcEscrowAbi = [
       {
         "name": "t",
         "type": "tuple",
-        "internalType": "struct OtcEscrow.Terms",
+        "internalType": "struct OtcEscrowV2.Terms",
         "components": [
           {
             "name": "buyer",
@@ -395,7 +439,7 @@ export const OtcEscrowAbi = [
       {
         "name": "t",
         "type": "tuple",
-        "internalType": "struct OtcEscrow.Terms",
+        "internalType": "struct OtcEscrowV2.Terms",
         "components": [
           {
             "name": "buyer",
@@ -457,7 +501,7 @@ export const OtcEscrowAbi = [
       {
         "name": "permit",
         "type": "tuple",
-        "internalType": "struct OtcEscrow.Permit",
+        "internalType": "struct OtcEscrowV2.Permit",
         "components": [
           {
             "name": "deadline",
@@ -597,7 +641,7 @@ export const OtcEscrowAbi = [
       {
         "name": "t",
         "type": "tuple",
-        "internalType": "struct OtcEscrow.Terms",
+        "internalType": "struct OtcEscrowV2.Terms",
         "components": [
           {
             "name": "buyer",
@@ -683,7 +727,7 @@ export const OtcEscrowAbi = [
       {
         "name": "t",
         "type": "tuple",
-        "internalType": "struct OtcEscrow.Terms",
+        "internalType": "struct OtcEscrowV2.Terms",
         "components": [
           {
             "name": "buyer",
@@ -813,6 +857,25 @@ export const OtcEscrowAbi = [
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FeeBurned",
+    "inputs": [
+      {
+        "name": "dealId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
       },
       {
         "name": "amount",

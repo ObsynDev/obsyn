@@ -128,6 +128,9 @@ export function createApp(deps: Deps) {
   const quoteCount = (id: string) => Number((countQuotes.get(id) as { n: number }).n);
   const acceptedQuotes = db.prepare("SELECT * FROM quotes WHERE rfq_id = ? AND status = 'accepted' ORDER BY created_at");
   /** accepted fills of a posting and how much of a fixed size they cover */
+  /** The escrow a stored deal settles on: recorded at accept, else the legacy one it predates. */
+  const escrowOf = (row: { escrow?: string | null } | undefined) =>
+    (row?.escrow ? getAddress(row.escrow) : null) ?? cfg.escrowLegacy ?? cfg.escrow;
   const fillsOf = (r: RfqRow) => {
     const rows = acceptedQuotes.all(r.id) as unknown as QuoteRow[];
     let sum = 0n;
@@ -139,14 +142,20 @@ export function createApp(deps: Deps) {
     return publicRfq(r, quoteCount(r.id), { count: f.count, amount: f.amount });
   };
 
+  /** The platform token, when the escrow accepts it as payment (OtcEscrowV2). */
+  const burnPay = cfg.escrowBurnToken ?? null;
   const payTokenFor = (v: string): Address => {
     if (v === "ETH") return zeroAddress;
     if (v === "USDG") {
       if (!cfg.usdg) throw new BadRequest("USDG is not configured on this server");
       return cfg.usdg;
     }
+    if (v.toUpperCase() === "OBSYN") {
+      if (!burnPay) throw new BadRequest("Paying in OBSYN isn't available on this server");
+      return burnPay;
+    }
     const a = isAddress(v) ? getAddress(v) : null;
-    if (a === null || (a !== zeroAddress && a !== cfg.usdg)) throw new BadRequest("payToken must be ETH or USDG");
+    if (a === null || (a !== zeroAddress && a !== cfg.usdg && a !== burnPay)) throw new BadRequest(burnPay ? "payToken must be ETH, USDG or OBSYN" : "payToken must be ETH or USDG");
     return a;
   };
 
@@ -159,6 +168,12 @@ export function createApp(deps: Deps) {
       usdg: cfg.usdg,
       walletConnectProjectId: cfg.walletConnectProjectId,
       platformToken: cfg.platformToken ?? { address: null, ponsUrl: null, discountMin: null },
+      /** What deals can be paid in. OBSYN only with an escrow that burns its fees (OtcEscrowV2). */
+      payTokens: [
+        { symbol: "ETH", address: zeroAddress, decimals: 18 },
+        ...(cfg.usdg ? [{ symbol: "USDG", address: cfg.usdg, decimals: 6 }] : []),
+        ...(burnPay ? [{ symbol: "OBSYN", address: burnPay, decimals: 18, feeBps: 150, feeBurned: true }] : []),
+      ],
       relayer: relayer.info(),
     }),
   );
@@ -186,6 +201,9 @@ export function createApp(deps: Deps) {
     const body = CreateRfq.parse(await c.req.json());
     // The escrow refuses deals where the traded token is USDG itself; catch it here, not at deposit time.
     if (cfg.usdg && getAddress(body.token) === cfg.usdg) throw new BadRequest("USDG is a payment currency here; pick the token you want to trade.");
+    const payToken = payTokenFor(body.payToken);
+    // ...and deals where the token is paid for in itself (e.g. OBSYN for OBSYN)
+    if (getAddress(body.token) === payToken) throw new BadRequest("Pick a different payment currency than the token you're trading.");
     const id = newId();
     const manageToken = newToken();
     const t = now();
@@ -197,7 +215,7 @@ export function createApp(deps: Deps) {
       body.side,
       hashToken(manageToken),
       getAddress(body.token),
-      payTokenFor(body.payToken),
+      payToken,
       body.amount ?? null,
       body.sizeUsd ?? null,
       (body.encPubKey ?? body.buyerEncPubKey)!,
@@ -337,12 +355,15 @@ export function createApp(deps: Deps) {
       const res = db
         .prepare(
           `UPDATE rfqs SET status = ?, accepted_quote_id = CASE WHEN ? THEN ? ELSE accepted_quote_id END,
-             deal_id = CASE WHEN ? THEN ? ELSE deal_id END, terms_json = CASE WHEN ? THEN ? ELSE terms_json END
+             deal_id = CASE WHEN ? THEN ? ELSE deal_id END, terms_json = CASE WHEN ? THEN ? ELSE terms_json END,
+             escrow = CASE WHEN ? THEN ? ELSE escrow END
            WHERE id = ? AND status = 'open'`,
         )
-        .run(complete ? "accepted" : "open", first ? 1 : 0, q.id, first ? 1 : 0, id, first ? 1 : 0, termsJson, r.id);
+        .run(complete ? "accepted" : "open", first ? 1 : 0, q.id, first ? 1 : 0, id, first ? 1 : 0, termsJson, first ? 1 : 0, cfg.escrow, r.id);
       if (Number(res.changes) !== 1) throw new Error("race");
-      const won = db.prepare("UPDATE quotes SET status = 'accepted', deal_id = ?, terms_json = ? WHERE id = ? AND status = 'pending'").run(id, termsJson, q.id);
+      const won = db
+        .prepare("UPDATE quotes SET status = 'accepted', deal_id = ?, terms_json = ?, escrow = ? WHERE id = ? AND status = 'pending'")
+        .run(id, termsJson, cfg.escrow, q.id);
       if (Number(won.changes) !== 1) throw new Error("race");
       if (complete) db.prepare("UPDATE quotes SET status = 'rejected' WHERE rfq_id = ? AND status = 'pending'").run(r.id);
       db.exec("COMMIT");
@@ -363,7 +384,7 @@ export function createApp(deps: Deps) {
       dealId: r.deal_id,
       quoteId: r.accepted_quote_id,
       terms: JSON.parse(r.terms_json),
-      escrow: cfg.escrow,
+      escrow: escrowOf(r),
       chainId: cfg.chainId,
     });
   });
@@ -378,9 +399,16 @@ export function createApp(deps: Deps) {
       partial: !!r.partial,
       complete: r.status === "accepted",
       filledAmount: f.amount,
+      /** where new fills settle; each deal below carries its own escrow */
       escrow: cfg.escrow,
       chainId: cfg.chainId,
-      deals: f.rows.map((q) => ({ quoteId: q.id, dealId: q.deal_id, terms: q.terms_json ? JSON.parse(q.terms_json) : null, settleTx: q.settle_tx ?? null })),
+      deals: f.rows.map((q) => ({
+        quoteId: q.id,
+        dealId: q.deal_id,
+        terms: q.terms_json ? JSON.parse(q.terms_json) : null,
+        settleTx: q.settle_tx ?? null,
+        escrow: escrowOf(q),
+      })),
     });
   });
 
@@ -457,7 +485,7 @@ export function createApp(deps: Deps) {
       rfq: pub(r),
       dealId: won ? (q.deal_id ?? r.deal_id) : null,
       terms: won ? JSON.parse(q.terms_json ?? r.terms_json ?? "null") : null,
-      escrow: cfg.escrow,
+      escrow: won ? escrowOf(q.escrow ? q : r) : cfg.escrow,
       chainId: cfg.chainId,
     });
   });
@@ -478,11 +506,17 @@ export function createApp(deps: Deps) {
         s: hex32,
       })
       .optional(),
+    /** the escrow the deal is on; defaults to the current one */
+    escrow: z
+      .string()
+      .refine((s) => isAddress(s), "invalid escrow address")
+      .transform((s) => getAddress(s))
+      .optional(),
   });
 
   app.post("/relay/deposit", async (c) => {
     const body = RelayBody.parse(await c.req.json());
-    const res = await relayer.relayDeposit(body.terms, body.permit ?? NO_PERMIT, body.sellerSig);
+    const res = await relayer.relayDeposit(body.terms, body.permit ?? NO_PERMIT, body.sellerSig, body.escrow);
     return c.json(res, 202);
   });
 
@@ -565,7 +599,9 @@ export function createApp(deps: Deps) {
     db,
     chain: deps.statsChain ?? null,
     usdg: cfg.usdg,
+    burnToken: burnPay,
     ethUsd: () => refQuote("ETH-USD", "5d").then((q) => q.price, () => null),
+    burnTokenUsd: burnPay ? () => tokenMarket(burnPay).then((m) => m.priceUsd, () => null) : undefined,
     now,
   });
 

@@ -12,10 +12,13 @@ export function vsMarket(opts: {
   price: bigint;
   payToken: Address;
   payDecimals: number;
+  /** USD price of the pay token when it isn't ETH or USDG (e.g. $OBSYN); null = unknown */
+  payUsd?: number | null;
 }): number | null {
   const { market, amount, tokenDecimals, price, payToken, payDecimals } = opts;
   if (!market?.priceUsd || amount <= 0n) return null;
-  const payUsd = payToken === zeroAddress ? market.ethUsd : 1; // USDG is a dollar
+  // ETH at its market price, $OBSYN at the price passed in, USDG is a dollar
+  const payUsd = payToken === zeroAddress ? market.ethUsd : opts.payUsd !== undefined ? opts.payUsd : 1;
   if (!payUsd) return null;
   const unitUsd = (Number(formatUnits(price, payDecimals)) * payUsd) / Number(formatUnits(amount, tokenDecimals));
   if (!isFinite(unitUsd) || unitUsd <= 0) return null;

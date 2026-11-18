@@ -62,8 +62,11 @@ export function parseReceipt(opts: { escrow: Address; txHash: Hex; tx: TxLike; r
   };
 }
 
-export async function readReceipt(client: PublicClient, escrow: Address, txHash: Hex): Promise<DealReceipt> {
+export async function readReceipt(client: PublicClient, escrows: Address | Address[], txHash: Hex): Promise<DealReceipt> {
   const [tx, receipt] = await Promise.all([client.getTransaction({ hash: txHash }), client.getTransactionReceipt({ hash: txHash })]);
+  const list = Array.isArray(escrows) ? escrows : [escrows];
+  // the escrow this transaction went to, when it is one of ours (parseReceipt rejects anything else)
+  const escrow = list.find((a) => tx.to && a.toLowerCase() === tx.to.toLowerCase()) ?? list[0];
   const block = await client.getBlock({ blockNumber: receipt.blockNumber });
   return parseReceipt({ escrow, txHash, tx, receipt, timestamp: Number(block.timestamp) });
 }

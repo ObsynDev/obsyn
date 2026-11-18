@@ -18,8 +18,8 @@ export interface AutopilotRule {
   side: "sell" | "buy";
   /** Token contract on Robinhood Chain. */
   token: string;
-  /** Which payment to accept (sell) or pay with (buy). Default: any. */
-  payWith?: "ETH" | "USDG" | "any";
+  /** Which payment to accept (sell) or pay with (buy). Default: any. OBSYN only where the server accepts it. */
+  payWith?: "ETH" | "USDG" | "OBSYN" | "any";
   /** Most tokens to sell (or buy) over the whole run, whole tokens. */
   maxTotal: string;
   /** Most tokens per deal, whole tokens. */
@@ -87,7 +87,7 @@ export function validateConfig(c: unknown): string[] {
     for (const k of Object.keys(r ?? {})) if (!RULE_KEYS.has(k)) out.push(`${at}: unknown field "${k}"`);
     if (r?.side !== "sell" && r?.side !== "buy") out.push(`${at}: side must be "sell" or "buy"`);
     if (!isAddress(String(r?.token))) out.push(`${at}: token must be a contract address`);
-    if (r?.payWith && !["ETH", "USDG", "any"].includes(r.payWith)) out.push(`${at}: payWith must be ETH, USDG or any`);
+    if (r?.payWith && !["ETH", "USDG", "OBSYN", "any"].includes(r.payWith)) out.push(`${at}: payWith must be ETH, USDG, OBSYN or any`);
     for (const k of ["maxTotal", "maxPerDeal"] as const) if (!/^\d+(\.\d+)?$/.test(String(r?.[k])) || Number(r?.[k]) <= 0) out.push(`${at}: ${k} must be a positive number of tokens`);
     if (Number(r?.maxPerDeal) > Number(r?.maxTotal)) out.push(`${at}: maxPerDeal can't exceed maxTotal`);
     if (typeof r?.priceVsMarketPct !== "number" || !Number.isFinite(r.priceVsMarketPct) || Math.abs(r.priceVsMarketPct) > 50) out.push(`${at}: priceVsMarketPct must be a number between -50 and 50`);
@@ -105,6 +105,8 @@ export interface AutopilotDeps {
   balanceOf: (asset: Address, who: Address) => Promise<bigint>;
   decimals: (token: Address) => Promise<number>;
   usdg: Address | null;
+  /** $OBSYN, when the server's escrow accepts it as payment */
+  burnToken?: Address | null;
   now?: () => number;
   log?: (line: string) => void;
 }
@@ -204,7 +206,15 @@ export class Autopilot {
         if (room <= 0 || left <= 0n) break;
         if ((p.side ?? "buy") !== want || getAddress(p.token) !== token || p.status !== "open" || p.expiresAt <= now) continue;
         if (answered.has(p.id)) continue;
-        const pay = p.payToken === zeroAddress ? "ETH" : this.deps.usdg && getAddress(p.payToken) === getAddress(this.deps.usdg) ? "USDG" : null;
+        const burnToken = this.deps.burnToken ?? null;
+        const pay =
+          p.payToken === zeroAddress
+            ? "ETH"
+            : this.deps.usdg && getAddress(p.payToken) === getAddress(this.deps.usdg)
+              ? "USDG"
+              : burnToken && getAddress(p.payToken) === getAddress(burnToken)
+                ? "OBSYN"
+                : null;
         if (!pay || (r.payWith && r.payWith !== "any" && r.payWith !== pay)) continue;
 
         const q = await this.deps.quote(token).catch(() => ({ usd: null, ethUsd: null }));
@@ -240,17 +250,20 @@ export class Autopilot {
 
         const wholeTokens = Number(formatUnits(amount, decimals));
         const totalUsd = wholeTokens * perToken;
-        const total = pay === "USDG" ? totalUsd : q.ethUsd ? totalUsd / q.ethUsd : null;
+        // the price in what the deal is paid in: USDG ~ $1, ETH and $OBSYN at their market price
+        let payUsd: number | null = pay === "USDG" ? 1 : pay === "ETH" ? q.ethUsd : null;
+        if (pay === "OBSYN") payUsd = (await this.deps.quote(burnToken!).catch(() => ({ usd: null }))).usd;
+        const total = payUsd && payUsd > 0 ? totalUsd / payUsd : null;
         if (!total || !Number.isFinite(total) || total <= 0) {
-          report.skipped.push(`posting ${p.id}: no ETH price to quote in ETH`);
+          report.skipped.push(`posting ${p.id}: no ${pay} price to quote in ${pay}`);
           continue;
         }
-        const totalStr = total.toFixed(pay === "USDG" ? 6 : 12);
+        const totalStr = total.toFixed(pay === "ETH" ? 12 : 6);
 
         // funds: what we'd hand over must already be in the wallet
         if (me) {
-          const asset = r.side === "sell" ? token : pay === "ETH" ? zeroAddress : getAddress(this.deps.usdg!);
-          const need = r.side === "sell" ? amount : parseUnits(totalStr, pay === "ETH" ? 18 : 6);
+          const asset = r.side === "sell" ? token : pay === "ETH" ? zeroAddress : pay === "OBSYN" ? getAddress(burnToken!) : getAddress(this.deps.usdg!);
+          const need = r.side === "sell" ? amount : parseUnits(totalStr, pay === "USDG" ? 6 : 18);
           const have = await this.deps.balanceOf(asset, me).catch(() => 0n);
           if (have < need) {
             report.skipped.push(`posting ${p.id}: wallet doesn't hold enough to cover it`);
@@ -317,6 +330,7 @@ export async function createAutopilot(agent: OtcAgent, cfg: AutopilotConfig, log
     balanceOf: (asset, who) => agent.balanceOf(asset, who),
     decimals: (token) => agent.decimalsOf(token),
     usdg: server.usdg,
+    burnToken: server.payTokens?.find((p) => p.symbol === "OBSYN")?.address ?? null,
     log,
   });
 }

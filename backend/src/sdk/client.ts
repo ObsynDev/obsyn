@@ -32,6 +32,8 @@ interface ServerConfig {
   chainId: number;
   rpcUrl: string;
   escrow: Address | null;
+  /** what deals can be paid in; $OBSYN only with an escrow that burns its fee */
+  payTokens?: { symbol: string; address: Address; decimals: number; feeBps?: number; feeBurned?: boolean }[];
   usdg: Address | null;
   relayer: { enabled: boolean; address: Address | null; minFee: { eth: string; usdg: string } };
 }
@@ -284,7 +286,7 @@ export class OtcAgent {
       relayer: cfg.relayer,
       agentWallet: this.address,
       signing: this.address ? "this agent signs and sends transactions" : "no key: deposit tools return unsigned transactions",
-      fees: "2.5% under $10k, 2% from $10k, 1.5% from $100k (cap 2.5%), charged at settlement; bids/offers free",
+      fees: "2.5% under $10k, 2% from $10k, 1.5% from $100k (cap 2.5%), charged at settlement; bids/offers free. Paid in $OBSYN (when the server lists it in payTokens): a flat 1.5%, burned",
     };
   }
 
@@ -313,7 +315,7 @@ export class OtcAgent {
 
   private async post(
     side: "buy" | "sell",
-    a: { token: string; amount?: string; sizeUsd?: number; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string; allowPartial?: boolean },
+    a: { token: string; amount?: string; sizeUsd?: number; payWith: "ETH" | "USDG" | "OBSYN"; replyMinutes: number; note?: string; allowPartial?: boolean },
   ) {
     const tok = await this.token(getAddress(a.token));
     if (!a.amount && !(side === "buy" && a.sizeUsd)) throw new Error(side === "buy" ? "Give amount (tokens) or sizeUsd." : "Give amount (tokens).");
@@ -338,12 +340,12 @@ export class OtcAgent {
 
   /** Buyer posts first: sellers answer with sealed offers. */
   /** Size by token amount, or by USD (sellers then say how many tokens they offer). */
-  createBid(a: { token: string; amount?: string; sizeUsd?: number; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string; allowPartial?: boolean }) {
+  createBid(a: { token: string; amount?: string; sizeUsd?: number; payWith: "ETH" | "USDG" | "OBSYN"; replyMinutes: number; note?: string; allowPartial?: boolean }) {
     return this.post("buy", a);
   }
 
   /** Seller posts first ("sell privately"): buyers answer with sealed bids. */
-  createListing(a: { token: string; amount: string; payWith: "ETH" | "USDG"; replyMinutes: number; note?: string; allowPartial?: boolean }) {
+  createListing(a: { token: string; amount: string; payWith: "ETH" | "USDG" | "OBSYN"; replyMinutes: number; note?: string; allowPartial?: boolean }) {
     return this.post("sell", a);
   }
 
@@ -480,6 +482,7 @@ export class OtcAgent {
       let ghostKey: Hex | undefined;
       if (a.ghost) {
         if (!cfg.relayer.enabled) throw new Error("Ghost mode is unavailable: the relayer is offline.");
+        if (!ghostPayable(rfq.payToken, cfg.usdg)) throw new Error("Ghost mode is only available for deals paid in ETH or USDG.");
         ghostKey = generatePrivateKey();
         seller = privateKeyToAccount(ghostKey).address;
       } else {
@@ -560,6 +563,7 @@ export class OtcAgent {
     if (side === "buy") {
       if (a.ghost) {
         if (!cfg.relayer.enabled) throw new Error("Ghost mode is unavailable: the relayer is offline.");
+        if (!ghostPayable(rfq.payToken, cfg.usdg)) throw new Error("Ghost mode is only available for deals paid in ETH or USDG.");
         ghostKey = generatePrivateKey();
         who = privateKeyToAccount(ghostKey).address;
       } else {
@@ -619,13 +623,13 @@ export class OtcAgent {
     if (ref.bidId) {
       const b = this.bid(ref.bidId);
       const role = sideOf(b) === "buy" ? ("buyer" as const) : ("seller" as const);
-      const d = await this.api<{ dealId: Hex; terms: Record<string, string> }>("GET", `/rfqs/${ref.bidId}/deal`, undefined, b.manageToken);
-      return { role, dealId: d.dealId, terms: termsFromJson(d.terms), ghostKey: role === "seller" ? b.ghostKey : undefined };
+      const d = await this.api<{ dealId: Hex; terms: Record<string, string>; escrow: Address | null }>("GET", `/rfqs/${ref.bidId}/deal`, undefined, b.manageToken);
+      return { role, dealId: d.dealId, terms: termsFromJson(d.terms), ghostKey: role === "seller" ? b.ghostKey : undefined, escrow: d.escrow };
     }
     if (ref.offerId) {
       const rec = this.offer(ref.offerId);
       const role = sideOf(rec) === "buy" ? ("seller" as const) : ("buyer" as const);
-      const q = await this.api<{ status: string; dealId: Hex | null; terms: Record<string, string> | null }>(
+      const q = await this.api<{ status: string; dealId: Hex | null; terms: Record<string, string> | null; escrow: Address | null }>(
         "GET",
         `/quotes/${ref.offerId}`,
         undefined,
@@ -652,7 +656,7 @@ export class OtcAgent {
       const problems = bad.filter(Boolean);
       if (problems.length) throw new Error(`Accepted terms don't match what we sent (${problems.join(", ")}). Do not deposit.`);
       if (computeDealId(terms) !== q.dealId) throw new Error("Deal id mismatch. Do not deposit.");
-      return { role, dealId: q.dealId, terms, ghostKey: rec.ghostKey };
+      return { role, dealId: q.dealId, terms, ghostKey: rec.ghostKey, escrow: q.escrow };
     }
     throw new Error("Pass bidId (something you posted) or offerId (something you answered).");
   }
@@ -661,7 +665,7 @@ export class OtcAgent {
     const d = await this.deal(ref);
     if (!("dealId" in d) || !d.dealId) return { role: d.role, offer: d.pending, deal: null };
     const { pc } = await this.chain();
-    const escrow = await this.escrow();
+    const escrow = d.escrow ?? (await this.escrow());
     const [status, buyerFunded, sellerFunded] = await pc.readContract({ address: escrow, abi: OtcEscrowAbi, functionName: "deals", args: [d.dealId] });
     const [tok, pay] = await Promise.all([this.token(d.terms.token), this.token(d.terms.payToken)]);
     const now = BigInt(Math.floor(Date.now() / 1000));
@@ -682,7 +686,7 @@ export class OtcAgent {
   async deposit(ref: { bidId?: string; offerId?: string }) {
     const d = await this.deal(ref);
     if (!("dealId" in d) || !d.dealId) throw new Error(`The offer is ${d.pending}; nothing to deposit yet.`);
-    const escrow = await this.escrow();
+    const escrow = d.escrow ?? (await this.escrow());
     const { pc } = await this.chain();
     const t = d.terms;
     const [status, buyerFunded, sellerFunded] = await pc.readContract({ address: escrow, abi: OtcEscrowAbi, functionName: "deals", args: [d.dealId] });
@@ -811,6 +815,7 @@ export class OtcAgent {
     });
     const res = await this.api<{ txHash: Hex }>("POST", "/relay/deposit", {
       terms: termsToJson(t),
+      escrow,
       sellerSig,
       permit: {
         deadline: t.deadline.toString(),
@@ -828,7 +833,7 @@ export class OtcAgent {
   async refund(ref: { bidId?: string; offerId?: string }) {
     const d = await this.deal(ref);
     if (!("dealId" in d) || !d.dealId) throw new Error("No accepted deal.");
-    const escrow = await this.escrow();
+    const escrow = d.escrow ?? (await this.escrow());
     const tx: UnsignedTx = {
       description: "Refund both sides after the deadline (callable by anyone)",
       to: escrow,
@@ -860,4 +865,9 @@ export class OtcAgent {
   async decimalsOf(token: Address): Promise<number> {
     return (await this.token(token)).decimals;
   }
+}
+
+/** Ghost mode (gasless relayed deposit) works for deals paid in ETH or USDG only. */
+function ghostPayable(payToken: Address, usdg: Address | null): boolean {
+  return payToken === zeroAddress || (!!usdg && payToken.toLowerCase() === usdg.toLowerCase());
 }

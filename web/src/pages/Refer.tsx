@@ -4,6 +4,7 @@ import { useAccount } from "wagmi";
 import { api, type ReferralSummary } from "../lib/api.ts";
 import { connectWallet } from "../lib/chain.ts";
 import { Copy, Err, short, useAction } from "../lib/ui.tsx";
+import { PAY_TOKENS } from "../lib/tokens.ts";
 
 const EXPLORER = "https://robinhoodchain.blockscout.com";
 const amt = (v: string, decimals: number, max: number) => Number(formatUnits(BigInt(v), decimals)).toLocaleString("en-US", { maximumFractionDigits: max });
@@ -87,6 +88,13 @@ export function Refer() {
             <b className="stat-value">{data ? amt(data.earned.usdg, 6, 2) : "…"}</b>
             <span className="stat-sub">paid at settlement</span>
           </div>
+          {data && BigInt(data.earned.obsyn ?? "0") > 0n && (
+            <div className="stat-tile">
+              <span className="stat-label">Earned in $OBSYN</span>
+              <b className="stat-value">{amt(data.earned.obsyn!, 18, 0)}</b>
+              <span className="stat-sub">paid at settlement</span>
+            </div>
+          )}
         </section>
       )}
       {err && <p className="err">Couldn't load referrals: {err}</p>}
@@ -99,7 +107,11 @@ export function Refer() {
               <li key={r.dealId}>
                 <span className="muted small">{new Date(r.acceptedAt * 1000).toISOString().slice(0, 10)}</span>
                 <b>
-                  {r.payToken === zeroAddress ? `${amt(r.fee, 18, 6)} ETH` : `${amt(r.fee, 6, 2)} USDG`}
+                  {r.payToken === zeroAddress
+                    ? `${amt(r.fee, 18, 6)} ETH`
+                    : PAY_TOKENS.some((p) => p.symbol === "USDG" && p.address.toLowerCase() === r.payToken.toLowerCase())
+                      ? `${amt(r.fee, 6, 2)} USDG`
+                      : `${amt(r.fee, 18, 0)} OBSYN`}
                 </b>
                 {r.settleTx ? (
                   <a href={`/receipt/${r.settleTx}`} className="mono small">

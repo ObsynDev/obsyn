@@ -144,6 +144,7 @@ export function DealPanel({
           <dt>Fee at settlement</dt>
           <dd>
             {fmtAmount(fees.protocol + fees.referrer, pay.decimals, 6)} {pay.symbol}
+            {pay.symbol === "OBSYN" && <span className="muted"> · burned by the contract</span>}
           </dd>
           {terms.relayerFee > 0n && (
             <>

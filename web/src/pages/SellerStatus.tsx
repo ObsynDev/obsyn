@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { getAddress, type Hex } from "viem";
+import { getAddress, type Address, type Hex } from "viem";
 import { api } from "../lib/api.ts";
 import { termsFromJson } from "../lib/chain.ts";
 import { hashParams, sideOf, type BuyerBid, type Offer } from "../lib/sealed.ts";
@@ -69,18 +69,21 @@ export function SellerStatus({ id }: { id: string }) {
       {terms && !mine && (
         <p className="muted">This browser has no copy of your original {noun}, so check the numbers below yourself before depositing.</p>
       )}
-      {terms && d.dealId && mismatch.length === 0 && <DealPanelWithEscrow dealId={d.dealId} terms={terms} role={role} ghostKey={ghostKey} rfqId={d.rfq.id} />}
+      {terms && d.dealId && mismatch.length === 0 && <DealPanelWithEscrow escrow={d.escrow} dealId={d.dealId} terms={terms} role={role} ghostKey={ghostKey} rfqId={d.rfq.id} />}
     </div>
   );
 }
 
 function DealPanelWithEscrow({
+  escrow,
   dealId,
   terms,
   role,
   ghostKey,
   rfqId,
 }: {
+  /** the deal's own escrow, from the server (null on servers that don't say) */
+  escrow: Address | null | undefined;
   dealId: Hex;
   terms: ReturnType<typeof termsFromJson>;
   role: "buyer" | "seller";
@@ -88,7 +91,8 @@ function DealPanelWithEscrow({
   rfqId?: string;
 }) {
   const cfg = usePoll(api.config, 60_000, []);
-  if (!cfg.data) return null;
-  if (!cfg.data.escrow) return <p className="err">Trading isn't live yet: the server has no contract address configured.</p>;
-  return <DealPanel escrow={cfg.data.escrow} dealId={dealId} terms={terms} role={role} ghostKey={role === "seller" ? ghostKey : undefined} rfqId={rfqId} />;
+  if (!escrow && !cfg.data) return null;
+  const on = escrow ?? cfg.data?.escrow;
+  if (!on) return <p className="err">Trading isn't live yet: the server has no contract address configured.</p>;
+  return <DealPanel escrow={on} dealId={dealId} terms={terms} role={role} ghostKey={role === "seller" ? ghostKey : undefined} rfqId={rfqId} />;
 }

@@ -12,6 +12,8 @@ export interface ServerConfig {
   /** $OBSYN, filled in from the server once it launches (PLATFORM_TOKEN_* env vars) */
   platformToken?: { address: Address | null; ponsUrl: string | null; discountMin: string | null };
   relayer: { enabled: boolean; address: Address | null; minFee: { eth: string; usdg: string } };
+  /** what deals can be paid in; OBSYN only with an escrow that burns its fee (OtcEscrowV2) */
+  payTokens?: { symbol: string; address: Address; decimals: number; feeBps?: number; feeBurned?: boolean }[];
 }
 
 export interface Rfq {
@@ -43,7 +45,8 @@ export interface Fills {
   filledAmount: string | null;
   escrow: Address | null;
   chainId: number;
-  deals: { quoteId: string; dealId: Hex; terms: TermsJson; settleTx: Hex | null }[];
+  /** each deal's own escrow (deals made before an escrow switch stay on the old one) */
+  deals: { quoteId: string; dealId: Hex; terms: TermsJson; settleTx: Hex | null; escrow?: Address | null }[];
 }
 
 export interface SealedQuote {
@@ -110,13 +113,16 @@ export interface MarketRow {
   desk: { open: number; buy: number; sell: number };
 }
 /** Public receipt of a settled deal, rebuilt from the chain */
-type Amounts = { eth: string; usdg: string };
+/** per pay currency, base units; obsyn: deals paid in $OBSYN (absent on older servers) */
+type Amounts = { eth: string; usdg: string; obsyn?: string };
 
 /** GET /stats: settled volume and fees in base units (ETH wei, USDG 6 decimals), plus the fee vault. */
 export interface DeskStats {
   deals: { accepted: number; settled: number; refunded: number; open: number };
   volume: Amounts;
   fees: { protocol: Amounts; referrer: Amounts };
+  /** $OBSYN the escrow burned itself at settlement (the fee on deals paid in $OBSYN) */
+  burnedOnSettle?: string;
   volumeUsd: number | null;
   ethUsd: number | null;
   postings: { total: number; open: number; answers: number };
@@ -200,7 +206,7 @@ export const api = {
   createRfq: (body: {
     side: "buy" | "sell";
     token: string;
-    payToken: "ETH" | "USDG";
+    payToken: "ETH" | "USDG" | "OBSYN";
     amount?: string;
     sizeUsd?: number;
     replySeconds: number;
@@ -217,7 +223,7 @@ export const api = {
   deals: (id: string, t: string) => req<Fills>("GET", `/rfqs/${id}/deals`, undefined, t),
   getDeal: (id: string, t: string) => req<DealInfo & { quoteId: string }>("GET", `/rfqs/${id}/deal`, undefined, t),
   getQuote: (id: string, t: string) =>
-    req<{ id: string; status: SealedQuote["status"]; rfq: Rfq; dealId: Hex | null; terms: TermsJson | null }>(
+    req<{ id: string; status: SealedQuote["status"]; rfq: Rfq; dealId: Hex | null; terms: TermsJson | null; escrow: Address | null }>(
       "GET",
       `/quotes/${id}`,
       undefined,

@@ -12,6 +12,8 @@ import { Err, fmtLeft, Link, navigate, useAction, useNow, usePoll } from "../lib
 import { TokenAvatar } from "./Terminal.tsx";
 import { DexImpact } from "./DexImpact.tsx";
 import { swapUrl } from "../lib/dex.ts";
+import { useMarket } from "../lib/market.ts";
+import { PAY_TITLE, useKeepPayValid, usePayOptions, type PaySymbol } from "../lib/pay.ts";
 
 /**
  * /trade?ca=0x…&side=buy|sell — a trading page for one token: order ticket on the left,
@@ -47,7 +49,7 @@ export function Trade() {
   const [token, setToken] = useState<TokenInfo | null>(null);
   const [tokErr, setTokErr] = useState<string | null>(null);
   const [mkt, setMkt] = useState<TokenMarket | null>(null);
-  const [pay, setPay] = useState<"ETH" | "USDG">("USDG");
+  const [pay, setPay] = useState<PaySymbol>("USDG");
   const [size, setSize] = useState(""); // USD on buy, tokens on sell
   const [win, setWin] = useState(86400);
   const [note, setNote] = useState("");
@@ -114,11 +116,26 @@ export function Trade() {
     [account, usdgAddr, watch.join()],
   );
 
+  const payOpts = usePayOptions(["USDG", "ETH"], ca);
+  useKeepPayValid(pay, payOpts.options, setPay);
+  const obsynMkt = useMarket(pay === "OBSYN" ? payOpts.obsyn : null);
   const ethUsd = mkt?.ethUsd ?? null;
   const price = mkt?.priceUsd ?? null;
   const tokenBal = ca && balances.data ? balances.data.toks[ca] ?? null : null;
-  const buyingPower =
-    !balances.data ? null : pay === "USDG" ? (balances.data.usdg !== null ? Number(formatUnits(balances.data.usdg, 6)) : null) : balances.data.eth !== null && ethUsd ? Number(formatUnits(balances.data.eth, 18)) * ethUsd : null;
+  const obsynBal = payOpts.obsyn && balances.data ? (balances.data.toks[payOpts.obsyn] ?? null) : null;
+  const buyingPower = !balances.data
+    ? null
+    : pay === "USDG"
+      ? balances.data.usdg !== null
+        ? Number(formatUnits(balances.data.usdg, 6))
+        : null
+      : pay === "OBSYN"
+        ? obsynBal !== null && obsynMkt?.priceUsd
+          ? Number(formatUnits(obsynBal, 18)) * obsynMkt.priceUsd
+          : null
+        : balances.data.eth !== null && ethUsd
+          ? Number(formatUnits(balances.data.eth, 18)) * ethUsd
+          : null;
   const sizeNum = Number(size.replace(/[,\s$]/g, ""));
   const estimate = !size || !isFinite(sizeNum) || sizeNum <= 0 || !price ? null : side === "buy" ? sizeNum / price : sizeNum * price;
 
@@ -217,7 +234,7 @@ export function Trade() {
             <div className="tr-row-main">
               <b>{known?.symbol ?? (getAddress(r.token) === ca ? sym : `${r.token.slice(0, 6)}…`)}</b>
               <span className="muted small">
-                {r.sizeUsd ? `~${usd(r.sizeUsd, 0)}` : bucket(value)} · {r.payToken === zeroAddress ? "ETH" : "USDG"} · {fmtLeft(r.expiresAt - now)} left
+                {r.sizeUsd ? `~${usd(r.sizeUsd, 0)}` : bucket(value)} · {r.payToken === zeroAddress ? "ETH" : payOpts.obsyn && r.payToken.toLowerCase() === payOpts.obsyn.toLowerCase() ? "OBSYN" : "USDG"} · {fmtLeft(r.expiresAt - now)} left
               </span>
             </div>
             <span className="tr-row-n mono">
@@ -382,8 +399,8 @@ export function Trade() {
             <div>
               <span className="muted small">{side === "buy" ? "Pay with" : "Get paid in"}</span>
               <div className="seg-mini">
-                {(["USDG", "ETH"] as const).map((p) => (
-                  <button type="button" key={p} className={pay === p ? "on" : ""} onClick={() => setPay(p)}>
+                {payOpts.options.map((p) => (
+                  <button type="button" key={p} className={pay === p ? "on" : ""} onClick={() => setPay(p)} title={PAY_TITLE[p]}>
                     {p}
                   </button>
                 ))}

@@ -24,8 +24,8 @@ const api = createApp({
   relayer: createRelayer(cfg),
   readPrice: (token, src) => readPrice(publicClient, token, src),
   readToken: (token) => readTokenInfo(publicClient, token),
-  readReceipt: cfg.escrow ? (tx) => readReceipt(publicClient, cfg.escrow!, tx) : undefined,
-  statsChain: cfg.escrow ? chainStats(publicClient, cfg.escrow, cfg.platformToken?.address ?? null) : undefined,
+  readReceipt: cfg.escrow ? (tx) => readReceipt(publicClient, [cfg.escrow!, ...(cfg.escrowLegacy ? [cfg.escrowLegacy] : [])], tx) : undefined,
+  statsChain: cfg.escrow ? chainStats(publicClient, cfg.escrow, cfg.platformToken?.address ?? null, cfg.escrowLegacy ?? null) : undefined,
 });
 const site = createSite(api, process.env.WEB_DIST ?? fileURLToPath(new URL("../../web/dist", import.meta.url)), cfg.publicUrl, {
   tokenAddress: cfg.platformToken?.address ?? null,

@@ -9,11 +9,12 @@ import { fmtCompactUsd, fmtPrice, useObsynMarket } from "./ObsynMarket.tsx";
 const num = (v: string, decimals: number, max = 2) => Number(formatUnits(BigInt(v), decimals)).toLocaleString("en-US", { maximumFractionDigits: max });
 const usd = (n: number) => "$" + n.toLocaleString("en-US", { maximumFractionDigits: n < 1000 ? 2 : 0 });
 
-/** Two-currency amount: "1.2 ETH + 3,400 USDG", or "0" when both are zero. */
-function both(a: { eth: string; usdg: string }) {
+/** Amount per pay currency: "1.2 ETH + 3,400 USDG + 50,000 OBSYN", or "0" when all are zero. */
+function both(a: { eth: string; usdg: string; obsyn?: string }) {
   const parts = [];
   if (BigInt(a.eth) > 0n) parts.push(`${num(a.eth, 18, 4)} ETH`);
   if (BigInt(a.usdg) > 0n) parts.push(`${num(a.usdg, 6)} USDG`);
+  if (BigInt(a.obsyn ?? "0") > 0n) parts.push(`${num(a.obsyn!, 18, 0)} OBSYN`);
   return parts.length ? parts.join(" + ") : "0";
 }
 
@@ -35,7 +36,9 @@ export function Stats() {
   }, []);
 
   const sym = "$" + (PLATFORM_TOKEN.symbol ?? "OBSYN").replace(/^\$/, "");
-  const fees = s ? { eth: (BigInt(s.fees.protocol.eth) + BigInt(s.fees.referrer.eth)).toString(), usdg: (BigInt(s.fees.protocol.usdg) + BigInt(s.fees.referrer.usdg)).toString() } : null;
+  const sum = (k: "eth" | "usdg" | "obsyn") => (BigInt(s?.fees.protocol[k] ?? "0") + BigInt(s?.fees.referrer[k] ?? "0")).toString();
+  const fees = s ? { eth: sum("eth"), usdg: sum("usdg"), obsyn: sum("obsyn") } : null;
+  const burnedOnSettle = BigInt(s?.burnedOnSettle ?? "0");
 
   return (
     <div className="doc stats">
@@ -54,9 +57,9 @@ export function Stats() {
       {s && fees && (
         <>
           <section className="stat-grid">
-            <Tile label="Settled volume" value={s.volumeUsd === null ? both(s.volume) : usd(s.volumeUsd)} sub={s.volumeUsd === null || both(s.volume) === "0" ? "paid by buyers in ETH and USDG" : both(s.volume)} />
+            <Tile label="Settled volume" value={s.volumeUsd === null ? both(s.volume) : usd(s.volumeUsd)} sub={s.volumeUsd === null || both(s.volume) === "0" ? "paid by buyers in ETH, USDG and $OBSYN" : both(s.volume)} />
             <Tile label="Deals settled" value={s.deals.settled.toLocaleString("en-US")} sub={`${s.deals.accepted} accepted · ${s.deals.refunded} refunded`} />
-            <Tile label="Fees at settlement" value={both(fees)} sub={BigInt(s.fees.referrer.eth) + BigInt(s.fees.referrer.usdg) > 0n ? `of which to referrers: ${both(s.fees.referrer)}` : "to the buy-and-burn vault"} />
+            <Tile label="Fees at settlement" value={both(fees)} sub={both(s.fees.referrer) !== "0" ? `of which to referrers: ${both(s.fees.referrer)}` : "to the buy-and-burn vault, or burned when paid in $OBSYN"} />
             <Tile label="Tokens traded" value={String(s.tokensTraded)} sub="distinct tokens in settled deals" />
             <Tile label="Blocks posted" value={s.postings.total.toLocaleString("en-US")} sub={`${s.postings.open} open now`} />
             <Tile label="Sealed answers" value={s.postings.answers.toLocaleString("en-US")} sub="encrypted offers and bids sent" />
@@ -92,6 +95,9 @@ export function Stats() {
               <>
                 <section className="stat-grid">
                   <Tile label={`Burned by the fee vault`} value={`${num(s.vault.totalBurned, 18, 0)} ${sym}`} sub="bought with desk fees, sent to the burn address" />
+                  {burnedOnSettle > 0n && (
+                    <Tile label="Burned at settlement" value={`${num(burnedOnSettle.toString(), 18, 0)} ${sym}`} sub={`fees on deals paid in ${sym}, burned by the escrow`} />
+                  )}
                   <Tile label="Fees waiting to burn" value={both({ eth: s.vault.ethWaiting, usdg: s.vault.usdgWaiting })} sub="in the vault now" />
                   {s.vault.burnedAtDead !== null && (
                     <Tile label="At the burn address" value={`${num(s.vault.burnedAtDead, 18, 0)} ${sym}`} sub="all sources, including the vault" />
