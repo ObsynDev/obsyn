@@ -62,6 +62,10 @@ it("previews a deal receipt with its own share card", async () => {
   assert.match(html, new RegExp(`og:image" content="https://obsyn.trade/api/receipts/${tx}/card.png`));
   assert.match(html, new RegExp(`twitter:image" content="https://obsyn.trade/api/receipts/${tx}/card.png`));
   assert.match(html, /<title>Private block settled on Obsyn<\/title>/);
+  // an open block's public link previews with its own card
+  const block = await (await site.request("/rfq/AbC-123_xyz")).text();
+  assert.match(block, /og:image" content="https:\/\/obsyn.trade\/api\/rfqs\/AbC-123_xyz\/card.png/);
+  assert.match(block, /<title>Private OTC block on Obsyn<\/title>/);
   // other pages keep the site image
   assert.match(await (await site.request("/bid/x")).text(), /brand\/og.png/);
 });

@@ -106,6 +106,23 @@ export function createSite(api: Hono, webDist: string | null, publicUrl = "", fa
         .replace(/(<meta property="og:image" content=")[^"]*/, `$1${card}`)
         .replace(/(<meta name="twitter:image" content=")[^"]*/, `$1${card}`);
     }
+    // an open block's share link previews as its own card (size and token, never a price)
+    const bx = /^\/rfq\/([\w-]{6,64})\/?$/.exec(rel);
+    if (bx) {
+      const origin = publicUrl.replace(/\/+$/, "") || new URL(c.req.url).origin;
+      const card = `${origin}/api/rfqs/${bx[1]}/card.png`;
+      const title = "Private OTC block on Obsyn";
+      const desc = "Answer with a sealed price. Only the poster reads it; the deal settles in one transaction through an escrow with no admin key.";
+      html = html
+        .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
+        .replace(/(<meta property="og:title" content=")[^"]*/, `$1${title}`)
+        .replace(/(<meta name="twitter:title" content=")[^"]*/, `$1${title}`)
+        .replace(/(<meta property="og:description" content=")[^"]*/, `$1${desc}`)
+        .replace(/(<meta name="twitter:description" content=")[^"]*/, `$1${desc}`)
+        .replace(/(<meta property="og:url" content=")[^"]*/, `$1${origin}${rel}`)
+        .replace(/(<meta property="og:image" content=")[^"]*/, `$1${card}`)
+        .replace(/(<meta name="twitter:image" content=")[^"]*/, `$1${card}`);
+    }
     return c.body(html, 200, { "content-type": TYPES[".html"], "cache-control": "no-cache" });
   });
 

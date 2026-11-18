@@ -207,6 +207,13 @@ export const openapi = {
         responses: { 200: ok("Receipt", { type: "object" }), 400: err("Bad hash"), 404: err("Not an Obsyn settlement") },
       },
     },
+    "/rfqs/{id}/card.png": {
+      get: {
+        summary: "Share card for an open block (1200x630 PNG): side, size, token, pay token, number of sealed answers, time left. Never a price",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: { 200: { description: "PNG image", content: { "image/png": { schema: { type: "string", format: "binary" } } } }, 404: err("No such block") },
+      },
+    },
     "/receipts/{tx}/card.png": {
       get: {
         summary: "Share card for a settled deal (1200x630 PNG): size, price, the comparison with a DEX market order, and the fee. Public data only",

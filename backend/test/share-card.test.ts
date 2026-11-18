@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { getAddress, zeroAddress } from "viem";
 import { createApp } from "../src/app.ts";
-import { cardSvg, fmtNum, renderCard } from "../src/card.ts";
+import { blockCardSvg, cardSvg, fmtNum, renderBlockCard, renderCard } from "../src/card.ts";
 import { loadConfig } from "../src/config.ts";
 import { openDb } from "../src/db.ts";
 import type { Relayer } from "../src/relayer.ts";
@@ -59,6 +59,16 @@ describe("share card", () => {
     assert.ok(!svg.includes("<x>"));
     assert.ok(svg.includes("FEE BURNED"));
     assert.ok(cardSvg({ ...data, fee: { amount: 1.125, symbol: "USDG", burned: false } }).includes("FEE TO BUY-AND-BURN"));
+  });
+
+  it("draws an open block's card without any price", () => {
+    const svg = blockCardSvg({ side: "buy", size: "~$5,000 of NVDA", paySymbol: "USDG", answers: 2, secondsLeft: 3 * 3600 + 120, open: true, id: "abc123" });
+    assert.ok(svg.includes("BUYING") && svg.includes("~$5,000 of NVDA") && svg.includes("sealed offers only") && svg.includes("3h 2m"));
+    assert.ok(!/\$\d+(\.\d+)? (per|each)/.test(svg));
+    const closed = blockCardSvg({ side: "sell", size: "1,000 TSLA", paySymbol: "OBSYN", answers: 0, secondsLeft: -5, open: true, id: "x" });
+    assert.ok(closed.includes("CLOSED") && closed.includes("SELLING"));
+    const png = renderBlockCard({ side: "buy", size: "10 NVDA", paySymbol: "ETH", answers: 1, secondsLeft: 600, open: true, id: "y" });
+    assert.equal(png.subarray(1, 4).toString(), "PNG");
   });
 
   it("formats numbers compactly", () => {

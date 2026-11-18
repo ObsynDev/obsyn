@@ -6230,3 +6230,33 @@ html, body { overflow-x: clip; }
 .mb-dexchart p { margin: 0; }
 .mb-dexchart a { color: var(--green); }
 @media (max-width: 640px) { .mb-dexchart .obc-frame { height: 340px; } }
+
+/* ---------- /slippage ---------- */
+.slip-controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; margin: 18px 0; }
+.slip-size { display: grid; gap: 4px; }
+.slip-size input { width: 160px; background: #0b0a08; border: 1px solid var(--line-2); border-radius: 10px; color: var(--text); padding: 10px 12px; font: 600 18px var(--mono); }
+.slip-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.slip-presets button { border: 1px solid var(--line-2); background: none; color: var(--muted); font: 500 12px var(--mono); padding: 7px 11px; border-radius: 999px; cursor: pointer; }
+.slip-presets button.on, .slip-presets button:hover { color: var(--text); border-color: rgb(255 106 43 / 0.5); }
+.slip-headline { font-size: 18px; margin: 4px 0 16px; }
+.slip-headline b { color: var(--green); }
+.slip-table { display: grid; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-bottom: 14px; }
+.slip-row { display: grid; grid-template-columns: minmax(160px, 1.6fr) 1fr 1fr 1fr 1fr auto; gap: 10px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.slip-row.head { border-top: 0; background: #0f0d0b; font: 500 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.slip-mk { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.slip-mk > span { display: grid; min-width: 0; }
+.slip-mk i { font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slip-pct.cool { color: var(--muted); }
+.slip-pct.warm { color: var(--sand, #f0c48e); }
+.slip-pct.hot { color: #ff5277; }
+.slip-acts { display: flex; gap: 6px; justify-content: end; }
+.slip-acts a { text-decoration: none; }
+@media (max-width: 760px) {
+  .slip-row { grid-template-columns: 1fr auto; row-gap: 4px; }
+  .slip-row.head { display: none; }
+  .slip-row > span:nth-child(2)::before { content: "Price "; color: var(--muted); }
+  .slip-row > span:nth-child(3)::before { content: "Pool "; color: var(--muted); }
+  .slip-row > span:nth-child(4)::before { content: "Impact "; color: var(--muted); }
+  .slip-row > span:nth-child(5)::before { content: "Cost "; color: var(--muted); }
+  .slip-acts { grid-column: 1 / -1; justify-content: start; }
+}

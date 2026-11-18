@@ -256,6 +256,32 @@ export function createApp(deps: Deps) {
     return c.json(pub(r));
   });
 
+  /** A 1200x630 share card for an open block: side, size, token, pay token, answers, time left. Never a price. */
+  app.get("/rfqs/:id/card.png", async (c) => {
+    const r = rfq(c.req.param("id"));
+    if (!r) return c.json({ error: "not found" }, 404);
+    const p = pub(r) as { side?: "buy" | "sell"; quoteCount: number; status: string };
+    const [tok, pm] = await Promise.all([tokenMeta(getAddress(r.token)), tokenMeta(getAddress(r.pay_token))]);
+    const amount = r.amount ? Number(BigInt(r.amount)) / 10 ** tok.decimals : null;
+    const size = amount !== null ? `${amount.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${tok.symbol}` : `~$${Math.round(r.size_usd ?? 0).toLocaleString("en-US")} of ${tok.symbol}`;
+    let renderBlockCard: typeof import("./card.ts").renderBlockCard;
+    try {
+      ({ renderBlockCard } = await import("./card.ts"));
+    } catch {
+      return c.json({ error: "share cards are unavailable on this server" }, 503);
+    }
+    const png = renderBlockCard({
+      side: p.side === "sell" ? "sell" : "buy",
+      size,
+      paySymbol: pm.symbol,
+      answers: p.quoteCount,
+      secondsLeft: r.expires_at - now(),
+      open: r.status === "open",
+      id: r.id,
+    });
+    return c.body(new Uint8Array(png), 200, { "content-type": "image/png", "cache-control": "public, max-age=60" });
+  });
+
   app.post("/rfqs/:id/cancel", (c) => {
     const r = rfq(c.req.param("id"));
     if (!r) return c.json({ error: "not found" }, 404);

@@ -222,6 +222,12 @@ export function BuyerBid({ id }: { id: string }) {
   if (err) return <p className="err">{err}</p>;
   if (!rfq || !tok || !pay) return <p className="muted">Loading…</p>;
   // ghost mode needs a deal paid in ETH or USDG, and a token with gasless approvals
+  const sizeText = rfq.amount ? `${fmtAmount(rfq.amount, tok.decimals, 2)} ${tok.symbol}` : `~$${(rfq.sizeUsd ?? 0).toLocaleString("en-US")} of ${tok.symbol}`;
+  const shareText =
+    sideOf(rfq) === "sell"
+      ? `Selling a block of ${sizeText} privately, paid in ${pay.symbol}. Sealed bids only, settled on-chain in one transaction.`
+      : `Looking to buy ${sizeText} privately, paid in ${pay.symbol}. Sealed offers only, settled on-chain in one transaction.`;
+  const shareOnX = `https://x.com/intent/post?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(`${window.location.origin}/rfq/${id}`)}`;
   const noGhost = cfg && !ghostPayable(rfq.payToken, cfg.usdg) ? NO_GHOST_PAY : ghostOk === false ? NO_GHOST(tok.symbol) : null;
 
   const left = rfq.expiresAt - now;
@@ -249,7 +255,16 @@ export function BuyerBid({ id }: { id: string }) {
         <p className="muted">
           Share with {others}: <span className="mono">{`${window.location.origin}/rfq/${id}`}</span>{" "}
           <Copy text={`${window.location.origin}/rfq/${id}`} />
+          {rfq.status === "open" && left > 0 && (
+            <>
+              {" "}
+              <a className="btn ghost sm" href={shareOnX} target="_blank" rel="noreferrer">
+                Share on X
+              </a>
+            </>
+          )}
         </p>
+        {rfq.status === "open" && left > 0 && <p className="muted small">The post shows the size and the token, never your price or any answer: those stay sealed.</p>}
       </section>
 
       {rfq.status === "open" && (

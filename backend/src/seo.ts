@@ -146,6 +146,11 @@ ${faqHtml}`,
     description: "How Obsyn works end to end: sealed answers, the settlement contract, fees, the platform token, agents, the SDK and the MCP server.",
     body: `<h1>Docs</h1><p>How Obsyn works end to end: posting blocks, sealed answers, the settlement contract, fees and the $OBSYN token, plus the SDK and MCP server for agents.</p>`,
   },
+  "/slippage": {
+    title: "Slippage calculator · Obsyn",
+    description: "What a block of NVDA, TSLA, AAPL or $OBSYN costs as a DEX market order on Robinhood Chain: price impact and dollar cost for every listed market, from each token's deepest pool.",
+    body: `<h1>The cost of size, on-chain</h1><p>Pick a size and see what the same order costs as a market order on Robinhood Chain's DEX pools, for every market Obsyn lists: the pool price, its liquidity, the estimated price impact and the dollar cost. On the Obsyn OTC desk the same size trades at one price both sides agree, settled in one transaction through an escrow with no admin key.</p><p>Estimate from each token's deepest pool, constant-product model; reference only, not a quote.</p>`,
+  },
   "/stats": {
     title: "Stats · Obsyn",
     description: "Obsyn desk stats: settled OTC volume, deals, fees and the $OBSYN buy-and-burn on Robinhood Chain, checked against the escrow contract.",

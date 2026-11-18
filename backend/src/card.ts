@@ -95,6 +95,60 @@ export function cardSvg(d: CardData): string {
 </svg>`;
 }
 
+/** An open block, for its share link: side, size, token, pay token, answers, time left. Never a price. */
+export interface BlockCardData {
+  side: "buy" | "sell";
+  /** "~$5,000 of NVDA" or "1,000 TSLA" */
+  size: string;
+  paySymbol: string;
+  answers: number;
+  secondsLeft: number;
+  open: boolean;
+  id: string;
+}
+
+export function blockCardSvg(d: BlockCardData): string {
+  const left = d.secondsLeft <= 0 || !d.open ? "closed" : d.secondsLeft >= 3600 ? `${Math.floor(d.secondsLeft / 3600)}h ${Math.floor((d.secondsLeft % 3600) / 60)}m` : `${Math.max(1, Math.floor(d.secondsLeft / 60))}m`;
+  const size = d.size.length > 16 ? 72 : 92;
+  const noun = d.side === "buy" ? "offers" : "bids";
+  const pill = d.open && d.secondsLeft > 0 ? "OPEN · SEALED" : "CLOSED";
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="glow" cx="0.85" cy="0.1" r="0.8">
+      <stop offset="0" stop-color="#ff6a2b" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#0c0b0a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#0c0b0a"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <image x="64" y="52" width="44" height="44" xlink:href="${logoUri()}"/>
+  <text x="120" y="85" font-family="Geist" font-weight="700" font-size="32" fill="#ece4d8">obsyn</text>
+  <rect x="884" y="52" width="252" height="44" rx="22" fill="#1d150d" stroke="#5a4426"/>
+  <circle cx="910" cy="74" r="6" fill="#f0c48e"/>
+  <text x="928" y="80" font-family="Geist Mono" font-weight="500" font-size="16" letter-spacing="2.5" fill="#f0c48e">${pill}</text>
+  <text x="64" y="176" font-family="Geist Mono" font-weight="500" font-size="18" letter-spacing="3" fill="#9a9084">${d.side === "buy" ? "BUYING" : "SELLING"} · OTC BLOCK · ROBINHOOD CHAIN</text>
+  <text x="60" y="${176 + size}" font-family="Geist" font-weight="700" font-size="${size}" fill="#ece4d8">${esc(d.size)}</text>
+  <text x="64" y="${226 + size}" font-family="Geist" font-weight="500" font-size="30" fill="#c9bfb2">paid in ${esc(d.paySymbol)} · sealed ${noun} only</text>
+  ${stat(64, "PRICE", "Sealed", `only the poster reads the ${noun}`, false)}
+  ${stat(432, d.side === "buy" ? "OFFERS IN" : "BIDS IN", String(d.answers), "encrypted to the poster", false)}
+  ${stat(800, "TIME LEFT", left, "to answer this block", d.open && d.secondsLeft > 0)}
+  <text x="64" y="584" font-family="Geist Mono" font-weight="500" font-size="17" fill="#6f665c">one price · settled in one transaction · escrow with no admin key</text>
+  <text x="1136" y="584" text-anchor="end" font-family="Geist Mono" font-weight="500" font-size="17" fill="#ff6a2b">obsyn.trade</text>
+</svg>`;
+}
+
+export function renderBlockCard(d: BlockCardData): Buffer {
+  return renderSvg(blockCardSvg(d));
+}
+
+function renderSvg(svg: string): Buffer {
+  const r = new Resvg(svg, {
+    fitTo: { mode: "width", value: 1200 },
+    font: { fontFiles: FONTS, loadSystemFonts: false, defaultFontFamily: "Geist" },
+  });
+  return Buffer.from(r.render().asPng());
+}
+
 export function renderCard(d: CardData): Buffer {
   const r = new Resvg(cardSvg(d), {
     fitTo: { mode: "width", value: 1200 },

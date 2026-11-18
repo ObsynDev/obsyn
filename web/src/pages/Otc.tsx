@@ -359,8 +359,15 @@ function OtcSections({ onBuy, onSell }: { onBuy: () => void; onSell: () => void 
 
 export function Otc() {
   const [side, setSide] = useState<"buy" | "sell">(() => (new URLSearchParams(window.location.search).get("side") === "sell" ? "sell" : "buy"));
-  const [usd, setUsd] = useState("");
-  const [amount, setAmount] = useState("");
+  // /otc?usd=50000 or ?side=sell&amount=... (from the slippage calculator) prefills the size
+  const [usd, setUsd] = useState(() => {
+    const v = Number(new URLSearchParams(window.location.search).get("usd"));
+    return Number.isFinite(v) && v > 0 ? String(v) : "";
+  });
+  const [amount, setAmount] = useState(() => {
+    const v = Number(new URLSearchParams(window.location.search).get("amount"));
+    return Number.isFinite(v) && v > 0 ? String(v) : "";
+  });
   const [pay, setPay] = useState<PaySymbol>("USDG");
   const [token, setToken] = useState<TokenInfo | null>(null);
   // /otc?token=0x… (from the market board) preselects the token
