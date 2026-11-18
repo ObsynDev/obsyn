@@ -36,6 +36,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Contract on mainnet", d: "Escrow and fee vault live on Robinhood Chain, verified on the explorer and Sourcify (exact match).", s: "live", size: "S", g: "Trust and transparency" },
       { t: "Security audit by the Obsyn team", d: "Manual review, Slither, 41 contract tests, live-fork replays. Report published on GitHub.", s: "live", size: "M", g: "Trust and transparency" },
       { t: "Stats and burn tracker", d: "Settled volume, deals, fees and the $OBSYN buy-and-burn, checked against the contracts.", s: "live", size: "S", doc: "stats", g: "Trust and transparency" },
+      { t: "Fee vault on a multisig", d: "The vault's owner and keeper are a 2-of-3 Safe: every change and every burn needs two signers.", s: "live", size: "S", g: "Trust and transparency" },
       { t: "Platform token on Pons", d: "$OBSYN launched on Pons, graduated to Uniswap v4, and is plugged into the fee vault.", s: "live", size: "L", doc: "token", g: "$OBSYN and growth" },
       { t: "Buy-and-burn + holder discount", d: "Deal fees go to a vault that can only buy and burn $OBSYN (half goes to the referrer when there is one); holders pay 0.5% less.", s: "live", size: "L", doc: "token", g: "$OBSYN and growth" },
       { t: "Referral program", d: "Share a link, earn half the protocol fee on deals you bring, paid by the escrow at settlement.", s: "live", size: "S", doc: "referrals", g: "$OBSYN and growth" },
@@ -56,7 +57,6 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     blurb: "Features that open the desk to bigger and more varied deals.",
     items: [
       { t: "Independent third-party audit", d: "An outside firm audits the contract and fee vault before large sizes.", s: "next", size: "M" },
-      { t: "Fee vault to a multisig", d: "Move the vault from a single wallet to a multisig with a separate keeper.", s: "next", size: "S" },
       { t: "Team access", d: "Big buyers send a direct, private request to a project's team.", s: "planned", size: "M", doc: "team-access" },
     ],
   },

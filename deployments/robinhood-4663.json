@@ -18,6 +18,20 @@
         "usdg": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
         "owner": "0x533452c0e3C3455D33d551964F14D352597b21e1",
         "keeper": "0x533452c0e3C3455D33d551964F14D352597b21e1"
+      },
+      "roles": {
+        "owner": "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E",
+        "keeper": "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E",
+        "since": "2026-11-18",
+        "multisig": {
+          "type": "Safe 1.5.0",
+          "threshold": 2,
+          "signers": [
+            "0x533452c0e3C3455D33d551964F14D352597b21e1",
+            "0xD3b32872b311c29A0DBBbbbc76fE5871Cb0b994A",
+            "0x9743307CebE092eea55756A2526EeB24Ddd4bA86"
+          ]
+        }
       }
     },
     {

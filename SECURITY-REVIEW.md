@@ -32,10 +32,10 @@ No issue was found that lets anyone take or freeze a user's deposit. The contrac
 
 ## Contract findings
 
-### M-01 · Fee vault is controlled by one key (accepted, disclosed)
-`BuyBurnVault`'s owner and keeper are currently the same single wallet. Together they decide how the fees already in the vault are spent: the keeper picks `minOut` for each buy-and-burn, and the owner can change the swap route (after a public 2-day delay, `AdapterQueued`). A bad actor holding that key could buy $OBSYN at a poor price, wasting fees.
+### M-01 · Fee vault is controlled by one key (resolved 2026-11-18)
+`BuyBurnVault`'s owner and keeper were the same single wallet. Together they decide how the fees already in the vault are spent: the keeper picks `minOut` for each buy-and-burn, and the owner can change the swap route (after a public 2-day delay, `AdapterQueued`). A bad actor holding that key could buy $OBSYN at a poor price, wasting fees.
 **Impact:** protocol fees only. User deposits live in the escrow, which the vault can't touch (see [SECURITY.md](SECURITY.md#is-no-admin-key-really-true-the-one-dependency)).
-**Plan:** move ownership to a multisig, and set a separate keeper.
+**Resolved:** owner and keeper moved to a 2-of-3 Safe multisig, [`0x48d8970b6498dFA99CA47F117c4d0AA5A445833E`](https://app.safe.global/home?safe=robinhood:0x48d8970b6498dFA99CA47F117c4d0AA5A445833E). Every route change, keeper change and burn now needs two of three signers, none of them the relayer's server key. Remaining: the keeper still chooses `minOut`, so a burn is only as careful as the two signers who approve it.
 
 ### L-01 · Self-referral halves the protocol fee (mitigated)
 The referrer is part of the deal terms, so a party can name a wallet it controls and take back half the fee (`test_selfReferral_halvesProtocolFee_only`). The seller and buyer are unaffected; the protocol's share halves.

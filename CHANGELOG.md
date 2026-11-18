@@ -4,6 +4,8 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-18
 
+- **Fee vault on a multisig:** the `BuyBurnVault` owner and keeper moved from a single wallet to a 2-of-3 Safe, `0x48d8970b6498dFA99CA47F117c4d0AA5A445833E`. Route changes, keeper changes and burns now need two of three signers, and none of the signers is the relayer's server key. Resolves M-01 in the security review.
+
 - **Autopilot** (obsyn-mcp 0.2.0): `obsyn-mcp autopilot rules.json` trades by rules, 24/7, with the owner's key on their machine. It answers matching bids and listings with sealed, signed prices against the token's DEX price, and deposits once accepted (as seller only after the buyer pays). Dry run unless `"live": true`; caps per deal and in total; optional price floor or ceiling; no answer without a reference price; balance checked first; rules that sell over 20% under or buy over 20% over market are refused. New MCP tool `otc_autopilot_preview` dry-runs rules. Tested end to end on a local escrow: answer, accept, both deposits, settlement, caps, dry run.
 
 - **$OBSYN is a featured market** (15 markets now): in the desk's token picker, the token strip and /markets, with a "Trade $OBSYN OTC, no slippage" link in the token section.

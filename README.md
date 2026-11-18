@@ -29,7 +29,7 @@
 | [LICENSE](LICENSE) | MIT |
 
 - **No admin keys on the escrow.** No owner, no pause, no upgrade. The fee is capped at 2.5% in code.
-- **The fee vault's owner is a single wallet for now,** and can only steer how fees already in the vault buy and burn $OBSYN (route changes wait 2 days, publicly). It can't touch user deposits. Details in [SECURITY.md](SECURITY.md#who-can-do-what).
+- **The fee vault's owner and keeper are a 2-of-3 Safe multisig** ([`0x48d8…833E`](https://app.safe.global/home?safe=robinhood:0x48d8970b6498dFA99CA47F117c4d0AA5A445833E)): every change needs two of three signers. It can only steer how fees already in the vault buy and burn $OBSYN (route changes wait 2 days, publicly). It can't touch user deposits. Details in [SECURITY.md](SECURITY.md#who-can-do-what).
 - **What our server stores:** postings (token, size, side, pay token, optional note, expiry), sealed answers as ciphertext it can't decrypt, SHA-256 hashes of the private-link tokens, and the terms of accepted deals. No accounts, no emails. We set no cookies and run no analytics. Nothing is deleted automatically yet.
 - **Third parties:** Google Fonts (fonts, loaded by your browser), DexScreener and Yahoo Finance (market data, fetched by our server; token logos load from DexScreener's CDN, and the homepage's live $OBSYN chart is a DexScreener embed that loads in your browser when you scroll to it), your wallet's RPC, WalletConnect/Reown if you connect that way, Railway (hosting) and Cloudflare (DNS).
 

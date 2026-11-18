@@ -28,7 +28,7 @@ Enforced by the contracts unless marked *(app)*. "Anyone" means any address, inc
 | Change the swap route (adapter) used for buy-and-burn | — | — | — | yes, **after a public 2-day delay** | no |
 | Change the keeper / hand over ownership | — | — | — | yes (ownership in two steps) | no |
 
-The vault owner is currently a single wallet, not a multisig (see [DEPLOYMENTS.md](DEPLOYMENTS.md)). Its powers only touch fees that are already in the vault, never user deposits in the escrow.
+The vault owner and keeper are a **2-of-3 Safe multisig**, [`0x48d8970b6498dFA99CA47F117c4d0AA5A445833E`](https://app.safe.global/home?safe=robinhood:0x48d8970b6498dFA99CA47F117c4d0AA5A445833E): every action above needs two of three signers (see [DEPLOYMENTS.md](DEPLOYMENTS.md)). Its powers only touch fees that are already in the vault, never user deposits in the escrow.
 
 ## Is "no admin key" really true? The one dependency
 
@@ -115,7 +115,7 @@ Anyone can post an answer to a bid or listing, so the poster treats every decryp
 - [ ] Independent third-party audit of `OtcEscrow` and `BuyBurnVault`
 - [ ] Verify the Pons V2 curve interface on-chain
 - [ ] Official addresses for USDG and an ETH/USD feed on Robinhood Chain
-- [ ] Vault owner = multisig
+- [x] Vault owner = multisig (2-of-3 Safe, keeper too)
 - [ ] Token allowlist in the UI (plain ERC-20s only)
 - [ ] Reverse proxy that sets `x-forwarded-for`; backups of the SQLite file
 - [ ] Monitoring on the relayer's ETH balance and on vault `AdapterQueued` events

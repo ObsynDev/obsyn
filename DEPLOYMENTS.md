@@ -21,7 +21,8 @@ Compiler: solc 0.8.24, optimizer on (10,000 runs), EVM `cancun`. Built from `con
 
 **BuyBurnVault**
 - `usdg`: `0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168`
-- `owner` and `keeper`: `0x533452c0e3C3455D33d551964F14D352597b21e1`. This is currently a single wallet (an EOA), not a multisig. What the owner can and can't do is listed in [SECURITY.md](SECURITY.md#who-can-do-what). Ownership can move to a multisig later with the two-step `transferOwnership`, which is public on-chain.
+- `owner` and `keeper` at deploy: `0x533452c0e3C3455D33d551964F14D352597b21e1` (a single wallet).
+- **Since 2026-11-18, both are a 2-of-3 Safe multisig:** [`0x48d8970b6498dFA99CA47F117c4d0AA5A445833E`](https://app.safe.global/home?safe=robinhood:0x48d8970b6498dFA99CA47F117c4d0AA5A445833E) ([explorer](https://robinhoodchain.blockscout.com/address/0x48d8970b6498dFA99CA47F117c4d0AA5A445833E)). Signers: `0x533452c0e3C3455D33d551964F14D352597b21e1`, `0xD3b32872b311c29A0DBBbbbc76fE5871Cb0b994A`, `0x9743307CebE092eea55756A2526EeB24Ddd4bA86`; any action needs two of them. The keeper moved with `setKeeper`, ownership with the two-step `transferOwnership` / `acceptOwnership`. The old wallet can no longer change anything in the vault. What the owner can and can't do is listed in [SECURITY.md](SECURITY.md#who-can-do-what).
 
 ### $OBSYN plugged into the fee vault
 

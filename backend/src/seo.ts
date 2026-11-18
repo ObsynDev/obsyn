@@ -56,6 +56,7 @@ const ROADMAP: [string, string, [string, string][]][] = [
       ["Autopilot", "An agent that trades by your rules 24/7: prices vs the DEX, hard caps, dry run by default."],
       ["Installable MCP package", "One command to give any agent the desk, no repository needed."],
       ["Stats and burn tracker", "Settled volume, deals, fees and the $OBSYN buy-and-burn, checked against the contracts."],
+      ["Fee vault on a multisig", "The vault's owner and keeper are a 2-of-3 Safe: every change and every burn needs two signers."],
       ["Referral program", "Share a link, earn half the protocol fee on deals you bring, paid by the escrow at settlement."],
       ["Price-impact estimate", "An estimate of what the same size would cost as a DEX market order."],
     ],
@@ -66,7 +67,6 @@ const ROADMAP: [string, string, [string, string][]][] = [
     "Bigger and more varied deals.",
     [
       ["Independent third-party audit (next)", "An outside firm audits the contract and fee vault before large sizes."],
-      ["Fee vault to a multisig (next)", "Move the vault from a single wallet to a multisig with a separate keeper."],
       ["Team access (planned)", "Big buyers send a direct, private request to a project's team."],
     ],
   ],

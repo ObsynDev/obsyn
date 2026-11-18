@@ -313,7 +313,7 @@ const EXPLORER = "https://robinhoodchain.blockscout.com";
 const ADDRESSES: [string, string, string][] = [
   ["OtcEscrow (settlement)", "0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865", "Holds both sides of a deal and swaps them in one transaction. No owner, admin key, pause or upgrade."],
   ["BuyBurnVault (fees)", "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221", `Receives the protocol fee. It can't send funds anywhere except a buy that burns $${PLATFORM_TOKEN.symbol}.`],
-  ["Vault owner and keeper", "0x533452c0e3C3455D33d551964F14D352597b21e1", "A single wallet for now, not a multisig. Its powers are listed under Who can do what."],
+  ["Vault owner and keeper", "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E", "A 2-of-3 Safe multisig: every action needs two of three signers. Its powers are listed under Who can do what."],
   ["Relayer", "0x81D583e77A74571a6fD7b6EE16ECeba9CfE3a2DD", "Pays gas for ghost-mode deposits. Can only submit a deposit the seller signed for that deal and that relayer."],
   ["USDG (payment token)", "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", "Global Dollar on Robinhood Chain. Not ours; fixed in the escrow at deploy."],
 ];
@@ -905,8 +905,8 @@ node scripts/verify-deployment.mjs`}</Code>
 cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103 --rpc-url https://4663.rpc.thirdweb.com
 # both return 0x0000…0000: no implementation to swap, no proxy admin`}</Code>
             <p className="dx-note">
-              The one wallet with any power in Obsyn is the owner of the fee vault, which holds fees, never deposits, and can't block
-              anything in the escrow. See <a href="#permissions" onClick={go("permissions")}>Who can do what</a>.
+              The only account with any power in Obsyn is the owner of the fee vault, a 2-of-3 multisig. The vault holds fees, never
+              deposits, and can't block anything in the escrow. See <a href="#permissions" onClick={go("permissions")}>Who can do what</a>.
             </p>
           </Sect>
 
@@ -931,7 +931,7 @@ cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0xb53127684a568b3173ae13
               </tbody>
             </table>
             <p className="dx-note">
-              "Nobody" includes us. The vault owner is a single wallet for now, and its powers only touch fees already in the vault, never
+              "Nobody" includes us. The vault owner is a 2-of-3 multisig, and its powers only touch fees already in the vault, never
               your deposits.
             </p>
             <h3 className="dx-h3">The escrow's one dependency</h3>
