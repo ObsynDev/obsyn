@@ -50,7 +50,7 @@ const ROADMAP: [string, string, [string, string][]][] = [
       ["Deal receipts", "A public, shareable page per settled deal, rebuilt from the settlement transaction."],
       ["Export / import private links", "Back up the keys to your bids and offers and restore them on another device."],
       ["Platform token on Pons", "$OBSYN launched on Pons, graduated to Uniswap v4, and is plugged into the fee vault."],
-      ["Buy-and-burn + holder discount", "Fees buy $OBSYN and burn it; holders pay 0.5% less."],
+      ["Buy-and-burn + holder discount", "Deal fees go to a vault that can only buy and burn $OBSYN (half goes to the referrer when there is one); holders pay 0.5% less."],
       ["Partial fills", "Several sellers fill one big bid (or several buyers share a listing), each part its own deal."],
       ["Exposure check", "On a ghost-mode deal, see which public hops link the one-time wallet back to you."],
       ["Autopilot", "An agent that trades by your rules 24/7: prices vs the DEX, hard caps, dry run by default."],

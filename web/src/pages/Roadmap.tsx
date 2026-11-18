@@ -37,7 +37,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Security audit by the Obsyn team", d: "Manual review, Slither, 41 contract tests, live-fork replays. Report published on GitHub.", s: "live", size: "M", g: "Trust and transparency" },
       { t: "Stats and burn tracker", d: "Settled volume, deals, fees and the $OBSYN buy-and-burn, checked against the contracts.", s: "live", size: "S", doc: "stats", g: "Trust and transparency" },
       { t: "Platform token on Pons", d: "$OBSYN launched on Pons, graduated to Uniswap v4, and is plugged into the fee vault.", s: "live", size: "L", doc: "token", g: "$OBSYN and growth" },
-      { t: "Buy-and-burn + holder discount", d: "Fees buy $OBSYN and burn it; holders pay 0.5% less.", s: "live", size: "L", doc: "token", g: "$OBSYN and growth" },
+      { t: "Buy-and-burn + holder discount", d: "Deal fees go to a vault that can only buy and burn $OBSYN (half goes to the referrer when there is one); holders pay 0.5% less.", s: "live", size: "L", doc: "token", g: "$OBSYN and growth" },
       { t: "Referral program", d: "Share a link, earn half the protocol fee on deals you bring, paid by the escrow at settlement.", s: "live", size: "S", doc: "referrals", g: "$OBSYN and growth" },
     ],
   },
@@ -89,7 +89,7 @@ const withLaunch = (it: Item): Item => {
     return { ...it, s: "live", d: `$OBSYN is live (${a.slice(0, 6)}…${a.slice(-4)}), graduated from the Pons curve to Uniswap v4, and plugged into the fee vault.` };
   // the vault was pointed at $OBSYN on-chain; the threshold shown comes from the server
   if (it.t === "Buy-and-burn + holder discount" && a && PLATFORM_TOKEN.discountMin)
-    return { ...it, s: "live", d: `Holders of ${PLATFORM_TOKEN.discountMin}+ $OBSYN pay 0.5% less. Fees collect in the vault to buy $OBSYN and burn it.` };
+    return { ...it, s: "live", d: `Holders of ${PLATFORM_TOKEN.discountMin}+ $OBSYN pay 0.5% less. Deal fees go to a vault that can only buy and burn $OBSYN; when a deal has a referrer, half the fee goes to them instead.` };
   return it;
 };
 

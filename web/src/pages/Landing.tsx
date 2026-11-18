@@ -378,7 +378,7 @@ export function Landing() {
         <div className="tk-band-in">
           <div className="no">
             <SectMeta label={`THE TOKEN · $${PLATFORM_TOKEN.symbol}`} idx={5} />
-            <SplitWords text={`Every deal buys $${PLATFORM_TOKEN.symbol}. / [Then burns it.]`} accent="ember" />
+            <SplitWords text={`Deal fees buy $${PLATFORM_TOKEN.symbol}. / [Then burn it.]`} accent="ember" />
             <p className="muted">
               Utility first: the desk works without a token. ${PLATFORM_TOKEN.symbol} launched on Pons and graduated to Uniswap v4, and
               two rules written into the contracts apply to every deal: fees buy and burn ${PLATFORM_TOKEN.symbol}, and holders pay less.
