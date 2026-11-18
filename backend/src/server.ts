@@ -9,6 +9,8 @@ import { readReceipt } from "./receipt.ts";
 import { createRelayer } from "./relayer.ts";
 import { createSite } from "./site.ts";
 import { chainStats } from "./stats.ts";
+import { blockscoutScheduled, readControl } from "./control.ts";
+import { getAddress } from "viem";
 
 try {
   process.loadEnvFile();
@@ -25,6 +27,20 @@ const api = createApp({
   readPrice: (token, src) => readPrice(publicClient, token, src),
   readToken: (token) => readTokenInfo(publicClient, token),
   readReceipt: cfg.escrow ? (tx) => readReceipt(publicClient, [cfg.escrow!, ...(cfg.escrowLegacy ? [cfg.escrowLegacy] : [])], tx) : undefined,
+  controlReader: () =>
+    readControl({
+      client: publicClient,
+      vault: getAddress(process.env.FEE_VAULT_ADDRESS ?? "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221"),
+      escrow: cfg.escrow,
+      escrowLegacy: cfg.escrowLegacy ?? null,
+      token: cfg.platformToken?.address ?? null,
+      // the vault Safe's signers held by the team; shown as such on the Security page
+      teamSigners: (process.env.TEAM_SIGNERS ?? "0x533452c0e3C3455D33d551964F14D352597b21e1,0xD3b32872b311c29A0DBBbbbc76fE5871Cb0b994A,0x9743307CebE092eea55756A2526EeB24Ddd4bA86")
+        .split(",")
+        .map((a) => getAddress(a.trim())),
+      scheduledIds: blockscoutScheduled(process.env.EXPLORER_API ?? "https://robinhoodchain.blockscout.com"),
+      now: () => Math.floor(Date.now() / 1000),
+    }),
   statsChain: cfg.escrow ? chainStats(publicClient, cfg.escrow, cfg.platformToken?.address ?? null, cfg.escrowLegacy ?? null) : undefined,
 });
 const site = createSite(api, process.env.WEB_DIST ?? fileURLToPath(new URL("../../web/dist", import.meta.url)), cfg.publicUrl, {

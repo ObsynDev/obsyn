@@ -17,6 +17,7 @@ import { NO_PERMIT, RelayError, type Relayer } from "./relayer.ts";
 import { hashToken, isB64, newId, newToken, tokenMatches } from "./secrets.ts";
 import { dealId, termsToJson, TermsSchema } from "./terms.ts";
 import { openVsDexStore, vsDex } from "./vsdex.ts";
+import type { ControlReport } from "./control.ts";
 
 export interface Deps {
   cfg: Config;
@@ -32,6 +33,8 @@ export interface Deps {
   readReceipt?: (txHash: Hex) => Promise<DealReceipt>;
   /** on-chain reads for the stats and referral pages (deal status, fees, the fee vault) */
   statsChain?: StatsChain;
+  /** live read of who controls the fee vault (owner, keeper, Safe, timelock and its queue) */
+  controlReader?: () => Promise<ControlReport>;
   now?: () => number; // unix seconds, injectable for tests
 }
 
@@ -711,6 +714,23 @@ export function createApp(deps: Deps) {
     ethUsd: () => refQuote("ETH-USD", "5d").then((q) => q.price, () => null),
     burnTokenUsd: burnPay ? () => tokenMarket(burnPay).then((m) => m.priceUsd, () => null) : undefined,
     now,
+  });
+
+  /** Who controls what, read live from the chain: escrow (no owner), vault owner and keeper, the Safe, the timelock and its queue. */
+  let control: { at: number; p: Promise<ControlReport> } | null = null;
+  app.get("/control", async (c) => {
+    if (!deps.controlReader) return c.json({ error: "not configured" }, 503);
+    if (!control || now() - control.at >= 30) {
+      const p = deps.controlReader();
+      control = { at: now(), p };
+      p.catch(() => (control = null));
+    }
+    try {
+      c.header("cache-control", "public, max-age=30");
+      return c.json(await control.p);
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 502);
+    }
   });
 
   /** Desk totals: deals and settled volume, fees, and the fee vault's buy-and-burn. */

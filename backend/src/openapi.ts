@@ -221,6 +221,12 @@ export const openapi = {
         responses: { 200: { description: "PNG image", content: { "image/png": { schema: { type: "string", format: "binary" } } } }, 400: err("Bad hash"), 404: err("Not an Obsyn settlement") },
       },
     },
+    "/control": {
+      get: {
+        summary: "Who controls what, read live from the chain: the escrow (no owner), the fee vault's owner and keeper (Safe or timelock), the Safe's signers and threshold, the timelock's delay and every queued change, the burn route and what the vault holds",
+        responses: { 200: ok("Control report", { type: "object" }), 502: err("Chain read failed"), 503: err("Not configured") },
+      },
+    },
     "/stats": {
       get: {
         summary: "Desk totals: accepted, settled and refunded deals, settled volume and fees (ETH and USDG base units, plus USD), postings, and the fee vault's buy-and-burn",

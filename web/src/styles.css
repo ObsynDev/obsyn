@@ -6260,3 +6260,17 @@ html, body { overflow-x: clip; }
   .slip-row > span:nth-child(5)::before { content: "Cost "; color: var(--muted); }
   .slip-acts { grid-column: 1 / -1; justify-content: start; }
 }
+
+/* ---------- live control panel (/security#control) ---------- */
+.ctl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0 8px; }
+.ctl-card { display: grid; gap: 6px; align-content: start; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: #110f0c; }
+.ctl-card b { font-size: 15px; }
+.ctl-card p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.ctl-k { font-size: 10.5px; letter-spacing: 0.12em; color: var(--muted); }
+.ctl-wide { grid-column: 1 / -1; }
+.ctl-signers, .ctl-queue { list-style: none; margin: 4px 0; padding: 0; display: grid; gap: 6px; }
+.ctl-signers li, .ctl-queue li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ctl-tag { font: 600 10px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; }
+.ctl-tag.team { color: #f0c48e; border: 1px solid rgb(240 196 142 / 0.4); }
+.ctl-tag.ext { color: #7ad38a; border: 1px solid rgb(122 211 138 / 0.4); }
+@media (max-width: 700px) { .ctl-grid { grid-template-columns: minmax(0, 1fr); } }

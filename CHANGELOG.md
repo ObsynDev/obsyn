@@ -4,6 +4,9 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-18
 
+- **Live control panel** (`/security#control`, `GET /api/control`): who controls what, read from the chain every 30 seconds: the escrow (no owner), what the fee vault holds and has burned, the vault owner and keeper, the Safe's threshold and signers (labelled team or independent), the burn route and its queue, and, once a timelock owns the vault, every queued change with its countdown.
+- **ObsynTimelock** (`contracts/src/ObsynTimelock.sol`): OpenZeppelin TimelockController v5.1.0 (vendored unchanged under `src/vendor/openzeppelin`) to own the fee vault, so every owner change waits 3 days in public; the Safe proposes, anyone executes, no admin; burns stay with the Safe. 7 tests on a fork of the live vault and Safe. Not deployed yet.
+
 - **Slippage calculator** (`/slippage`): what a block costs as a DEX market order on Robinhood Chain for every listed market (pool price, liquidity, price impact, dollar cost), with Post OTC and Share on X per row. Estimate from each token's deepest pool.
 - **Share an open block on X**: the block page has a Share on X button for the public link (size and token, never a price), and `/rfq/{id}` links preview with their own card (`/api/rfqs/{id}/card.png`).
 

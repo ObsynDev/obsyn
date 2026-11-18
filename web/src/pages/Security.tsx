@@ -5,6 +5,7 @@ import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { explorerAddr } from "../lib/chain.ts";
 import { Reveal } from "../lib/motion.tsx";
 import { Copy, Link, short } from "../lib/ui.tsx";
+import { ControlPanel } from "./ControlPanel.tsx";
 
 const GUARANTEES: [string, string][] = [
   ["No admin, ever", "No owner, no admin key, no pause, no upgrade. Settings are fixed at deploy."],
@@ -40,7 +41,7 @@ export function Security() {
   const contracts: [string, string | null | undefined, string][] = [
     ["Settlement contract", cfg?.escrow, "Holds deposits, settles or refunds. No admin."],
     ["Fee vault", "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221", "Holds fees, never deposits. Can only buy and burn $OBSYN."],
-    ["Fee vault owner and keeper", "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E", "2-of-3 Safe multisig: every change and every burn needs two signers."],
+    ["Team Safe", "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E", "2-of-3 Safe multisig, signers held by the team. Live roles above."],
     ["USDG", cfg?.usdg, "Global Dollar, issued by Paxos"],
     ["Relayer", cfg?.relayer.address, "Pays gas for ghost-mode deposits"],
   ];
@@ -91,6 +92,13 @@ export function Security() {
       </header>
 
       <div className="dx-body sec-body">
+        <section className="dx-sect" id="control">
+          <span className="dx-n mono">00 · LIVE</span>
+          <h2>Who controls what, right now</h2>
+          <p className="dx-p">Read from the chain every 30 seconds, not written by hand. Every address links to the explorer so you can check it yourself.</p>
+          <ControlPanel />
+        </section>
+
         <section className="dx-sect">
           <span className="dx-n mono">01 · CONTRACT</span>
           <h2>What the contract guarantees</h2>

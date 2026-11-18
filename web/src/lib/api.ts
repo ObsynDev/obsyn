@@ -163,6 +163,26 @@ export interface DealReceipt {
   vsDex?: VsDex | null;
 }
 
+/** GET /control: who controls what, read live from the chain. */
+export interface ControlReport {
+  escrow: { address: Address | null; legacy: Address | null; owner: null; note: string };
+  vault: {
+    address: Address;
+    owner: Address;
+    ownerKind: "safe" | "timelock" | "account" | "contract";
+    keeper: Address;
+    keeperKind: "safe" | "timelock" | "account" | "contract";
+    pendingOwner: Address | null;
+    route: { active: Address | null; pending: Address | null; pendingEta: number };
+    holds: { eth: string; usdg: string };
+    totalBurned: string;
+  };
+  safe: { address: Address; threshold: number; signers: { address: Address; team: boolean }[]; version: string | null } | null;
+  timelock: { address: Address; minDelay: number; queued: { id: Hex; target: Address; selector: string; label: string; readyAt: number }[]; queuedKnown: boolean } | null;
+  burnedAtDead: string | null;
+  updatedAt: number;
+}
+
 export interface VsDex {
   sizeUsd: number;
   dealUsd: number;
@@ -253,6 +273,7 @@ export const api = {
   tokenMarket: (address: string) => req<TokenMarket>("GET", `/token/${address}/market`),
   receipt: (tx: string) => req<DealReceipt>("GET", `/receipts/${tx}`),
   dealReceipt: (dealId: string) => req<{ txHash: Hex }>("GET", `/deals/${dealId}/receipt`),
+  control: () => req<ControlReport>("GET", "/control"),
   stats: () => req<DeskStats>("GET", "/stats"),
   referrals: (address: string) => req<ReferralSummary>("GET", `/referrals/${address}`),
   reportSettled: (rfqId: string, txHash: string) => req<{ ok: true; txHash: Hex }>("POST", `/rfqs/${rfqId}/settled`, { txHash }),
