@@ -20,6 +20,26 @@ type Doc = {
 
 const DOCS: Doc[] = [
   {
+    id: "multisig",
+    title: "Fee vault on a multisig",
+    status: "Live",
+    half: "both",
+    page: { to: "/docs#permissions", label: "See the signers" },
+    what: "The fee vault's owner and keeper are a 2-of-3 Safe multisig. No single person can change how fees are spent, swap the buy route or run a burn.",
+    how: [
+      "Owner and keeper moved from a single wallet to the Safe on 18 Nov 2026, in public on-chain transactions (setKeeper, then the two-step transferOwnership / acceptOwnership).",
+      "Every route change, keeper change, handover and burn needs two of the three signers. A route change also still waits 2 days in public.",
+      "None of the signers is the relayer's server key, so a server breach can't reach the vault.",
+      "Anyone can check it: the vault's owner() and keeper() return the Safe, and the Safe's getThreshold() returns 2.",
+    ],
+    impact: [
+      { who: "Holders", text: "The buy-and-burn can't be steered by one person." },
+      { who: "Traders", text: "Nothing changes for deposits: the escrow never had an admin. The vault only ever holds fees." },
+      { who: BRAND.name, text: "Closes the main finding from our own review (M-01) and the question raised publicly." },
+    ],
+    risks: "Two signers still choose the minimum each burn must buy, so a burn is only as careful as the two who approve it. Losing two of the three keys would freeze the vault's settings (not the escrow, not user funds).",
+  },
+  {
     id: "autopilot",
     title: "Autopilot: an agent that trades by your rules",
     status: "Live",
