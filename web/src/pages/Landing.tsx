@@ -10,6 +10,7 @@ import { PixelField } from "./PixelField.tsx";
 import { IconColumns } from "./IconColumns.tsx";
 import { HeroTicket } from "./HeroTicket.tsx";
 import { TokenUtility } from "./TokenUtility.tsx";
+import { NAV } from "../lib/nav.ts";
 import { MarketBoard } from "./Markets.tsx";
 import { TokenAvatar } from "./Terminal.tsx";
 import { MARKETS } from "../lib/tokens.ts";
@@ -259,7 +260,7 @@ export function Landing() {
           <span>
             <CountUp value={MARKETS.length} /> MARKETS · OR ANY ERC-20 ON ROBINHOOD CHAIN
           </span>
-          <span>PAY IN ETH OR USDG</span>
+          <span>PAY IN ETH, USDG OR $OBSYN</span>
         </div>
         {[false, true].map((rev) => (
           <div key={String(rev)} className="tok-viewport">
@@ -281,6 +282,31 @@ export function Landing() {
             </div>
           </div>
         ))}
+      </section>
+
+      {/* everything on the site, one click away */}
+      <section className="l3-sect everything" aria-label="Everything on Obsyn">
+        <div className="ev-head">
+          <span className="mono">EVERYTHING ON OBSYN</span>
+          <p>Trade, check the numbers, or read how it works: every page, one click away.</p>
+        </div>
+        <div className="ev-grid">
+          {[
+            ...NAV.filter((g) => g.items && g.label === "Trade"),
+            { label: "Explore", items: NAV.filter((g) => !g.items).map((g) => ({ to: g.to!, label: g.label, hint: g.hint ?? "" })) },
+            ...NAV.filter((g) => g.items && g.label !== "Trade"),
+          ].map((g) => (
+            <div key={g.label} className="ev-col">
+              <span className="ev-k mono">{g.label.toUpperCase()}</span>
+              {g.items!.map((i) => (
+                <Link key={i.to} to={i.to} className="ev-link">
+                  <b>{i.label} →</b>
+                  <span>{i.hint}</span>
+                </Link>
+              ))}
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* 01 markets */}

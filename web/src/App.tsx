@@ -1,4 +1,5 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { NAV, NAV_ITEMS, type NavGroup } from "./lib/nav.ts";
 import { api } from "./lib/api.ts";
 import { BRAND, fomoUrl, GitHubIcon, PLATFORM_TOKEN, Wordmark, XIcon } from "./lib/brand.tsx";
 import { swapUrl } from "./lib/dex.ts";
@@ -102,24 +103,52 @@ function WalletButton() {
 }
 
 
-const SITE_NAV: [string, string][] = [
-  ["/markets", "Markets"],
-  ["/otc", "OTC desk"],
-  ["/trade", "Trade"],
-  ["/how", "How it works"],
-  ["/docs", "Docs"],
-  ["/stats", "Stats"],
-  ["/roadmap", "Roadmap"],
-  ["/developers", "Developers"],
-];
-const APP_NAV: [string, string][] = [
-  ["/otc", "OTC desk"],
-  ["/trade", "Trade"],
-  ["/app", "Terminal"],
-  ["/mine", "My blocks"],
-  ["/refer", "Refer & earn"],
-  ["/how", "How it works"],
-];
+/** One header everywhere: grouped menus open on hover or click, and close on navigation, Escape or a click elsewhere. */
+function DesktopNav({ path }: { path: string }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => setOpen(null), [path]);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(null);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  const isOn = (g: NavGroup) => (g.to ? path === g.to : !!g.items?.some((i) => i.to === path));
+  return (
+    <nav ref={ref} aria-label="Main">
+      {NAV.map((g) =>
+        g.items ? (
+          <div key={g.label} className={`nav-dd${open === g.label ? " open" : ""}`} onMouseEnter={() => setOpen(g.label)} onMouseLeave={() => setOpen(null)}>
+            <button type="button" className={isOn(g) ? "on" : ""} aria-expanded={open === g.label} aria-haspopup="true" onClick={() => setOpen((o) => (o === g.label ? null : g.label))}>
+              {g.label}
+              <svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <div className="nav-dd-menu" role="menu">
+              {g.items.map((i) => (
+                <Link key={i.to} to={i.to} className={path === i.to ? "on" : ""}>
+                  <b>{i.label}</b>
+                  <span>{i.hint}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <Link key={g.to} to={g.to!} className={isOn(g) ? "on" : ""}>
+            {g.label}
+          </Link>
+        ),
+      )}
+    </nav>
+  );
+}
 
 export function App() {
   const path = usePath();
@@ -127,7 +156,7 @@ export function App() {
   useEffect(() => {
     document.title = path === "/" ? `${BRAND.name} · ${BRAND.description}` : path === "/app" ? `${BRAND.name} · Terminal` : path === "/otc" ? `${BRAND.name} · OTC desk` : path === "/trade" ? `${BRAND.name} · Trade` : path === "/stats" ? `${BRAND.name} · Stats` : path === "/refer" ? `${BRAND.name} · Referrals` : path === "/slippage" ? `${BRAND.name} · Slippage calculator` : BRAND.name;
   }, [path]);
-  const nav = site ? SITE_NAV : APP_NAV;
+  const nav = NAV_ITEMS;
   // the phone menu: closes on navigation and Escape
   const [menu, setMenu] = useState(false);
   useEffect(() => setMenu(false), [path]);
@@ -168,13 +197,7 @@ export function App() {
         <Link to="/" className="brand" aria-label={`${BRAND.name} home`}>
           <Wordmark />
         </Link>
-        <nav>
-          {nav.map(([to, label]) => (
-            <Link key={to} to={to} className={path === to ? "on" : ""}>
-              {label}
-            </Link>
-          ))}
-        </nav>
+        <DesktopNav path={path} />
         <a href={BRAND.github} className="x-link" target="_blank" rel="noreferrer" aria-label={`${BRAND.name} source code on GitHub`}>
           <GitHubIcon />
         </a>
@@ -205,7 +228,7 @@ export function App() {
         </button>
         <div id="mnav" className="mnav" aria-hidden={!menu}>
           <div className="mnav-inner">
-            {nav.map(([to, label], i) => (
+            {nav.map(({ to, label }, i) => (
               <Link key={to} to={to} className={path === to ? "on" : ""} style={{ ["--i" as string]: i } as CSSProperties} tabIndex={menu ? 0 : -1}>
                 {label}
                 <span aria-hidden="true">→</span>
