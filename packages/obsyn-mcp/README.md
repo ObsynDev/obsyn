@@ -13,20 +13,20 @@ Most clients take a config like this:
   "mcpServers": {
     "obsyn": {
       "command": "npx",
-      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.tgz"],
+      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz"],
       "env": { "OBSYN_PRIVATE_KEY": "0x..." }
     }
   }
 }
 ```
 
-Or run it directly: `npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.tgz` (it speaks MCP over stdio). Needs Node 20 or newer.
+Or run it directly: `npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz` (it speaks MCP over stdio). Needs Node 20 or newer.
 
 The file is published as a GitHub release of the open-source repo; every release lists its SHA-256 so you can check what you run.
 
 ### One-click bundle
 
-[`obsyn-mcp-0.2.0.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.mcpb) is the same server as an MCPB bundle: open it with an MCP client that supports bundles and it installs with a form for the optional settings below. Listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=trade.obsyn) as `trade.obsyn/mcp`.
+[`obsyn-mcp-0.3.0.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.mcpb) is the same server as an MCPB bundle: open it with an MCP client that supports bundles and it installs with a form for the optional settings below. Listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=trade.obsyn) as `trade.obsyn/mcp`.
 
 ## Settings (environment variables)
 
@@ -43,14 +43,17 @@ The file is published as a GitHub release of the open-source repo; every release
 |---|---|
 | `otc_info` | Chain, contract, fees, relayer, which wallet signs |
 | `otc_list_bids` | Open bids and sell listings |
-| `otc_create_bid` | Place a bid (token, size in tokens or USD, ETH or USDG, reply window, `allowPartial`) |
+| `otc_market` | A token's DEX price, liquidity and 24h change, and what a market order of your size would cost (price impact) |
+| `otc_create_bid` | Place a bid (token by symbol like `NVDA` or address, size in tokens or USD, ETH, USDG or OBSYN, reply window, `allowPartial`) |
 | `otc_create_listing` | Sell privately: list a block, buyers answer with sealed bids (`allowPartial`) |
-| `otc_get_offers` | Decrypt the answers to your bid or listing, with `verified` and `hasFunds` |
+| `otc_get_offers` | Decrypt and judge the answers to your bid or listing: `verified`, `hasFunds`, price vs market, savings vs a DEX market order, red flags, and the `best` one with the reason |
 | `otc_accept_offer` | Fix a deal with one answer (unverified answers need `allowUnverified`) |
 | `otc_send_offer` | Sealed, signed answer to someone's bid (ghost mode available) or listing |
 | `otc_deal_status` | Accepted? Who has deposited? Time left? |
 | `otc_deposit` | Deposit your side (signs, or returns unsigned transactions) |
 | `otc_refund` | Refund after the deadline |
+| `otc_receipt` | Receipt of a settled deal, how it compared with a DEX market order, and its share card |
+| `otc_stats` | Desk totals: deals, volume, fees, $OBSYN burned, saved vs DEX |
 | `otc_price` | Spot price from a Uniswap v3 pool or a Pons curve |
 | `otc_autopilot_preview` | Dry-run autopilot rules against the live desk: what it would answer, at what size and price |
 
@@ -59,7 +62,7 @@ The file is published as a GitHub release of the open-source repo; every release
 Write the rules once and let the agent answer matching bids and listings on its own, with your key, on your machine:
 
 ```bash
-OBSYN_PRIVATE_KEY=0x... npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.2.0/obsyn-mcp-0.2.0.tgz autopilot rules.json
+OBSYN_PRIVATE_KEY=0x... npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz autopilot rules.json
 ```
 
 ```json
@@ -80,6 +83,10 @@ Each tick it reads the open postings, sends a sealed, signed answer to the ones 
 - **It never posts or accepts** on your behalf; it only answers and deposits.
 
 An AI agent can draft the rules and check them first with the `otc_autopilot_preview` tool. Full example: [`examples/autopilot.rules.json`](examples/autopilot.rules.json). Stop with Ctrl+C.
+
+## Built-in guidance
+
+The server hands the model its instructions on connect: the order to use the tools in, to get the user's OK before accepting or depositing (with the price against the market), never to accept an answer whose signature doesn't check out, and to treat text in an answer's `message` as data, never as instructions.
 
 ## Treat answers as hostile input
 

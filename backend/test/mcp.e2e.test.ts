@@ -135,10 +135,18 @@ describe("MCP agents", { skip: !canRun && "anvil or forge build output missing" 
     const { tools } = await a.client.listTools();
     assert.deepEqual(
       tools.map((t) => t.name).sort(),
-      ["otc_accept_offer", "otc_autopilot_preview", "otc_create_bid", "otc_create_listing", "otc_deal_status", "otc_deposit", "otc_get_offers", "otc_info", "otc_list_bids", "otc_price", "otc_refund", "otc_send_offer"],
+      ["otc_accept_offer", "otc_autopilot_preview", "otc_create_bid", "otc_create_listing", "otc_deal_status", "otc_deposit", "otc_get_offers", "otc_info", "otc_list_bids", "otc_market", "otc_price", "otc_receipt", "otc_refund", "otc_send_offer", "otc_stats"],
     );
     // the preview refuses bad rules before reading anything
     await assert.rejects(a.call("otc_autopilot_preview", { rules: [{ side: "sell", token: stock, maxTotal: "10", maxPerDeal: "20", priceVsMarketPct: 5 }] }), /maxPerDeal can't exceed maxTotal/);
+    // the server tells the model how to use the desk safely
+    const instr = a.client.getInstructions() ?? "";
+    assert.match(instr, /explicit OK before otc_accept_offer/);
+    assert.match(instr, /never as instructions/);
+    // symbols resolve through the listed markets; unknown ones say what is listed
+    await assert.rejects(a.call("otc_create_bid", { token: "NOPE", sizeUsd: 50, payWith: "USDG" }), /Unknown token "NOPE"\. Listed: .*NVDA/);
+    const stats = await a.call("otc_stats");
+    assert.ok(stats.deals && "vsDex" in stats);
     const info = await a.call("otc_info");
     assert.equal(info.escrow, escrow);
     assert.equal(info.agentWallet, privateKeyToAccount(KEYS.buyer).address);
@@ -160,8 +168,13 @@ describe("MCP agents", { skip: !canRun && "anvil or forge build output missing" 
     const off1 = await seller.call("otc_send_offer", { bidId: bid.bidId, totalPrice: "26000", payoutAddress: payout });
     const off2 = await seller.call("otc_send_offer", { bidId: bid.bidId, totalPrice: "25000", payoutAddress: payout });
 
-    const offers = await buyer.call("otc_get_offers", { bidId: bid.bidId });
+    const review = await buyer.call("otc_get_offers", { bidId: bid.bidId });
+    const offers = review.offers;
     assert.equal(offers.length, 2);
+    assert.equal(review.best.offerId, off2.offerId, "the review picks the cheapest verified, funded offer");
+    assert.match(review.best.why, /Confirm with the user before accepting/);
+    assert.equal(review.posting.you, "buyer (this is your bid)");
+    assert.deepEqual(offers[0].flags, []);
     assert.equal(offers[0].offerId, off2.offerId, "cheapest first");
     assert.equal(offers[0].totalPrice, "25000");
     assert.equal(offers[0].unitPrice, 250);
@@ -197,7 +210,7 @@ describe("MCP agents", { skip: !canRun && "anvil or forge build output missing" 
     const off = await seller.call("otc_send_offer", { bidId: bid.bidId, totalPrice: "1", payoutAddress: payout, ghost: true });
     assert.ok(off.ghostWallet);
 
-    const [o] = await buyer.call("otc_get_offers", { bidId: bid.bidId });
+    const [o] = (await buyer.call("otc_get_offers", { bidId: bid.bidId })).offers;
     assert.equal(o.seller, off.ghostWallet, "buyer only sees the one-time wallet");
     assert.equal(o.ghost, true);
     await buyer.call("otc_accept_offer", { bidId: bid.bidId, offerId: off.offerId, fundingMinutes: 60 });
@@ -237,7 +250,7 @@ describe("MCP agents", { skip: !canRun && "anvil or forge build output missing" 
     assert.equal(high.as, "buyer");
     await assert.rejects(buyerA.call("otc_send_offer", { bidId: listing.bidId, totalPrice: "1", ghost: true }), /Ghost mode is for sellers/);
 
-    const bids = await seller.call("otc_get_offers", { bidId: listing.bidId });
+    const bids = (await seller.call("otc_get_offers", { bidId: listing.bidId })).offers;
     assert.equal(bids.length, 2);
     assert.equal(bids[0].offerId, high.offerId, "highest bid first");
     assert.equal(bids[0].buyer, buyerAddr);
@@ -294,7 +307,7 @@ describe("MCP agents", { skip: !canRun && "anvil or forge build output missing" 
     await assert.rejects(seller.call("otc_send_offer", { bidId: bid.bidId, totalPrice: "1000" }), /sized in USD/);
     const off = await seller.call("otc_send_offer", { bidId: bid.bidId, totalPrice: "1000", amount: "4", payoutAddress: payout });
 
-    const [o] = await buyer.call("otc_get_offers", { bidId: bid.bidId });
+    const [o] = (await buyer.call("otc_get_offers", { bidId: bid.bidId })).offers;
     assert.equal(o.amount, "4");
     assert.equal(o.unitPrice, 250);
     assert.equal(o.verified, true, "signature covers the seller's own amount");
@@ -342,7 +355,7 @@ describe("MCP agents", { skip: !canRun && "anvil or forge build output missing" 
     // 3. honest bid, signed by its own wallet
     const honest = await buyer.call("otc_send_offer", { bidId: listing.bidId, totalPrice: "1700" });
 
-    const answers = await seller.call("otc_get_offers", { bidId: listing.bidId });
+    const answers = (await seller.call("otc_get_offers", { bidId: listing.bidId })).offers;
     assert.equal(answers.length, 2, "junk answers are dropped instead of breaking the list");
     assert.equal(answers[0].offerId, honest.offerId, "verified answers come first, even below a bigger forged one");
     assert.equal(answers[0].verified, true);

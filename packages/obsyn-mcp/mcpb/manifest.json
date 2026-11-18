@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "obsyn-mcp",
   "display_name": "Obsyn OTC",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Private OTC block trades on Robinhood Chain: sealed bids and listings, encrypted offers, one-transaction settlement through an adminless contract.",
   "long_description": "Gives an AI agent the Obsyn desk. Post a bid or a sell listing, read the sealed answers (decrypted on this machine, never on the server), accept one, and settle both sides in one transaction through an escrow with no owner, admin key, pause or upgrade. Partial fills and a gasless ghost mode for sellers are supported. Answers are signed by the wallet they name; forged or unsigned ones are refused unless you allow them.",
   "author": {
@@ -65,7 +65,7 @@
     },
     {
       "name": "otc_get_offers",
-      "description": "Decrypt and verify the answers to your bid or listing"
+      "description": "Decrypt and judge the answers on your posting: price vs market and vs a DEX market order, red flags, and the best one"
     },
     {
       "name": "otc_accept_offer",
@@ -94,6 +94,18 @@
     {
       "name": "otc_autopilot_preview",
       "description": "Dry-run trading rules against the live desk"
+    },
+    {
+      "name": "otc_market",
+      "description": "A token's DEX price, liquidity and the price impact of a market order of a given size"
+    },
+    {
+      "name": "otc_receipt",
+      "description": "Receipt of a settled deal, with how it compared with a DEX market order"
+    },
+    {
+      "name": "otc_stats",
+      "description": "Desk totals: deals, volume, fees, burns, saved vs DEX"
     }
   ],
   "keywords": [

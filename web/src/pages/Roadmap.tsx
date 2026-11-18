@@ -32,6 +32,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Exposure check", d: "On a ghost-mode deal, see which public hops link the one-time wallet back to you.", s: "live", size: "M", doc: "exposure-check", g: "Privacy" },
       { t: "SDK, OpenAPI, local MCP server", d: "Agents and apps can do everything the site does.", s: "live", size: "M", g: "Agents and developers" },
       { t: "Autopilot", d: "An agent that trades by your rules 24/7: prices vs the DEX, hard caps, dry run by default.", s: "live", size: "M", doc: "autopilot", g: "Agents and developers" },
+      { t: "Market checks and offer reviews", d: "The MCP agent checks the market, reviews every sealed answer against the DEX and picks the best one with a reason. Tokens by name.", s: "live", size: "M", doc: "smarter-agent", g: "Agents and developers" },
       { t: "elizaOS plugin", d: "plugin-obsyn: Eliza agents post, answer, accept and settle OTC blocks, with a hard USD cap per block.", s: "live", size: "M", doc: "eliza-plugin", g: "Agents and developers" },
       { t: "Installable MCP package", d: "One command to give any agent the desk, no repository needed (npx, from the GitHub release).", s: "live", size: "M", doc: "mcp-package", g: "Agents and developers" },
       { t: "Contract on mainnet", d: "Escrow and fee vault live on Robinhood Chain, verified on the explorer and Sourcify (exact match).", s: "live", size: "S", g: "Trust and transparency" },

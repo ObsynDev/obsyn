@@ -16,7 +16,7 @@ import type { OtcAgent } from "./client.ts";
 export interface AutopilotRule {
   /** sell: answer buy bids with offers. buy: answer sell listings with bids. */
   side: "sell" | "buy";
-  /** Token contract on Robinhood Chain. */
+  /** Token contract on Robinhood Chain, or a listed symbol like "NVDA" (resolved when the autopilot starts). */
   token: string;
   /** Which payment to accept (sell) or pay with (buy). Default: any. OBSYN only where the server accepts it. */
   payWith?: "ETH" | "USDG" | "OBSYN" | "any";
@@ -320,6 +320,8 @@ export class Autopilot {
 
 /** An autopilot wired to the Obsyn API and chain through `agent`. Prices come from each token's deepest DEX pool. */
 export async function createAutopilot(agent: OtcAgent, cfg: AutopilotConfig, log?: (line: string) => void) {
+  // rules may name tokens by symbol ("NVDA", "$OBSYN"); the autopilot works on addresses
+  cfg = { ...cfg, rules: await Promise.all(cfg.rules.map(async (r) => ({ ...r, token: await agent.resolveToken(String(r.token)) }))) };
   const server = await agent.config();
   return new Autopilot(agent, cfg, {
     api: (path) => agent.get(path),
