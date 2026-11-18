@@ -42,6 +42,7 @@ export function Security() {
     ["Settlement contract", cfg?.escrow, "Holds deposits, settles or refunds. No admin."],
     ["Fee vault", "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221", "Holds fees, never deposits. Can only buy and burn $OBSYN."],
     ["Team Safe", "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E", "2-of-3 Safe multisig, signers held by the team. Live roles above."],
+    ["Timelock", "0x49c6f104b0BdD7353e68d70951f6E22fc1e3Cd16", "OpenZeppelin TimelockController. Takes over the vault so every change waits 3 days in public; see the live status above."],
     ["USDG", cfg?.usdg, "Global Dollar, issued by Paxos"],
     ["Relayer", cfg?.relayer.address, "Pays gas for ghost-mode deposits"],
   ];

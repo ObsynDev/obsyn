@@ -86,6 +86,24 @@
         "activeFrom": "2026-11-19T20:18:24Z",
         "applyTx": null
       }
+    },
+    {
+      "name": "ObsynTimelock",
+      "address": "0x49c6f104b0BdD7353e68d70951f6E22fc1e3Cd16",
+      "deployTx": "0x4a6afb1cd21ad817eb372e6a05d342baf20af9ed63020164913f6a6aa7104953",
+      "block": 117489403,
+      "deployedAt": "2026-11-18",
+      "constructor": {
+        "minDelay": 0,
+        "proposers": [
+          "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E"
+        ],
+        "executors": [
+          "0x0000000000000000000000000000000000000000"
+        ],
+        "admin": "0x0000000000000000000000000000000000000000"
+      },
+      "note": "OpenZeppelin TimelockController v5.1.0. Not the vault owner yet: the Safe hands the vault over in one batch after the V4 route is switched on, which also sets the delay to 3 days."
     }
   ],
   "offchain": {

@@ -64,6 +64,9 @@ const SETTINGS = {
     ["BURN_TOKEN_FEE_BPS()", "0xdb9ca7f5", asUint],
     ["MAX_FEE_BPS()", "0xd55be8c6", asUint],
   ],
+  ObsynTimelock: [
+    ["getMinDelay() seconds", "0xf27a0c92", asUint],
+  ],
   BuyBurnVault: [
     ["owner()", "0x8da5cb5b", asAddr],
     ["keeper()", "0xaced1661", asAddr],
