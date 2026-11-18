@@ -202,9 +202,16 @@ export const openapi = {
     },
     "/receipts/{tx}": {
       get: {
-        summary: "Public receipt of a settled deal, rebuilt from its settlement transaction: terms, fee split, block and time",
+        summary: "Public receipt of a settled deal, rebuilt from its settlement transaction: terms, fee split, block and time, plus vsDex (the block against a DEX market order of the same size at settlement, when known)",
         parameters: [{ name: "tx", in: "path", required: true, schema: { type: "string", pattern: "^0x[0-9a-fA-F]{64}$" } }],
         responses: { 200: ok("Receipt", { type: "object" }), 400: err("Bad hash"), 404: err("Not an Obsyn settlement") },
+      },
+    },
+    "/receipts/{tx}/card.png": {
+      get: {
+        summary: "Share card for a settled deal (1200x630 PNG): size, price, the comparison with a DEX market order, and the fee. Public data only",
+        parameters: [{ name: "tx", in: "path", required: true, schema: { type: "string", pattern: "^0x[0-9a-fA-F]{64}$" } }],
+        responses: { 200: { description: "PNG image", content: { "image/png": { schema: { type: "string", format: "binary" } } } }, 400: err("Bad hash"), 404: err("Not an Obsyn settlement") },
       },
     },
     "/stats": {

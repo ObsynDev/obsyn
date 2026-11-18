@@ -47,3 +47,21 @@ it("publishes the MCP Registry domain proof (a public key) for obsyn.trade", asy
   assert.equal(res.status, 200);
   assert.match(await res.text(), /^v=MCPv1; k=ed25519; p=[A-Za-z0-9+/]{43}=$/);
 });
+
+it("previews a deal receipt with its own share card", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "web-"));
+  const dist = join(dir, "dist");
+  mkdirSync(dist, { recursive: true });
+  writeFileSync(
+    join(dist, "index.html"),
+    '<!doctype html><title>Obsyn</title><meta property="og:image" content="https://obsyn.trade/brand/og.png" /><meta name="twitter:image" content="https://obsyn.trade/brand/og.png" />',
+  );
+  const site = createSite(new Hono(), dist, "https://obsyn.trade");
+  const tx = `0x${"ab".repeat(32)}`;
+  const html = await (await site.request(`/receipt/${tx}`)).text();
+  assert.match(html, new RegExp(`og:image" content="https://obsyn.trade/api/receipts/${tx}/card.png`));
+  assert.match(html, new RegExp(`twitter:image" content="https://obsyn.trade/api/receipts/${tx}/card.png`));
+  assert.match(html, /<title>Private block settled on Obsyn<\/title>/);
+  // other pages keep the site image
+  assert.match(await (await site.request("/bid/x")).text(), /brand\/og.png/);
+});

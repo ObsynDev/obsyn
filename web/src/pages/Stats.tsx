@@ -7,7 +7,7 @@ import { Link, short } from "../lib/ui.tsx";
 import { fmtCompactUsd, fmtPrice, useObsynMarket } from "./ObsynMarket.tsx";
 
 const num = (v: string, decimals: number, max = 2) => Number(formatUnits(BigInt(v), decimals)).toLocaleString("en-US", { maximumFractionDigits: max });
-const usd = (n: number) => "$" + n.toLocaleString("en-US", { maximumFractionDigits: n < 1000 ? 2 : 0 });
+const usd = (n: number) => (n < 0 ? "−$" : "$") + Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: Math.abs(n) < 1000 ? 2 : 0 });
 
 /** Amount per pay currency: "1.2 ETH + 3,400 USDG + 50,000 OBSYN", or "0" when all are zero. */
 function both(a: { eth: string; usdg: string; obsyn?: string }) {
@@ -58,6 +58,15 @@ export function Stats() {
         <>
           <section className="stat-grid">
             <Tile label="Settled volume" value={s.volumeUsd === null ? both(s.volume) : usd(s.volumeUsd)} sub={s.volumeUsd === null || both(s.volume) === "0" ? "paid by buyers in ETH, USDG and $OBSYN" : both(s.volume)} />
+            <Tile
+              label="Saved vs DEX"
+              value={s.vsDex && s.vsDex.deals > 0 ? usd(s.vsDex.buyersSavedUsd + s.vsDex.sellersGainedUsd) : "–"}
+              sub={
+                s.vsDex && s.vsDex.deals > 0
+                  ? `buyers ${usd(s.vsDex.buyersSavedUsd)} · sellers ${usd(s.vsDex.sellersGainedUsd)}, vs DEX market orders`
+                  : "vs a DEX market order of the same size, per deal"
+              }
+            />
             <Tile label="Deals settled" value={s.deals.settled.toLocaleString("en-US")} sub={`${s.deals.accepted} accepted · ${s.deals.refunded} refunded`} />
             <Tile label="Fees at settlement" value={both(fees)} sub={both(s.fees.referrer) !== "0" ? `of which to referrers: ${both(s.fees.referrer)}` : "to the buy-and-burn vault, or burned when paid in $OBSYN"} />
             <Tile label="Tokens traded" value={String(s.tokensTraded)} sub="distinct tokens in settled deals" />

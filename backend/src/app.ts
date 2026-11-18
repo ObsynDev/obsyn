@@ -16,6 +16,7 @@ import { createReferencePrices, findMarket, MARKETS, RANGES, type Range, type Re
 import { NO_PERMIT, RelayError, type Relayer } from "./relayer.ts";
 import { hashToken, isB64, newId, newToken, tokenMatches } from "./secrets.ts";
 import { dealId, termsToJson, TermsSchema } from "./terms.ts";
+import { openVsDexStore, vsDex } from "./vsdex.ts";
 
 export interface Deps {
   cfg: Config;
@@ -427,14 +428,94 @@ export function createApp(deps: Deps) {
   };
   const isHash = (v: string) => /^0x[0-9a-fA-F]{64}$/.test(v);
 
+  // ─────────────────────────── "saved vs DEX" and share cards ───────────────────────────
+  const vsDexStore = openVsDexStore(db);
+  const metaCache = new Map<string, Promise<{ symbol: string; decimals: number }>>();
+  const tokenMeta = (a: Address) => {
+    const k = a.toLowerCase();
+    if (a === zeroAddress) return Promise.resolve({ symbol: "ETH", decimals: 18 });
+    if (cfg.usdg && k === cfg.usdg.toLowerCase()) return Promise.resolve({ symbol: "USDG", decimals: 6 });
+    let p = metaCache.get(k);
+    if (!p) {
+      const listed = MARKETS.find((m) => m.address.toLowerCase() === k);
+      p = (deps.readToken ? deps.readToken(getAddress(a)) : Promise.reject(new Error("no token reads")))
+        .then((t) => ({ symbol: t.symbol ?? listed?.symbol ?? "TOKEN", decimals: t.decimals ?? 18 }))
+        .catch(() => ({ symbol: listed?.symbol ?? "TOKEN", decimals: 18 }));
+      if (metaCache.size > 2000) metaCache.clear();
+      metaCache.set(k, p);
+    }
+    return p;
+  };
+  const payUsdOf = async (pay: Address): Promise<number | null> => {
+    if (pay === zeroAddress) return refQuote("ETH-USD", "5d").then((q) => q.price, () => null);
+    if (cfg.usdg && pay.toLowerCase() === cfg.usdg.toLowerCase()) return 1;
+    return tokenMarket(pay).then((m) => m.priceUsd, () => null);
+  };
+  /**
+   * Snapshot the DEX price and liquidity for a settled deal, once, and only while the settlement is recent
+   * (within an hour), so the comparison reflects the market when the deal happened.
+   */
+  const ensureVsDex = async (rec: DealReceipt) => {
+    if (vsDexStore.get(rec.dealId)) return;
+    if (now() - rec.timestamp > 3600) return;
+    const token = getAddress(rec.terms.token);
+    const pay = getAddress(rec.terms.payToken);
+    const [tm, payUsd, tok, pm] = await Promise.all([tokenMarket(token), payUsdOf(pay), tokenMeta(token), tokenMeta(pay)]);
+    if (!tm.priceUsd || !tm.liquidityUsd || !payUsd) return;
+    const v = vsDex({
+      amount: Number(BigInt(rec.terms.amount)) / 10 ** tok.decimals,
+      paid: Number(BigInt(rec.terms.price)) / 10 ** pm.decimals,
+      tokenUsd: tm.priceUsd,
+      payUsd,
+      liquidityUsd: tm.liquidityUsd,
+    });
+    if (v) vsDexStore.put(rec.dealId, rec.txHash, rec.timestamp, v);
+  };
+
   app.get("/receipts/:tx", async (c) => {
     const tx = c.req.param("tx");
     if (!isHash(tx)) return c.json({ error: "invalid transaction hash" }, 400);
     try {
-      return c.json(await receiptFor(tx as Hex));
+      const rec = await receiptFor(tx as Hex);
+      await ensureVsDex(rec).catch(() => {});
+      return c.json({ ...rec, vsDex: vsDexStore.get(rec.dealId) });
     } catch (e) {
       return c.json({ error: (e as Error).message }, 404);
     }
+  });
+
+  /** A 1200x630 share card for a settled deal (link previews on X and elsewhere). Public data only. */
+  app.get("/receipts/:tx/card.png", async (c) => {
+    const tx = c.req.param("tx");
+    if (!isHash(tx)) return c.json({ error: "invalid transaction hash" }, 400);
+    let rec: DealReceipt;
+    try {
+      rec = await receiptFor(tx as Hex);
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 404);
+    }
+    await ensureVsDex(rec).catch(() => {});
+    const pay = getAddress(rec.terms.payToken);
+    const [tok, pm] = await Promise.all([tokenMeta(getAddress(rec.terms.token)), tokenMeta(pay)]);
+    // loaded on first use: the image library is native, and a missing build must never take the API down
+    let renderCard: typeof import("./card.ts").renderCard;
+    try {
+      ({ renderCard } = await import("./card.ts"));
+    } catch {
+      return c.json({ error: "share cards are unavailable on this server" }, 503);
+    }
+    const png = renderCard({
+      tokenSymbol: tok.symbol,
+      amount: Number(BigInt(rec.terms.amount)) / 10 ** tok.decimals,
+      paySymbol: pm.symbol,
+      paid: Number(BigInt(rec.terms.price)) / 10 ** pm.decimals,
+      fee: { amount: Number(BigInt(rec.protocolFee)) / 10 ** pm.decimals, symbol: pm.symbol, burned: !!burnPay && pay.toLowerCase() === burnPay.toLowerCase() },
+      vs: vsDexStore.get(rec.dealId),
+      timestamp: rec.timestamp,
+      txHash: rec.txHash,
+      block: rec.block,
+    });
+    return c.body(new Uint8Array(png), 200, { "content-type": "image/png", "cache-control": "public, max-age=300" });
   });
 
   /** Find a deal's receipt by its id (once a party has reported the settlement transaction). */
@@ -469,6 +550,7 @@ export function createApp(deps: Deps) {
     if (!dealIds.has(settled)) return c.json({ error: "that transaction settled a different deal" }, 400);
     db.prepare("UPDATE quotes SET settle_tx = ? WHERE rfq_id = ? AND lower(deal_id) = ?").run(tx.toLowerCase(), r.id, settled);
     if (r.deal_id && r.deal_id.toLowerCase() === settled) db.prepare("UPDATE rfqs SET settle_tx = ? WHERE id = ?").run(tx.toLowerCase(), r.id);
+    await ensureVsDex(rec).catch(() => {});
     return c.json({ ok: true, txHash: tx.toLowerCase() });
   });
 
@@ -608,7 +690,7 @@ export function createApp(deps: Deps) {
   /** Desk totals: deals and settled volume, fees, and the fee vault's buy-and-burn. */
   app.get("/stats", async (c) => {
     try {
-      return c.json(await stats.summary());
+      return c.json({ ...(await stats.summary()), vsDex: vsDexStore.totals() });
     } catch (e) {
       return c.json({ error: (e as Error).message }, 502);
     }

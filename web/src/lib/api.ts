@@ -123,6 +123,8 @@ export interface DeskStats {
   fees: { protocol: Amounts; referrer: Amounts };
   /** $OBSYN the escrow burned itself at settlement (the fee on deals paid in $OBSYN) */
   burnedOnSettle?: string;
+  /** totals over settled deals with a DEX snapshot: what buyers saved and sellers gained vs DEX market orders */
+  vsDex?: { deals: number; buyersSavedUsd: number; sellersGainedUsd: number };
   volumeUsd: number | null;
   ethUsd: number | null;
   postings: { total: number; open: number; answers: number };
@@ -157,6 +159,20 @@ export interface DealReceipt {
   referrerFee: string;
   relayerFee: string;
   sellerProceeds: string;
+  /** the block against a DEX market order of the same size, at settlement (null: no snapshot) */
+  vsDex?: VsDex | null;
+}
+
+export interface VsDex {
+  sizeUsd: number;
+  dealUsd: number;
+  tokenUsd: number;
+  liquidityUsd: number;
+  buyerSavedUsd: number | null;
+  sellerGainedUsd: number | null;
+  buyImpactPct: number | null;
+  sellImpactPct: number | null;
+  thin: boolean;
 }
 /** DEX snapshot of any token (reference only; deals settle at the sealed price) */
 export interface TokenMarket {

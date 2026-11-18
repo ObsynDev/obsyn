@@ -88,7 +88,25 @@ export function createSite(api: Hono, webDist: string | null, publicUrl = "", fa
         "cache-control": immutable ? "public, max-age=31536000, immutable" : "public, max-age=300",
       });
     }
-    return c.body(index(rel), 200, { "content-type": TYPES[".html"], "cache-control": "no-cache" });
+    let html = index(rel);
+    // a deal receipt previews as its own share card on X and elsewhere
+    const rx = /^\/receipt\/(0x[0-9a-fA-F]{64})\/?$/.exec(rel);
+    if (rx) {
+      const origin = publicUrl.replace(/\/+$/, "") || new URL(c.req.url).origin;
+      const card = `${origin}/api/receipts/${rx[1]}/card.png`;
+      const title = "Private block settled on Obsyn";
+      const desc = "One price, no slippage, settled in one transaction on Robinhood Chain. See how it compares with a DEX market order.";
+      html = html
+        .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
+        .replace(/(<meta property="og:title" content=")[^"]*/, `$1${title}`)
+        .replace(/(<meta name="twitter:title" content=")[^"]*/, `$1${title}`)
+        .replace(/(<meta property="og:description" content=")[^"]*/, `$1${desc}`)
+        .replace(/(<meta name="twitter:description" content=")[^"]*/, `$1${desc}`)
+        .replace(/(<meta property="og:url" content=")[^"]*/, `$1${origin}${rel}`)
+        .replace(/(<meta property="og:image" content=")[^"]*/, `$1${card}`)
+        .replace(/(<meta name="twitter:image" content=")[^"]*/, `$1${card}`);
+    }
+    return c.body(html, 200, { "content-type": TYPES[".html"], "cache-control": "no-cache" });
   });
 
   return site;

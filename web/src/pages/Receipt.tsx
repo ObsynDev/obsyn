@@ -43,6 +43,21 @@ export function Receipt({ tx }: { tx: Hex }) {
     </a>
   );
   const when = new Date(r.timestamp * 1000);
+  const link = `${window.location.origin}/receipt/${r.txHash}`;
+  const card = `/api/receipts/${r.txHash}/card.png`;
+  const v = r.vsDex ?? null;
+  const usd = (n: number) => (n < 0 ? "−$" : "$") + Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: Math.abs(n) < 1000 ? 2 : 0, minimumFractionDigits: Math.abs(n) < 1000 ? 2 : 0 });
+  const pct = (p: number | null) => (p === null ? "–" : p < 0.01 ? "<0.01%" : `~${p}%`);
+  const signed = (n: number) => (n > 0 ? "+" : "") + usd(n);
+  const qty = amount.toLocaleString("en-US", { maximumFractionDigits: 6 });
+  const tweet = [
+    `Settled ${qty} ${tok.symbol} privately on @Obsyntrade: one price, no slippage, one transaction.`,
+    v && v.buyerSavedUsd !== null && v.buyerSavedUsd > 0 ? `Buyer ${signed(v.buyerSavedUsd)} vs a DEX market buy.` : "",
+    pay.symbol === "OBSYN" ? `${Number(formatUnits(BigInt(r.protocolFee), pay.decimals)).toLocaleString("en-US", { maximumFractionDigits: 2 })} $OBSYN fee burned.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const shareX = `https://x.com/intent/post?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(link)}`;
 
   return (
     <div className="narrow receipt">
@@ -63,6 +78,49 @@ export function Receipt({ tx }: { tx: Hex }) {
           </div>
         </div>
         <p className="muted small">Both sides swapped in one transaction on Robinhood Chain. This receipt is read from the chain, not from our database.</p>
+      </section>
+
+      {v && (
+        <section className="card rc-vs">
+          <h3>Against a DEX market order</h3>
+          {v.thin || v.buyerSavedUsd === null || v.sellerGainedUsd === null ? (
+            <p className="muted small">
+              At settlement the token's deepest DEX pool held about {usd(v.liquidityUsd)}, too thin for a block this size ({usd(v.sizeUsd)}) to compare fairly.
+            </p>
+          ) : (
+            <>
+              <div className="rc-vs-grid">
+                <div>
+                  <span className="muted small">Buyer vs a DEX buy</span>
+                  <b className={v.buyerSavedUsd >= 0 ? "pos" : "neg"}>{signed(v.buyerSavedUsd)}</b>
+                  <span className="muted small">DEX impact {pct(v.buyImpactPct)}</span>
+                </div>
+                <div>
+                  <span className="muted small">Seller vs a DEX sell</span>
+                  <b className={v.sellerGainedUsd >= 0 ? "pos" : "neg"}>{signed(v.sellerGainedUsd)}</b>
+                  <span className="muted small">DEX impact {pct(v.sellImpactPct)}</span>
+                </div>
+              </div>
+              <p className="muted small">
+                Estimate at settlement: {usd(v.sizeUsd)} of {tok.symbol} at the DEX price ({usd(v.tokenUsd)}) on a pool with about {usd(v.liquidityUsd)} of liquidity,
+                against the {usd(v.dealUsd)} this block cost. Before fees.
+              </p>
+            </>
+          )}
+        </section>
+      )}
+
+      <section className="card rc-share">
+        <img src={card} alt={`Share card: ${qty} ${tok.symbol} settled privately`} width={1200} height={630} loading="lazy" />
+        <div className="rc-share-row">
+          <a className="btn primary" href={shareX} target="_blank" rel="noreferrer">
+            Share on X
+          </a>
+          <a className="btn ghost" href={card} download={`obsyn-${r.txHash.slice(2, 10)}.png`}>
+            Download card
+          </a>
+          <Copy text={link} label="Copy link" />
+        </div>
       </section>
 
       <section className="card">
