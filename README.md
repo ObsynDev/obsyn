@@ -12,7 +12,8 @@
 
 | Contract | Address |
 |---|---|
-| `OtcEscrow` (settlement, no owner / admin / pause / upgrade) | [`0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865`](https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865) |
+| `OtcEscrowV2` (settlement in ETH, USDG or $OBSYN; no owner / admin / pause / upgrade) | [`0xa10193De64556AF16390FB6E07BBb7C2522F21C8`](https://robinhoodchain.blockscout.com/address/0xa10193De64556AF16390FB6E07BBb7C2522F21C8) |
+| `OtcEscrow` v1 (deals accepted before 2026-11-18) | [`0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865`](https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865) |
 | `BuyBurnVault` (collects fees for $OBSYN buy-and-burn; can't withdraw them) | [`0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221`](https://robinhoodchain.blockscout.com/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221) |
 
 **Security audit by the Obsyn team:** [SECURITY-REVIEW.md](SECURITY-REVIEW.md), no critical or high issues. An independent third-party audit is planned.

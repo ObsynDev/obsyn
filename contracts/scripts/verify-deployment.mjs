@@ -56,6 +56,14 @@ const SETTINGS = {
     ["FEE_BPS_MID() from $10k", "0x9a8f74a8", asUint],
     ["FEE_BPS_LARGE() from $100k", "0x5141c04c", asUint],
   ],
+  OtcEscrowV2: [
+    ["usdg()", "0xf5b91b7b", asAddr],
+    ["feeRecipient()", "0x46904840", asAddr],
+    ["ethUsdFeed()", "0x8009b7bd", asAddr],
+    ["burnToken() paid in, fee burned", "0xfaa0a264", asAddr],
+    ["BURN_TOKEN_FEE_BPS()", "0xdb9ca7f5", asUint],
+    ["MAX_FEE_BPS()", "0xd55be8c6", asUint],
+  ],
   BuyBurnVault: [
     ["owner()", "0x8da5cb5b", asAddr],
     ["keeper()", "0xaced1661", asAddr],

@@ -6,7 +6,8 @@ Everything Obsyn runs on-chain, with the transaction that created it. Machine-re
 
 | Contract | Address | Deployed | Deploy tx |
 |---|---|---|---|
-| `OtcEscrow` | [`0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865`](https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865) | 2026-11-16 08:52:58 UTC, block 115638560 | [`0x918f40b7…`](https://robinhoodchain.blockscout.com/tx/0x918f40b78804c90534b8081f000727ee1fcb00a36151f8f42183674dae72ca6c) |
+| `OtcEscrowV2` (settlement since 2026-11-18) | [`0xa10193De64556AF16390FB6E07BBb7C2522F21C8`](https://robinhoodchain.blockscout.com/address/0xa10193De64556AF16390FB6E07BBb7C2522F21C8) | 2026-11-18 05:45:06 UTC, block 117174692 | [`0x494fac4a…`](https://robinhoodchain.blockscout.com/tx/0x494fac4a564e54f7d676352a310c32bae4704d5e4fa2c71994e7a1cae374a573) |
+| `OtcEscrow` (v1; deals accepted before 2026-11-18) | [`0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865`](https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865) | 2026-11-16 08:52:58 UTC, block 115638560 | [`0x918f40b7…`](https://robinhoodchain.blockscout.com/tx/0x918f40b78804c90534b8081f000727ee1fcb00a36151f8f42183674dae72ca6c) |
 | `BuyBurnVault` | [`0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221`](https://robinhoodchain.blockscout.com/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221) | 2026-11-16 08:52:30 UTC, block 115638297 | [`0x96e61067…`](https://robinhoodchain.blockscout.com/tx/0x96e61067b39a05b18e6e0c6542ecc69174e256e3e6355049e11235fd5cab5133) |
 | `V4BurnAdapter` (the vault's buy route since $OBSYN graduated) | [`0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67`](https://robinhoodchain.blockscout.com/address/0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67) | 2026-11-17 20:18:14 UTC, block 116852320 | [`0x257f50cd…`](https://robinhoodchain.blockscout.com/tx/0x257f50cd59b664902016f360630649e13bf1d49b9f7053421dd3edaf7c95050c) |
 
@@ -14,7 +15,15 @@ Compiler: solc 0.8.24, optimizer on (10,000 runs), EVM `cancun`. Built from `con
 
 ### Constructor settings (fixed forever)
 
-**OtcEscrow**
+**OtcEscrowV2** (the same as `OtcEscrow`, plus `burnToken`)
+- `usdg`: `0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168`
+- `ethUsdFeed`: none (`0x0`), as in v1
+- `feeRecipient`: the `BuyBurnVault` below
+- `burnToken`: $OBSYN `0x5D992fa5B7Da8EFde5FD36d24e81097Ed6aD4351`. Deals may be paid in it; their fee is a flat 1.5% (`BURN_TOKEN_FEE_BPS`), sent to `0x…dEaD` in the settlement transaction (`FeeBurned` event). A referrer still gets half.
+
+The site switched to it on 2026-11-18. Deals accepted before that are recorded against `OtcEscrow` v1, and their pages, receipts and refunds keep using it. v1 has no owner either, so nothing about it changes.
+
+**OtcEscrow** (v1)
 - `usdg`: `0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168` (Global Dollar on Robinhood Chain)
 - `ethUsdFeed`: none (`0x0`). Without a price feed, deals paid in ETH always pay the top fee tier (2.5%). USDG deals use the size tiers.
 - `feeRecipient`: the `BuyBurnVault` above
@@ -76,10 +85,11 @@ cd contracts
 LIVE_RPC=https://4663.rpc.thirdweb.com forge test --match-contract LiveFork -vv
 ```
 
-Both contracts are verified on Sourcify with an **exact match** (runtime and creation bytecode, including metadata), so explorers that read Sourcify show the source:
+Every contract is verified on Sourcify with an **exact match** (runtime and creation bytecode, including metadata), so explorers that read Sourcify show the source:
 
-- [OtcEscrow on Sourcify](https://repo.sourcify.dev/4663/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865)
+- [OtcEscrowV2 on Sourcify](https://repo.sourcify.dev/4663/0xa10193De64556AF16390FB6E07BBb7C2522F21C8)
+- [OtcEscrow v1 on Sourcify](https://repo.sourcify.dev/4663/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865)
 - [BuyBurnVault on Sourcify](https://repo.sourcify.dev/4663/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221)
 - [V4BurnAdapter on Sourcify](https://repo.sourcify.dev/4663/0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67)
 
-The Robinhood Chain explorer (Blockscout) shows both as verified, with the source under the Contract tab: [OtcEscrow](https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865?tab=contract) · [BuyBurnVault](https://robinhoodchain.blockscout.com/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221?tab=contract).
+The Robinhood Chain explorer (Blockscout) shows them as verified, with the source under the Contract tab: [OtcEscrowV2](https://robinhoodchain.blockscout.com/address/0xa10193De64556AF16390FB6E07BBb7C2522F21C8?tab=contract) · [OtcEscrow v1](https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865?tab=contract) · [BuyBurnVault](https://robinhoodchain.blockscout.com/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221?tab=contract).

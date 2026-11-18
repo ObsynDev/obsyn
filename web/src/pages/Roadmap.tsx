@@ -18,7 +18,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     blurb: "Running on obsyn.trade today: the sealed OTC desk with one-transaction settlement, privacy tools, agent access, public stats, referrals and $OBSYN with buy-and-burn.",
     items: [
       { t: "Sealed bids and listings", d: "Post a bid to buy or list a block to sell. Answers are encrypted to you in the sender's browser.", s: "live", size: "L", g: "Trading desk" },
-      { t: "OTC desk", d: "Swap-style widget: size in USD or tokens, ETH or USDG, reply window.", s: "live", size: "M", g: "Trading desk" },
+      { t: "OTC desk", d: "Swap-style widget: size in USD or tokens, ETH, USDG or $OBSYN, reply window.", s: "live", size: "M", g: "Trading desk" },
       { t: "Trade page per token", d: "Paste any contract: price, market cap, your balance, one-click sell, open blocks for that token.", s: "live", size: "M", g: "Trading desk" },
       { t: "Token list with logos", d: "Listed Robinhood Chain markets in the picker, with logos and checked contract addresses.", s: "live", size: "S", g: "Trading desk" },
       { t: "Partial fills", d: "Several sellers fill one big bid (or several buyers share a listing), each part its own deal.", s: "live", size: "M", doc: "partial-fills", g: "Trading desk" },
@@ -40,6 +40,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
       { t: "Platform token on Pons", d: "$OBSYN launched on Pons, graduated to Uniswap v4, and is plugged into the fee vault.", s: "live", size: "L", doc: "token", g: "$OBSYN and growth" },
       { t: "Buy-and-burn + holder discount", d: "Deal fees go to a vault that can only buy and burn $OBSYN (half goes to the referrer when there is one); holders pay 0.5% less.", s: "live", size: "L", doc: "token", g: "$OBSYN and growth" },
       { t: "Referral program", d: "Share a link, earn half the protocol fee on deals you bring, paid by the escrow at settlement.", s: "live", size: "S", doc: "referrals", g: "$OBSYN and growth" },
+      { t: "Pay with $OBSYN", d: "Deals can be paid in $OBSYN: a flat 1.5% fee, burned by the escrow in the settlement transaction.", s: "live", size: "M", doc: "pay-obsyn", g: "$OBSYN and growth" },
     ],
   },
   {

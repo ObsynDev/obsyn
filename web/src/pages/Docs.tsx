@@ -20,6 +20,27 @@ type Doc = {
 
 const DOCS: Doc[] = [
   {
+    id: "pay-obsyn",
+    title: "Pay with $OBSYN, fee burned instantly",
+    status: "Live",
+    half: "trade",
+    page: { to: "/otc", label: "Post a bid in OBSYN" },
+    what: "Deals can be paid in $OBSYN as well as ETH and USDG. The fee on those deals is a flat 1.5%, and the escrow burns it in the settlement transaction: no vault, no keeper, no waiting.",
+    how: [
+      "Pick OBSYN under Pay with (or Get paid in) on the desk, the trade page or the new-block panel. Sellers answer with a price in OBSYN.",
+      "At settlement the escrow sends the fee straight to 0x…dEaD and emits FeeBurned. With a referrer, half goes to them and half is burned. The seller gets the rest.",
+      "This runs on a new escrow, OtcEscrowV2 (0xa101…21C8, verified on Sourcify): the same code as before plus this one payment option, still with no owner, admin or upgrade. Deals made before 18 Nov 2026 stay on the first escrow.",
+      "Ghost mode is for ETH and USDG deals only; on an OBSYN deal the seller delivers from their wallet.",
+      "/stats shows OBSYN volume and the OBSYN burned at settlement. The SDK, MCP server and autopilot take payWith: \"OBSYN\".",
+    ],
+    impact: [
+      { who: "Holders", text: "Every OBSYN-paid deal burns supply in the same block, and buyers need OBSYN to pay." },
+      { who: "Traders", text: "A flat 1.5% on any size, lower than the 2.5% small-deal tier." },
+      { who: BRAND.name, text: "The token is used to trade on the desk, not only bought with its fees." },
+    ],
+    risks: "The seller is paid in OBSYN, so they carry its price risk until they sell it. Big OBSYN deals can be hard to unwind on a thin pool. Tested on a fork of the live chain through the real site: 1.5% arrived at 0x…dEaD and nothing went to the vault.",
+  },
+  {
     id: "multisig",
     title: "Fee vault on a multisig",
     status: "Live",
@@ -331,10 +352,15 @@ const GITHUB = BRAND.github;
 const EXPLORER = "https://robinhoodchain.blockscout.com";
 /** Owner and keeper of the fee vault since 18 Nov 2026 (see DEPLOYMENTS.md). */
 const VAULT_SAFE = "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E";
+/** Settlement contract since 18 Nov 2026 (OtcEscrowV2: also takes $OBSYN, burns that fee). */
+const ESCROW = "0xa10193De64556AF16390FB6E07BBb7C2522F21C8";
+/** The first escrow; deals accepted before the switch settle or refund there. */
+const ESCROW_V1 = "0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865";
 const SAFE_SIGNERS = ["0x533452c0e3C3455D33d551964F14D352597b21e1", "0xD3b32872b311c29A0DBBbbbc76fE5871Cb0b994A", "0x9743307CebE092eea55756A2526EeB24Ddd4bA86"];
 
 const ADDRESSES: [string, string, string][] = [
-  ["OtcEscrow (settlement)", "0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865", "Holds both sides of a deal and swaps them in one transaction. No owner, admin key, pause or upgrade."],
+  ["OtcEscrowV2 (settlement)", ESCROW, `Holds both sides of a deal and swaps them in one transaction. Takes ETH, USDG or $${PLATFORM_TOKEN.symbol}. No owner, admin key, pause or upgrade.`],
+  ["OtcEscrow v1 (earlier deals)", ESCROW_V1, "The first escrow, same rules without $OBSYN payments. Deals accepted before 18 Nov 2026 settle or refund here; their pages point to it."],
   ["BuyBurnVault (fees)", "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221", `Receives the protocol fee. It can't send funds anywhere except a buy that burns $${PLATFORM_TOKEN.symbol}.`],
   ["Vault owner and keeper", "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E", "A 2-of-3 Safe multisig: every action needs two of three signers. Its powers are listed under Who can do what."],
   ["Relayer", "0x81D583e77A74571a6fD7b6EE16ECeba9CfE3a2DD", "Pays gas for ghost-mode deposits. Can only submit a deposit the seller signed for that deal and that relayer."],
@@ -601,7 +627,7 @@ export function Docs() {
             <dl className="dx-facts">
               <div>
                 <dt>Pay in</dt>
-                <dd>ETH or USDG</dd>
+                <dd>ETH, USDG or ${PLATFORM_TOKEN.symbol}</dd>
               </div>
               <div>
                 <dt>Reply window</dt>
@@ -732,6 +758,10 @@ export function Docs() {
                 public on-chain and on the <Link to="/stats">stats page</Link>.
               </li>
               <li>If the buyer or the seller holds the minimum ${PLATFORM_TOKEN.symbol}, the fee drops by 0.5%.</li>
+              <li>
+                <b>Paying in ${PLATFORM_TOKEN.symbol}:</b> a flat 1.5% at any size, and the contract burns it on the spot (sent to 0x…dEaD in the
+                settlement transaction). A referrer still gets half. The holder discount doesn't stack on top. <a href="#live" onClick={go("live")}>How it works →</a>
+              </li>
             </ul>
             <p className="dx-note">
               ${PLATFORM_TOKEN.symbol} {PLATFORM_TOKEN.address ? `contract: ${short(PLATFORM_TOKEN.address)}` : "hasn't launched yet"}.
@@ -853,7 +883,7 @@ node scripts/verify-deployment.mjs`}</Code>
                 DEPLOYMENTS.md
               </a>
               . Both contracts are verified on the Robinhood Chain explorer and on{" "}
-              <a href="https://repo.sourcify.dev/4663/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865" target="_blank" rel="noreferrer">
+              <a href={`https://repo.sourcify.dev/4663/${ESCROW}`} target="_blank" rel="noreferrer">
                 Sourcify
               </a>{" "}
               with an exact match, and the security audit by the Obsyn team is in{" "}
@@ -876,7 +906,7 @@ node scripts/verify-deployment.mjs`}</Code>
               </div>
               <div>
                 <b>What it does have</b>
-                <p>Its settings (USDG, the fee vault, the price feed) were fixed at deploy and can never change. The rules in the code are the only thing that moves money.</p>
+                <p>Its settings (USDG, the fee vault, the price feed, the ${PLATFORM_TOKEN.symbol} it burns) were fixed at deploy and can never change. The rules in the code are the only thing that moves money.</p>
               </div>
             </div>
             <h3 className="dx-h3">Every function that changes anything</h3>
@@ -909,11 +939,11 @@ node scripts/verify-deployment.mjs`}</Code>
             <ul className="dx-list">
               <li>
                 <b>Read the code.</b> It's verified, so the source is public on the{" "}
-                <a href={`https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865?tab=contract`} target="_blank" rel="noreferrer">
+                <a href={`https://robinhoodchain.blockscout.com/address/${ESCROW}?tab=contract`} target="_blank" rel="noreferrer">
                   explorer
                 </a>{" "}
                 and{" "}
-                <a href="https://repo.sourcify.dev/4663/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865" target="_blank" rel="noreferrer">
+                <a href={`https://repo.sourcify.dev/4663/${ESCROW}`} target="_blank" rel="noreferrer">
                   Sourcify
                 </a>{" "}
                 (exact match). Search it for <span className="mono">onlyOwner</span>, <span className="mono">pause</span>,{" "}
@@ -924,8 +954,8 @@ node scripts/verify-deployment.mjs`}</Code>
                 On the escrow both slots are empty:
               </li>
             </ul>
-            <Code>{`cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc --rpc-url https://4663.rpc.thirdweb.com
-cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103 --rpc-url https://4663.rpc.thirdweb.com
+            <Code>{`cast storage ${ESCROW} 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc --rpc-url https://4663.rpc.thirdweb.com
+cast storage ${ESCROW} 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103 --rpc-url https://4663.rpc.thirdweb.com
 # both return 0x0000…0000: no implementation to swap, no proxy admin`}</Code>
             <p className="dx-note">
               The only account with any power in Obsyn is the owner of the fee vault, a 2-of-3 multisig. The vault holds fees, never

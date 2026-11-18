@@ -6,7 +6,7 @@
 |---|---|
 | Date | 17 November 2026 |
 | Audited by | Obsyn team |
-| Scope | `contracts/src/OtcEscrow.sol`, `contracts/src/BuyBurnVault.sol`, plus the security-relevant parts of the backend (API, relayer) and the web client |
+| Scope | `contracts/src/OtcEscrow.sol`, `contracts/src/OtcEscrowV2.sol`, `contracts/src/BuyBurnVault.sol`, plus the security-relevant parts of the backend (API, relayer) and the web client |
 | Deployed code | `OtcEscrow` [`0x41c1…0865`](https://robinhoodchain.blockscout.com/address/0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865), `BuyBurnVault` [`0x2afd…4221`](https://robinhoodchain.blockscout.com/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221) on Robinhood Chain |
 | Same code? | Yes. Sourcify `exact_match` (runtime and creation bytecode) for both, and `contracts/scripts/verify-deployment.mjs` matches the live bytecode against this source |
 
@@ -82,6 +82,17 @@ $OBSYN graduated from its Pons curve to a Uniswap v4 pool, so the fee vault need
 - **Tests:** 9 tests, 8 of them against the live contracts on a fork: ETH → OBSYN (0.01 ETH bought ~619k OBSYN), USDG → WETH → OBSYN (20 USDG bought ~692k OBSYN), the full vault flow (queue, refused before 2 days, apply, burn ETH and USDG, nothing left in the vault or the adapter), `minOut`, only the vault, only the PoolManager and only our own v3 swap can call back, wrong inputs. `LIVE_RPC=https://robinhood-rpc.publicnode.com forge test --match-contract V4BurnAdapter -vv`
 - **Slither:** `reentrancy-eth`/`reentrancy-balance` on `swap` are false positives (only the vault, which holds its own lock, can call it; `swap` also has its own lock, and the only external calls go to the fixed PoolManager, v3 pool and WETH); `incorrect-equality` (`out == 0`) and `unused-return` (`settle`, `unlock`) are intended; `missing-zero-check` was fixed (the constructor refuses zero addresses).
 - **Activation:** the vault owner deploys it and calls `queueAdapter`; it can only be switched on with `applyAdapter` after the vault's public 2-day wait.
+
+## OtcEscrowV2: pay with $OBSYN (added 2026-11-18)
+
+`contracts/src/OtcEscrowV2.sol` is `OtcEscrow` with one addition: $OBSYN (`burnToken`, fixed at deploy) is accepted as a pay token. Deployed at [`0xa10193De64556AF16390FB6E07BBb7C2522F21C8`](https://robinhoodchain.blockscout.com/address/0xa10193De64556AF16390FB6E07BBb7C2522F21C8), Sourcify exact match, and `verify-deployment.mjs` matches it against this source.
+
+- **The whole diff:** a `burnToken` immutable, `BURN_TOKEN_FEE_BPS = 150`, the `DEAD` address and a `FeeBurned` event. `feeBps` returns 1.5% for deals paid in `burnToken` (no size tiers, no holder discount), `_validate` accepts it as a pay token, and `_settle` sends that protocol fee to `0x…dEaD` instead of the vault. The referrer's half, the seller's proceeds, deposits, refunds and ghost-mode deposits are unchanged. Still no owner, admin, pause or upgrade.
+- **Same behaviour for everything else:** all 24 `OtcEscrow` tests run unchanged against `OtcEscrowV2` (`OtcEscrowV2Parity.t.sol`).
+- **Token checked first:** a live probe of $OBSYN (`ObsynTokenProbe.t.sol`) confirms a plain ERC-20: no transfer tax, no blocklist, transfers to `0x…dEaD` work, so the burn can't revert a settlement and amounts arrive exactly.
+- **Tests:** 12 for the new path (fee and burn amounts, referrer split, no discount on OBSYN deals, OBSYN-for-OBSYN refused, refunds, fuzzed amounts) plus a live-fork deal paid in 1,000,000 real OBSYN (15,000 burned). Full suite 100/100. `LIVE_RPC=https://robinhood-rpc.publicnode.com forge test --match-path "test/OtcEscrowV2*" -vv`
+- **Slither:** the same detector results as `OtcEscrow`, nothing new.
+- **Switch-over:** the server records which escrow each deal was accepted on; deals from before the switch keep pointing to `OtcEscrow` v1 for deposits, refunds, receipts and stats. Ghost mode refuses OBSYN-paid deals (its relayer fee is set in ETH/USDG terms).
 
 ## App and backend findings (fixed)
 

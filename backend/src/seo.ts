@@ -174,14 +174,14 @@ export interface SiteFacts {
   tokenAddress?: string | null;
 }
 
-const ESCROW = "0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865";
+const ESCROW = "0xa10193De64556AF16390FB6E07BBb7C2522F21C8";
 const REPO = "https://github.com/ObsynDev/obsyn";
 
 function factsHtml(f: SiteFacts): string {
   const token = f.tokenAddress
     ? `<p><b>$OBSYN token contract (Robinhood Chain, chain id 4663):</b> <a href="https://robinhoodchain.blockscout.com/token/${esc(f.tokenAddress)}">${esc(f.tokenAddress)}</a></p>`
     : "";
-  return `<footer>${token}<p><b>Settlement contract (OtcEscrow):</b> <a href="https://robinhoodchain.blockscout.com/address/${ESCROW}">${ESCROW}</a></p><p><b>Source code:</b> <a href="${REPO}">${REPO}</a> · <a href="${REPO}/blob/main/CHANGELOG.md">Changelog</a> · <a href="${REPO}/blob/main/SECURITY-REVIEW.md">Security audit by the Obsyn team</a> · <a href="${REPO}/blob/main/DEPLOYMENTS.md">Deployments</a></p><p><b>X:</b> <a href="https://x.com/Obsyntrade" rel="me">@Obsyntrade</a></p><p><a href="https://heyresearch.xyz/project/obsyn"><img src="https://heyresearch.xyz/api/badge/obsyn" alt="obsyn on HEY Research Lab" width="220" height="72"></a></p></footer>`;
+  return `<footer>${token}<p><b>Settlement contract (OtcEscrowV2):</b> <a href="https://robinhoodchain.blockscout.com/address/${ESCROW}">${ESCROW}</a></p><p><b>Source code:</b> <a href="${REPO}">${REPO}</a> · <a href="${REPO}/blob/main/CHANGELOG.md">Changelog</a> · <a href="${REPO}/blob/main/SECURITY-REVIEW.md">Security audit by the Obsyn team</a> · <a href="${REPO}/blob/main/DEPLOYMENTS.md">Deployments</a></p><p><b>X:</b> <a href="https://x.com/Obsyntrade" rel="me">@Obsyntrade</a></p><p><a href="https://heyresearch.xyz/project/obsyn"><img src="https://heyresearch.xyz/api/badge/obsyn" alt="obsyn on HEY Research Lab" width="220" height="72"></a></p></footer>`;
 }
 
 /** index.html with the page's title, description, canonical URL and readable content for bots. */

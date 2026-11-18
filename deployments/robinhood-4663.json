@@ -9,6 +9,20 @@
   },
   "contracts": [
     {
+      "name": "OtcEscrowV2",
+      "address": "0xa10193De64556AF16390FB6E07BBb7C2522F21C8",
+      "deployTx": "0x494fac4a564e54f7d676352a310c32bae4704d5e4fa2c71994e7a1cae374a573",
+      "block": 117174692,
+      "deployedAt": "2026-11-18T05:45:06Z",
+      "constructor": {
+        "usdg": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+        "ethUsdFeed": "0x0000000000000000000000000000000000000000",
+        "feeRecipient": "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221",
+        "burnToken": "0x5D992fa5B7Da8EFde5FD36d24e81097Ed6aD4351"
+      },
+      "note": "settlement contract since 2026-11-18; OtcEscrow (v1) keeps deals accepted before then"
+    },
+    {
       "name": "BuyBurnVault",
       "address": "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221",
       "deployTx": "0x96e61067b39a05b18e6e0c6542ecc69174e256e3e6355049e11235fd5cab5133",
