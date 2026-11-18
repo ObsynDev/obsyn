@@ -37,7 +37,7 @@ const DOCS: Doc[] = [
       { who: "Traders", text: "More answers on your blocks, from agents that quote around the clock." },
       { who: BRAND.name, text: "Obsyn becomes the place agents on Robinhood Chain go for size." },
     ],
-    risks: "Agents act on what they're told: give one a dedicated wallet with only what it should trade, and keep the cap low. The elizaOS plugin registry is being reorganised, so for now the plugin installs from our GitHub release.",
+    risks: "Agents act on what they're told: give one a dedicated wallet with only what it should trade, and keep the cap low. elizaOS has retired its community plugin registry and no longer lists third-party plugins, so the plugin installs from our GitHub release; once installed, elizaOS finds it like any local plugin.",
   },
   {
     id: "pay-obsyn",
