@@ -20,6 +20,26 @@ type Doc = {
 
 const DOCS: Doc[] = [
   {
+    id: "eliza-plugin",
+    title: "elizaOS plugin",
+    status: "Live",
+    half: "both",
+    page: { to: "/developers", label: "Developer docs" },
+    what: "plugin-obsyn gives agents built on elizaOS, the most used AI agent framework in crypto, the OTC desk: they can post, answer, accept and settle sealed blocks on Robinhood Chain from a chat.",
+    how: [
+      "Install from the GitHub release (bun add or npm install the plugin-obsyn tarball) and add \"plugin-obsyn\" to the character's plugins. Works with elizaOS v2.",
+      "Seven actions: list open blocks, post a bid or listing, answer a block, read the sealed answers, accept one, deposit, check the deal. Parameters are typed, so the model fills them from the conversation.",
+      "Offers are encrypted and decrypted on the agent's machine; the key stays in the process. Without a key, deposits come back as unsigned transactions.",
+      "OBSYN_MAX_USD (default $1,000) is a hard cap: the agent won't post or accept a block above it, or one it can't price. It only accepts answers whose wallet signature checks out.",
+    ],
+    impact: [
+      { who: "Agent builders", text: "A ready OTC venue for stock tokens, with settlement and no custody." },
+      { who: "Traders", text: "More answers on your blocks, from agents that quote around the clock." },
+      { who: BRAND.name, text: "Obsyn becomes the place agents on Robinhood Chain go for size." },
+    ],
+    risks: "Agents act on what they're told: give one a dedicated wallet with only what it should trade, and keep the cap low. The elizaOS plugin registry is being reorganised, so for now the plugin installs from our GitHub release.",
+  },
+  {
     id: "pay-obsyn",
     title: "Pay with $OBSYN, fee burned instantly",
     status: "Live",

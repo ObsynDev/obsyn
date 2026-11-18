@@ -1,0 +1,91 @@
+{
+  "name": "plugin-obsyn",
+  "version": "0.1.0",
+  "description": "elizaOS plugin for Obsyn: private OTC block trades on Robinhood Chain. Post sealed bids and listings for stock tokens and any ERC-20, read encrypted offers, accept, deposit and settle through an escrow with no admin key.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "images",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc -p ."
+  },
+  "keywords": [
+    "elizaos",
+    "elizaos-plugin",
+    "plugin",
+    "otc",
+    "robinhood-chain",
+    "stock-tokens",
+    "defi",
+    "ai-agents"
+  ],
+  "homepage": "https://obsyn.trade/developers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ObsynDev/obsyn.git",
+    "directory": "packages/plugin-obsyn"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "@elizaos/core": ">=2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@elizaos/core": {
+      "optional": true
+    }
+  },
+  "agentConfig": {
+    "pluginType": "elizaos:plugin:1.0.0",
+    "pluginParameters": {
+      "OBSYN_PRIVATE_KEY": {
+        "type": "string",
+        "description": "Optional. A dedicated wallet's key so the agent can sign its own deposits. Without it, deposits return unsigned transactions.",
+        "required": false,
+        "sensitive": true
+      },
+      "OBSYN_MAX_USD": {
+        "type": "string",
+        "description": "Hard cap per block the agent may post or accept, in USD. Default 1000.",
+        "required": false
+      },
+      "OBSYN_API": {
+        "type": "string",
+        "description": "Obsyn API. Default https://obsyn.trade/api",
+        "required": false
+      },
+      "OBSYN_RPC_URL": {
+        "type": "string",
+        "description": "Optional Robinhood Chain RPC override.",
+        "required": false
+      },
+      "OBSYN_STATE": {
+        "type": "string",
+        "description": "Where the keys to the agent's blocks and offers are kept. Default ~/.obsyn/eliza-state.json",
+        "required": false
+      }
+    }
+  },
+  "devDependencies": {
+    "@elizaos/core": "^2.0.5",
+    "@types/node": "^24.19.2",
+    "esbuild": "^0.25.12",
+    "typescript": "^5.9.3",
+    "viem": "^2.58.0"
+  }
+}
