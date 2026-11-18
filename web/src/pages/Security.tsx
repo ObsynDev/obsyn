@@ -39,6 +39,8 @@ export function Security() {
 
   const contracts: [string, string | null | undefined, string][] = [
     ["Settlement contract", cfg?.escrow, "Holds deposits, settles or refunds. No admin."],
+    ["Fee vault", "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221", "Holds fees, never deposits. Can only buy and burn $OBSYN."],
+    ["Fee vault owner and keeper", "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E", "2-of-3 Safe multisig: every change and every burn needs two signers."],
     ["USDG", cfg?.usdg, "Global Dollar, issued by Paxos"],
     ["Relayer", cfg?.relayer.address, "Pays gas for ghost-mode deposits"],
   ];

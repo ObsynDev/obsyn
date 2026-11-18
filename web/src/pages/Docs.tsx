@@ -309,6 +309,9 @@ const SECTIONS = [
 const LAST_UPDATED = "18 Nov 2026";
 const GITHUB = BRAND.github;
 const EXPLORER = "https://robinhoodchain.blockscout.com";
+/** Owner and keeper of the fee vault since 18 Nov 2026 (see DEPLOYMENTS.md). */
+const VAULT_SAFE = "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E";
+const SAFE_SIGNERS = ["0x533452c0e3C3455D33d551964F14D352597b21e1", "0xD3b32872b311c29A0DBBbbbc76fE5871Cb0b994A", "0x9743307CebE092eea55756A2526EeB24Ddd4bA86"];
 
 const ADDRESSES: [string, string, string][] = [
   ["OtcEscrow (settlement)", "0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865", "Holds both sides of a deal and swaps them in one transaction. No owner, admin key, pause or upgrade."],
@@ -934,9 +937,50 @@ cast storage 0x41c1dcd0bf252C86C4b0cb78dec42830DD1d0865 0xb53127684a568b3173ae13
               "Nobody" includes us. The vault owner is a 2-of-3 multisig, and its powers only touch fees already in the vault, never
               your deposits.
             </p>
+            <h3 className="dx-h3">The fee vault's multisig</h3>
+            <p className="dx-p">
+              The fee vault's owner and its keeper are the same{" "}
+              <a href={`https://app.safe.global/home?safe=robinhood:${VAULT_SAFE}`} target="_blank" rel="noreferrer">
+                Safe multisig
+              </a>
+              . Any action needs two of its three signers: changing the buy route (which also waits 2 days in public), changing the keeper,
+              handing the vault over, and running a burn. None of the signers is the relayer's server key, so a server breach can't
+              touch the vault.
+            </p>
+            <table className="dx-table mono">
+              <tbody>
+                <tr>
+                  <td>Safe (owner and keeper)</td>
+                  <td>
+                    <a href={`${EXPLORER}/address/${VAULT_SAFE}`} target="_blank" rel="noreferrer">
+                      {VAULT_SAFE}
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Threshold</td>
+                  <td>2 of 3 signers</td>
+                </tr>
+                {SAFE_SIGNERS.map((a, i) => (
+                  <tr key={a}>
+                    <td>Signer {i + 1}</td>
+                    <td>
+                      <a href={`${EXPLORER}/address/${a}`} target="_blank" rel="noreferrer">
+                        {a}
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="dx-note">
+              Check it yourself: the vault's <span className="mono">owner()</span> and <span className="mono">keeper()</span> both return the
+              Safe, and the Safe's <span className="mono">getThreshold()</span> returns 2. Until 18 Nov 2026 a single wallet held both
+              roles; the handover is public on-chain.
+            </p>
             <h3 className="dx-h3">The escrow's one dependency</h3>
             <p className="dx-p">
-              The escrow has no admin key, but it does talk to one other contract: the fee vault, owned by the deployer wallet. It asks the
+              The escrow has no admin key, but it does talk to one other contract: the fee vault, owned by a 2-of-3 multisig. It asks the
               vault whether the 0.5% holder discount applies (a read capped at 30,000 gas; if it fails, the normal fee applies) and sends
               it the fee (if an ETH transfer failed, the fee is credited instead and settlement continues). That's all. The vault can't
               block a deposit, a settlement or a refund, and can't touch user funds. Details in{" "}
