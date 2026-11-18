@@ -305,10 +305,10 @@ export function Trade() {
             </div>
           </div>
 
-          <label className="tr-label">
-            Contract address
-            <input className="tr-input mono" value={caInput} onChange={(e) => setCaInput(e.target.value)} placeholder="0x… any token on Robinhood Chain" spellCheck={false} />
-          </label>
+          <div className="tr-label">
+            <label htmlFor="tr-ca">Contract address</label>
+            <TokenCombo value={caInput} onChange={setCaInput} selected={ca} />
+          </div>
           <div className="tr-chips" aria-label="Listed markets">
             {MARKETS.map((m) => (
               <button type="button" key={m.address} className={ca === m.address ? "on" : ""} onClick={() => setCaInput(m.address)}>
@@ -534,6 +534,98 @@ export function Trade() {
           </section>
         </aside>
       </div>
+    </div>
+  );
+}
+
+const KIND_LABEL: Record<string, string> = { stock: "Stock", etf: "ETF", crypto: "Token", pay: "Pay" };
+
+/**
+ * Contract address field with a searchable list of our markets ($OBSYN, stock tokens, ETFs, crypto).
+ * Typing filters by symbol, name or address; any other 0x address can still be pasted.
+ */
+function TokenCombo({ value, onChange, selected }: { value: string; onChange: (v: string) => void; selected: Address | null }) {
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const q = value.trim().toLowerCase();
+  // a picked market shows its address in the field: list everything again rather than one match
+  const picked = !!selected && MARKETS.some((m) => m.address === selected);
+  const list = useMemo(
+    () =>
+      !q || picked
+        ? MARKETS
+        : MARKETS.filter((m) => m.symbol.toLowerCase().includes(q) || m.name.toLowerCase().includes(q) || m.address.toLowerCase().startsWith(q)),
+    [q, picked],
+  );
+  useEffect(() => setHi(0), [q, open]);
+  const pick = (m: (typeof MARKETS)[number]) => {
+    onChange(m.address);
+    setOpen(false);
+  };
+  const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!open) setOpen(true);
+      else setHi((i) => Math.min(i + 1, list.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHi((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter" && open && list[hi]) {
+      e.preventDefault();
+      pick(list[hi]);
+    } else if (e.key === "Escape") setOpen(false);
+  };
+  return (
+    <div className="tr-combo" onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setOpen(false)}>
+      <input
+        id="tr-ca"
+        className="tr-input mono"
+        value={value}
+        onChange={(e) => (onChange(e.target.value), setOpen(true))}
+        onFocus={() => setOpen(true)}
+        onClick={() => setOpen(true)}
+        onKeyDown={onKey}
+        placeholder="Pick a token or paste 0x…"
+        spellCheck={false}
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls="tr-ca-list"
+        aria-autocomplete="list"
+      />
+      <button type="button" className="tr-combo-btn" aria-label={open ? "Close the list" : "Show stocks and tokens"} tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={() => setOpen((o) => !o)}>
+        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+          <path d={open ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <ul className="tr-dd" id="tr-ca-list" role="listbox" aria-label="Stocks and tokens">
+          {list.length === 0 && (
+            <li className="tr-dd-empty">{isAddress(value.trim()) ? "Not one of our listed markets. That's fine: any token on Robinhood Chain works." : "No match. Paste the token's 0x address instead."}</li>
+          )}
+          {list.map((m, i) => (
+            <li
+              key={m.address}
+              role="option"
+              aria-selected={selected === m.address}
+              className={`${i === hi ? "hi" : ""}${selected === m.address ? " on" : ""}`}
+              onMouseDown={(e) => e.preventDefault()}
+              onMouseEnter={() => setHi(i)}
+              onClick={() => pick(m)}
+            >
+              <TokenAvatar address={m.address} symbol={m.symbol} size={28} />
+              <span className="tr-dd-name">
+                <b>{m.symbol}</b>
+                <i>{m.name}</i>
+              </span>
+              <span className="tr-dd-meta">
+                <em>{KIND_LABEL[m.kind] ?? m.kind}</em>
+                <span className="mono">{m.address.slice(0, 6)}…{m.address.slice(-4)}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
