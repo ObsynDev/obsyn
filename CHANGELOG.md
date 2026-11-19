@@ -2,6 +2,10 @@
 
 Notable changes to what users and integrators see. Dates are UTC.
 
+## 2026-11-19
+
+- **Fixed: deal page showed "Can't read the contract" when the wallet was on another network** ([incident report](INCIDENTS.md)). The deal page now reads the escrow through the Obsyn server (`GET /api/deals/{dealId}/state`) or directly over several Robinhood Chain RPCs, never through the visitor's wallet. The server has backup RPCs too. Accept names the wallet that will deposit and stays disabled until one is connected. Every deposit is reported for on-chain verification, so receipts never lag. No funds were at risk.
+
 ## 2026-11-18
 
 - **Live control panel** (`/security#control`, `GET /api/control`): who controls what, read from the chain every 30 seconds: the escrow (no owner), what the fee vault holds and has burned, the vault owner and keeper, the Safe's threshold and signers (labelled team or independent), the burn route and its queue, and, once a timelock owns the vault, every queued change with its countdown.

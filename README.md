@@ -6,7 +6,7 @@
 
 **Trade size. Stay private.** Private OTC block trades on Robinhood Chain: sealed bids and offers that only the poster can read, one-transaction settlement through an adminless contract, and a gasless "ghost mode" for sellers.
 
-[obsyn.trade](https://obsyn.trade) · [X @Obsyntrade](https://x.com/Obsyntrade) · [How it works](https://obsyn.trade/how) · [Security](https://obsyn.trade/security) · [Docs](https://obsyn.trade/docs)
+[obsyn.trade](https://obsyn.trade) · [X @Obsyntrade](https://x.com/Obsyntrade) · [How it works](https://obsyn.trade/how) · [Security](https://obsyn.trade/security) · [Docs](https://obsyn.trade/docs) · [Incident reports](INCIDENTS.md)
 
 ### Live on Robinhood Chain (chain id 4663)
 
