@@ -2,6 +2,10 @@
 
 Notable changes to what users and integrators see. Dates are UTC.
 
+## 2026-11-20
+
+- **Hosted read-only MCP on Hugging Face** ([devobsyntrade/obsyn-otc](https://huggingface.co/spaces/devobsyntrade/obsyn-otc)): six tools (open blocks, market and price-impact check, slippage table, desk stats, who controls what, how to trade) at `https://devobsyntrade-obsyn-otc.hf.space/gradio_api/mcp/`, nothing to install. Holds no keys and can't trade. Every tool checked over MCP against the live desk.
+
 ## 2026-11-19
 
 - **Notifications** (bottom-left): a small notice when your own step succeeds (block posted, sealed answer sent, answer accepted, payment locked, tokens deposited, deal settled), and live desk activity from everyone else: new bids and listings, sealed answers, deals struck and settled, with links. New `GET /api/activity` serves only public facts (side, token, size, settlement transaction), never prices or addresses. A settlement is announced once; your own blocks are announced as yours; live activity can be muted from the notice or the footer. Tested through the real site on a mainnet fork, desktop and phone width.

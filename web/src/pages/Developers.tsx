@@ -83,6 +83,14 @@ const listing = await otc.createListing({ token, amount: "50000", payWith: "ETH"
           <pre>{mcp}</pre>
           <Copy text={mcp.replace(/\\\n\s*/g, "")} />
         </div>
+        <p className="muted">
+          Just want to look, with nothing to install? A read-only version (open blocks, market and price-impact checks, slippage,
+          stats, who controls what) runs on Hugging Face:{" "}
+          <a href="https://huggingface.co/spaces/devobsyntrade/obsyn-otc" target="_blank" rel="noreferrer">
+            obsyn-otc Space ↗
+          </a>
+          , MCP endpoint <span className="mono break">https://devobsyntrade-obsyn-otc.hf.space/gradio_api/mcp/</span>. It holds no keys and can't trade.
+        </p>
         <div className="table-wrap">
           <table className="plain">
             <tbody>

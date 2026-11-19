@@ -143,6 +143,8 @@ There is also a one-click bundle, [`obsyn-mcp-0.3.0.mcpb`](https://github.com/Ob
 
 **Autopilot:** `npx -y <the release .tgz> autopilot rules.json` answers matching bids and listings by rules (price vs the DEX, caps per deal and in total, price floor or ceiling) and deposits when accepted. Dry run unless the rules say `"live": true`. See [packages/obsyn-mcp](packages/obsyn-mcp#autopilot-trade-by-rules-247).
 
+**Read-only MCP on Hugging Face:** [huggingface.co/spaces/devobsyntrade/obsyn-otc](https://huggingface.co/spaces/devobsyntrade/obsyn-otc) runs six read-only tools (open blocks, market and price-impact check, slippage table, desk stats, who controls what, how to trade) as a hosted MCP server at `https://devobsyntrade-obsyn-otc.hf.space/gradio_api/mcp/`. No install, no keys; it can't trade. Source in [packages/hf-space](packages/hf-space).
+
 ## Tests
 
 Every push and pull request runs [CI](.github/workflows/ci.yml): contract tests, the backend suite (including end-to-end runs on a local chain) and a production build of the site.
