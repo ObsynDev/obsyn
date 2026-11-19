@@ -18,6 +18,7 @@ import { hashToken, isB64, newId, newToken, tokenMatches } from "./secrets.ts";
 import { dealId, termsToJson, TermsSchema } from "./terms.ts";
 import { openVsDexStore, vsDex } from "./vsdex.ts";
 import type { ControlReport } from "./control.ts";
+import { openActivity } from "./activity.ts";
 
 export interface Deps {
   cfg: Config;
@@ -143,6 +144,9 @@ export function createApp(deps: Deps) {
     for (const q of rows) if (q.terms_json) sum += BigInt(JSON.parse(q.terms_json).amount);
     return { rows, count: rows.length, amount: rows.length ? sum.toString() : null, sum };
   };
+  /** public desk activity for the site's live notifications (no prices, no addresses) */
+  const activity = openActivity(db);
+
   const pub = (r: RfqRow) => {
     const f = fillsOf(r);
     return publicRfq(r, quoteCount(r.id), { count: f.count, amount: f.amount });
@@ -230,6 +234,7 @@ export function createApp(deps: Deps) {
       t,
       body.allowPartial ? 1 : 0,
     );
+    activity.add({ kind: "posted", ref: id, rfqId: id, side: body.side, token: getAddress(body.token), payToken, amount: body.amount ?? null, sizeUsd: body.sizeUsd ?? null, at: t });
     // The manage token is shown once. The share link carries no secret: the other side only needs the id.
     return c.json({ id, manageToken, shareUrl: `${cfg.publicUrl}/rfq/${id}`, expiresAt: t + body.replySeconds }, 201);
   });
@@ -321,6 +326,7 @@ export function createApp(deps: Deps) {
       `INSERT INTO quotes (id, rfq_id, quote_hash, seller_enc_pubkey, nonce, ciphertext, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).run(id, r.id, hashToken(quoteToken), body.sellerEncPubKey, body.nonce, body.ciphertext, now());
+    activity.add({ kind: "answered", ref: id, rfqId: r.id, side: r.side, token: r.token, payToken: r.pay_token, amount: r.amount, sizeUsd: r.size_usd, at: now() });
     return c.json({ quoteId: id, quoteToken }, 201);
   });
 
@@ -403,6 +409,7 @@ export function createApp(deps: Deps) {
       db.exec("ROLLBACK");
       return c.json({ error: "rfq is no longer open" }, 409);
     }
+    activity.add({ kind: "accepted", ref: id, rfqId: r.id, side: r.side, token: r.token, payToken: r.pay_token, amount: terms.amount.toString(), sizeUsd: null, at: now() });
     return c.json({ dealId: id, terms: termsToJson(terms), escrow: cfg.escrow, chainId: cfg.chainId, quoteId: q.id, complete });
   });
 
@@ -611,6 +618,19 @@ export function createApp(deps: Deps) {
     if (!dealIds.has(settled)) return c.json({ error: "that transaction settled a different deal" }, 400);
     db.prepare("UPDATE quotes SET settle_tx = ? WHERE rfq_id = ? AND lower(deal_id) = ?").run(tx.toLowerCase(), r.id, settled);
     if (r.deal_id && r.deal_id.toLowerCase() === settled) db.prepare("UPDATE rfqs SET settle_tx = ? WHERE id = ?").run(tx.toLowerCase(), r.id);
+    const rt = (rec.terms ?? {}) as Record<string, string | undefined>;
+    activity.add({
+      kind: "settled",
+      ref: settled,
+      rfqId: r.id,
+      side: r.side,
+      token: rt.token && isAddress(rt.token) ? getAddress(rt.token) : r.token,
+      payToken: rt.payToken && isAddress(rt.payToken) ? getAddress(rt.payToken) : r.pay_token,
+      amount: rt.amount && /^\d+$/.test(rt.amount) ? rt.amount : r.amount,
+      sizeUsd: rt.amount ? null : r.size_usd,
+      tx: tx.toLowerCase(),
+      at: now(),
+    });
     await ensureVsDex(rec).catch(() => {});
     return c.json({ ok: true, txHash: tx.toLowerCase() });
   });
@@ -766,6 +786,17 @@ export function createApp(deps: Deps) {
   });
 
   /** Desk totals: deals and settled volume, fees, and the fee vault's buy-and-burn. */
+  /**
+   * Live desk activity, for the site's small notifications. Without `after`: just the current cursor.
+   * With it: what happened since, oldest first. Public facts only; never prices or addresses.
+   */
+  app.get("/activity", (c) => {
+    const a = c.req.query("after");
+    const cursor = a !== undefined && /^\d{1,15}$/.test(a) ? Number(a) : null;
+    c.header("cache-control", "no-store");
+    return c.json(activity.since(cursor));
+  });
+
   app.get("/stats", async (c) => {
     try {
       return c.json({ ...(await stats.summary()), vsDex: vsDexStore.totals() });

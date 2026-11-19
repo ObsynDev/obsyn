@@ -4,6 +4,7 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-19
 
+- **Notifications** (bottom-left): a small notice when your own step succeeds (block posted, sealed answer sent, answer accepted, payment locked, tokens deposited, deal settled), and live desk activity from everyone else: new bids and listings, sealed answers, deals struck and settled, with links. New `GET /api/activity` serves only public facts (side, token, size, settlement transaction), never prices or addresses. A settlement is announced once; your own blocks are announced as yours; live activity can be muted from the notice or the footer. Tested through the real site on a mainnet fork, desktop and phone width.
 - **Fixed: deal page showed "Can't read the contract" when the wallet was on another network** ([incident report](INCIDENTS.md)). The deal page now reads the escrow through the Obsyn server (`GET /api/deals/{dealId}/state`) or directly over several Robinhood Chain RPCs, never through the visitor's wallet. The server has backup RPCs too. Accept names the wallet that will deposit and stays disabled until one is connected. Every deposit is reported for on-chain verification, so receipts never lag. No funds were at risk.
 
 ## 2026-11-18

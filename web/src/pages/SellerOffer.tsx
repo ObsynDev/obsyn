@@ -9,6 +9,7 @@ import { BuyerAnswer } from "./BuyerAnswer.tsx";
 import { useMarket, usePayUsd, vsLabel, vsMarket } from "../lib/market.ts";
 import { saved } from "../lib/store.ts";
 import { Err, fmtAmount, fmtLeft, navigate, Pill, short, useAction, useNow } from "../lib/ui.tsx";
+import { toast } from "../lib/toast.tsx";
 
 /** /rfq/:id — a seller answers a bid with a sealed offer. */
 export function SellerOffer({ id }: { id: string }) {
@@ -99,6 +100,7 @@ export function SellerOffer({ id }: { id: string }) {
     const res = await api.submitQuote(rfq.id, seal(offer, unb64(rfq.encPubKey ?? rfq.buyerEncPubKey)));
     const link = `/offer/${res.quoteId}#t=${res.quoteToken}${mode === "ghost" ? `&g=${ghostKey}` : ""}`;
     saved.addOffer({ id: res.quoteId, rfqId: rfq.id, side: "buy", link, offer, createdAt: Date.now() });
+    toast({ tone: "ok", title: "Sealed offer sent", body: "Only the buyer can read it. You'll get a notice here if it's accepted.", key: `quote:${res.quoteId}` });
     navigate(link);
   });
 

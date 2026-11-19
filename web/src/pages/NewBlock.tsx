@@ -7,6 +7,7 @@ import { saved } from "../lib/store.ts";
 import { Err, navigate, useAction } from "../lib/ui.tsx";
 import { TokenAvatar } from "./Terminal.tsx";
 import { PAY_TITLE, useKeepPayValid, usePayOptions, type PaySymbol } from "../lib/pay.ts";
+import { toast } from "../lib/toast.tsx";
 
 const WINDOWS = [
   { label: "15m", s: 900 },
@@ -61,6 +62,7 @@ export function NewBlock({ initialSide, onClose }: { initialSide: "buy" | "sell"
     });
     const link = `/bid/${res.id}#t=${res.manageToken}&k=${toUrl(keys.secretKey)}`;
     saved.addBid({ id: res.id, side, link, token: info.symbol, createdAt: Date.now() });
+    toast({ tone: "ok", title: side === "buy" ? "Bid posted" : "Listing posted", body: "Sealed answers arrive on your private page. Keep its link.", key: `post:${res.id}` });
     navigate(link);
   });
 

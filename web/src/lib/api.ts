@@ -63,6 +63,21 @@ export type TermsJson = Record<
   string
 >;
 
+/** GET /activity: public desk events for the live notifications (never prices or addresses) */
+export interface ActivityEvent {
+  id: number;
+  kind: "posted" | "answered" | "accepted" | "settled";
+  rfqId: string;
+  side: "buy" | "sell";
+  token: Address;
+  payToken: Address;
+  amount: string | null;
+  sizeUsd: number | null;
+  tx: Hex | null;
+  dealId: Hex | null;
+  at: number;
+}
+
 export interface DealInfo {
   dealId: Hex;
   terms: TermsJson;
@@ -276,6 +291,7 @@ export const api = {
   control: () => req<ControlReport>("GET", "/control"),
   dealState: (escrow: string, id: string) => req<{ status: number; buyerFunded: boolean; sellerFunded: boolean }>("GET", `/deals/${id}/state?escrow=${escrow}`),
   stats: () => req<DeskStats>("GET", "/stats"),
+  activity: (after: number | null) => req<{ cursor: number; events: ActivityEvent[] }>("GET", after === null ? "/activity" : `/activity?after=${after}`),
   referrals: (address: string) => req<ReferralSummary>("GET", `/referrals/${address}`),
   reportSettled: (rfqId: string, txHash: string) => req<{ ok: true; txHash: Hex }>("POST", `/rfqs/${rfqId}/settled`, { txHash }),
   relayDeposit: (body: unknown) => req<{ txHash: Hex; dealId: Hex }>("POST", "/relay/deposit", body),

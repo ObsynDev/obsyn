@@ -5,6 +5,7 @@ import { BRAND, fomoUrl, GitHubIcon, PLATFORM_TOKEN, Wordmark, XIcon } from "./l
 import { swapUrl } from "./lib/dex.ts";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Copy, Link, short, usePath } from "./lib/ui.tsx";
+import { ActivityFeed, ActivityToggle, Toaster } from "./lib/toast.tsx";
 import { BuyerBid } from "./pages/BuyerBid.tsx";
 import { Developers } from "./pages/Developers.tsx";
 import { How } from "./pages/How.tsx";
@@ -305,9 +306,12 @@ export function App() {
         </div>
         <div className="fine-row">
           <span>© {new Date().getFullYear()} {BRAND.name}</span>
+          <ActivityToggle />
           <span>Trades settle on-chain and are final. Not a regulated venue. Not investment advice. Security audit by the Obsyn team.</span>
         </div>
       </footer>
+      <Toaster />
+      <ActivityFeed />
     </>
   );
 }

@@ -6311,3 +6311,124 @@ html, body { overflow-x: clip; }
   .menu-open .mnav-inner { max-height: calc(100dvh - 64px); overflow-y: auto; overscroll-behavior: contain; }
   .mnav-inner a { padding: 13px 2px; font-size: 19px; }
 }
+
+/* ═════════════ notifications: bottom-left toasts ═════════════ */
+.toasts {
+  position: fixed;
+  left: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(340px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 11px 10px 11px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+  animation: toast-in 0.22s ease-out;
+}
+.toast-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--info);
+}
+.toast.ok .toast-dot {
+  background: var(--green);
+}
+.toast.live .toast-dot {
+  background: var(--info);
+  box-shadow: 0 0 0 3px var(--info-soft);
+}
+.toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.toast-text b {
+  font-weight: 600;
+}
+.toast-text span {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.toast-link {
+  margin-top: 3px;
+  font: 12px var(--mono);
+  color: var(--green);
+  text-decoration: none;
+}
+.toast-link:hover,
+.toast-link:focus-visible {
+  text-decoration: underline;
+}
+.toast-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.toast-x,
+.toast-mute {
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  color: var(--dim);
+  cursor: pointer;
+}
+.toast-x {
+  font-size: 17px;
+  line-height: 1;
+}
+.toast-mute {
+  font: 11px var(--mono);
+}
+.toast-x:hover,
+.toast-mute:hover,
+.toast-x:focus-visible,
+.toast-mute:focus-visible {
+  color: var(--text);
+}
+.activity-toggle {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.activity-toggle:hover {
+  color: var(--text);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { OtcEscrowAbi } from "../abi/OtcEscrow.ts";
@@ -21,10 +21,19 @@ import {
 import { Copy, Err, fmtAmount, fmtLeft, Link, Pill, short, useAction, useNow, usePoll } from "../lib/ui.tsx";
 import { api } from "../lib/api.ts";
 import { Exposure, rememberFunding } from "./Exposure.tsx";
+import { toast } from "../lib/toast.tsx";
 
 /** The terms as the tuple an explorer's "Write contract → refund" field expects. */
 const termsTuple = (t: Terms) =>
   `[${[t.buyer, t.seller, t.token, t.amount, t.payToken, t.price, t.sellerPayout, t.referrer, t.relayerFee, t.deadline, t.salt].map(String).join(",")}]`;
+
+const DONE = {
+  buy: { title: "Payment locked", body: "Your payment is in the escrow. It settles when the seller deposits." },
+  sell: { title: "Tokens deposited", body: "Your tokens are in the escrow." },
+  fund: { title: "One-time wallet funded", body: "Next: the gasless deposit once the buyer has paid." },
+  ghost: { title: "Deposited via the relayer", body: "The relayer paid the gas." },
+  refund: { title: "Deposits refunded", body: "Each side got back what it put in." },
+} as const;
 
 /** Shared deal view for both sides: terms, live contract state, and the next action. */
 export function DealPanel({
@@ -76,6 +85,7 @@ export function DealPanel({
               : await refund(escrow, terms);
     if (r.status !== "success") throw new Error("Transaction reverted");
     setTx(r.transactionHash);
+    toast({ tone: "ok", ...DONE[kind], key: `tx:${r.transactionHash}` });
     if (kind === "fund") rememberFunding(ghost!, r.from, r.transactionHash);
     // Report every deposit: the server checks on-chain whether this transaction settled the deal and records
     // it only if so, so both sides get the receipt link. (No local "is it settled yet?" read that could lag.)
@@ -86,6 +96,15 @@ export function DealPanel({
       );
     }
   });
+
+  // a small notice when the deal settles while this page is open (by either side)
+  const lastStatus = useRef<string | null>(null);
+  useEffect(() => {
+    const st = state.data?.status ?? null;
+    if (st === "settled" && lastStatus.current !== null && lastStatus.current !== "settled")
+      toast({ tone: "ok", title: "Deal settled", body: "Both sides were swapped in one transaction.", key: `settled:${dealId.toLowerCase()}` });
+    if (st) lastStatus.current = st;
+  }, [state.data?.status, dealId]);
 
   // once settled, find the receipt (reported by whichever side completed the deal)
   const [receiptTx, setReceiptTx] = useState<Hex | null>(null);

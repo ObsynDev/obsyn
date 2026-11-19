@@ -14,6 +14,7 @@ import { DexImpact } from "./DexImpact.tsx";
 import { swapUrl } from "../lib/dex.ts";
 import { useMarket } from "../lib/market.ts";
 import { PAY_TITLE, useKeepPayValid, usePayOptions, type PaySymbol } from "../lib/pay.ts";
+import { toast } from "../lib/toast.tsx";
 
 /**
  * /trade?ca=0x…&side=buy|sell — a trading page for one token: order ticket on the left,
@@ -193,6 +194,7 @@ export function Trade() {
     const res = await api.createRfq(body);
     const link = `/bid/${res.id}#t=${res.manageToken}&k=${toUrl(keys.secretKey)}`;
     saved.addBid({ id: res.id, side, link, token: token.symbol, createdAt: Date.now() });
+    toast({ tone: "ok", title: side === "buy" ? "Bid posted" : "Listing posted", body: "Sealed answers arrive on your private page. Keep its link.", key: `post:${res.id}` });
     navigate(link);
   });
 

@@ -200,6 +200,13 @@ export const openapi = {
         responses: { 200: ok("Deals", { type: "object" }), 401: err("Wrong or missing manage token"), 404: err("Not found") },
       },
     },
+    "/activity": {
+      get: {
+        summary: "Live desk activity (a block posted, a sealed answer sent, a deal accepted, a deal settled), public facts only: side, token, size, settlement tx. Never prices or addresses. Without `after`, returns only the current cursor",
+        parameters: [{ name: "after", in: "query", required: false, schema: { type: "integer", minimum: 0 }, description: "The cursor from the previous call" }],
+        responses: { 200: ok("{ cursor, events }", { type: "object" }) },
+      },
+    },
     "/deals/{dealId}/state": {
       get: {
         summary: "A deal's state on the escrow, read on-chain by the server: status (0 none, 1 open, 2 settled, 3 refunded) and which sides have deposited",

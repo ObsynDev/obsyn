@@ -13,6 +13,7 @@ import { Err, Link, navigate, useAction } from "../lib/ui.tsx";
 import { DotWave } from "./DotWave.tsx";
 import { KeyButton, SlotButton } from "../lib/buttons.tsx";
 import { compact, TokenAvatar } from "./Terminal.tsx";
+import { toast } from "../lib/toast.tsx";
 
 const WINDOWS = [
   { label: "15 min", s: 900 },
@@ -401,6 +402,7 @@ export function Otc() {
     const res = await api.createRfq(body);
     const link = `/bid/${res.id}#t=${res.manageToken}&k=${toUrl(keys.secretKey)}`;
     saved.addBid({ id: res.id, side, link, token: token.symbol, createdAt: Date.now() });
+    toast({ tone: "ok", title: side === "buy" ? "Bid posted" : "Listing posted", body: "Sealed answers arrive on your private page. Keep its link.", key: `post:${res.id}` });
     navigate(link);
   });
 

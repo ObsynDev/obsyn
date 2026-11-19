@@ -10,6 +10,7 @@ import { referral, saved } from "../lib/store.ts";
 import { Copy, Err, fmtAmount, fmtLeft, Pill, short, useAction, useNow, usePoll } from "../lib/ui.tsx";
 import { DealPanel } from "./DealPanel.tsx";
 import { useMarket, usePayUsd, vsLabel, vsMarket } from "../lib/market.ts";
+import { toast } from "../lib/toast.tsx";
 
 const FUND_WINDOWS = [
   { label: "1 hour", s: 3600 },
@@ -209,6 +210,7 @@ export function BuyerBid({ id }: { id: string }) {
       terms = { ...terms, referrer: zeroAddress };
     }
     const res = await api.accept(id, token, a.q.id, termsToJson(terms));
+    toast({ tone: "ok", title: "Answer accepted", body: "The deal is set. Payment locks first, then the tokens, and it settles in one transaction.", key: `accept:${res.dealId}` });
     if (rfq.partial) {
       // the posting stays open until fills cover it; refresh what's filled
       const [r2, f2] = await Promise.all([api.getRfq(id), api.deals(id, token)]);

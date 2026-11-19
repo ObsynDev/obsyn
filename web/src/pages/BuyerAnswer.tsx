@@ -6,6 +6,7 @@ import { answerMessage, seal, unb64, type BuyerBid } from "../lib/sealed.ts";
 import { saved } from "../lib/store.ts";
 import { useMarket, usePayUsd, vsLabel, vsMarket } from "../lib/market.ts";
 import { Err, fmtAmount, fmtLeft, navigate, Pill, short, useAction, useNow } from "../lib/ui.tsx";
+import { toast } from "../lib/toast.tsx";
 
 /** /rfq/:id on a sell listing: a buyer answers with a sealed bid. */
 export function BuyerAnswer({ rfq, tok, pay }: { rfq: Rfq; tok: TokenInfo; pay: TokenInfo }) {
@@ -42,6 +43,7 @@ export function BuyerAnswer({ rfq, tok, pay }: { rfq: Rfq; tok: TokenInfo; pay: 
     const res = await api.submitQuote(rfq.id, seal(bid, unb64(rfq.encPubKey ?? rfq.buyerEncPubKey)));
     const link = `/offer/${res.quoteId}#t=${res.quoteToken}`;
     saved.addOffer({ id: res.quoteId, rfqId: rfq.id, side: "sell", link, offer: bid, createdAt: Date.now() });
+    toast({ tone: "ok", title: "Sealed bid sent", body: "Only the seller can read it. You'll get a notice here if it's accepted.", key: `quote:${res.quoteId}` });
     navigate(link);
   });
 
