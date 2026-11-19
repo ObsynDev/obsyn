@@ -31,6 +31,8 @@ export interface Deps {
   tokenMarket?: (token: Address) => Promise<TokenMarket>;
   /** rebuild a settled deal's receipt from its settlement transaction */
   readReceipt?: (txHash: Hex) => Promise<DealReceipt>;
+  /** a deal's state on an escrow: 0 none, 1 open, 2 settled, 3 refunded, and which sides have deposited */
+  readDeal?: (escrow: Address, id: Hex) => Promise<{ status: number; buyerFunded: boolean; sellerFunded: boolean }>;
   /** on-chain reads for the stats and referral pages (deal status, fees, the fee vault) */
   statsChain?: StatsChain;
   /** live read of who controls the fee vault (owner, keeper, Safe, timelock and its queue) */
@@ -545,6 +547,36 @@ export function createApp(deps: Deps) {
       block: rec.block,
     });
     return c.body(new Uint8Array(png), 200, { "content-type": "image/png", "cache-control": "public, max-age=300" });
+  });
+
+  /**
+   * A deal's state read on-chain by the server, so the deal page works whatever network the visitor's
+   * wallet is on and wherever their own RPC is blocked. Only our escrows; cached for a few seconds.
+   */
+  const dealReads = new Map<string, { at: number; p: Promise<{ status: number; buyerFunded: boolean; sellerFunded: boolean }> }>();
+  app.get("/deals/:dealId/state", async (c) => {
+    const id = c.req.param("dealId").toLowerCase();
+    if (!isHash(id)) return c.json({ error: "invalid deal id" }, 400);
+    if (!deps.readDeal) return c.json({ error: "not configured" }, 503);
+    const known = [cfg.escrow, cfg.escrowLegacy].filter((a): a is Address => !!a);
+    const q = c.req.query("escrow");
+    const escrow = q ? known.find((a) => a.toLowerCase() === q.toLowerCase()) : cfg.escrow;
+    if (!escrow) return c.json({ error: "unknown escrow" }, 400);
+    const k = `${escrow.toLowerCase()}:${id}`;
+    let hit = dealReads.get(k);
+    if (!hit || now() - hit.at >= 4) {
+      if (dealReads.size > 5000) dealReads.clear();
+      hit = { at: now(), p: deps.readDeal(escrow, id as Hex) };
+      dealReads.set(k, hit);
+      hit.p.catch(() => dealReads.delete(k));
+    }
+    try {
+      const s = await hit.p;
+      c.header("cache-control", "no-store");
+      return c.json({ escrow, dealId: id, ...s });
+    } catch (e) {
+      return c.json({ error: (e as Error).message.slice(0, 200) }, 502);
+    }
   });
 
   /** Find a deal's receipt by its id (once a party has reported the settlement transaction). */

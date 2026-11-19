@@ -274,6 +274,7 @@ export const api = {
   receipt: (tx: string) => req<DealReceipt>("GET", `/receipts/${tx}`),
   dealReceipt: (dealId: string) => req<{ txHash: Hex }>("GET", `/deals/${dealId}/receipt`),
   control: () => req<ControlReport>("GET", "/control"),
+  dealState: (escrow: string, id: string) => req<{ status: number; buyerFunded: boolean; sellerFunded: boolean }>("GET", `/deals/${id}/state?escrow=${escrow}`),
   stats: () => req<DeskStats>("GET", "/stats"),
   referrals: (address: string) => req<ReferralSummary>("GET", `/referrals/${address}`),
   reportSettled: (rfqId: string, txHash: string) => req<{ ok: true; txHash: Hex }>("POST", `/rfqs/${rfqId}/settled`, { txHash }),

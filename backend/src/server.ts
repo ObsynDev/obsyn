@@ -9,6 +9,7 @@ import { readReceipt } from "./receipt.ts";
 import { createRelayer } from "./relayer.ts";
 import { createSite } from "./site.ts";
 import { chainStats } from "./stats.ts";
+import { OtcEscrowAbi } from "./abi/OtcEscrow.ts";
 import { blockscoutScheduled, readControl } from "./control.ts";
 import { getAddress } from "viem";
 
@@ -27,6 +28,10 @@ const api = createApp({
   readPrice: (token, src) => readPrice(publicClient, token, src),
   readToken: (token) => readTokenInfo(publicClient, token),
   readReceipt: cfg.escrow ? (tx) => readReceipt(publicClient, [cfg.escrow!, ...(cfg.escrowLegacy ? [cfg.escrowLegacy] : [])], tx) : undefined,
+  readDeal: async (escrow, id) => {
+    const [status, buyerFunded, sellerFunded] = await publicClient.readContract({ address: escrow, abi: OtcEscrowAbi, functionName: "deals", args: [id] });
+    return { status: Number(status), buyerFunded, sellerFunded };
+  },
   controlReader: () =>
     readControl({
       client: publicClient,

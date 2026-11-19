@@ -77,10 +77,13 @@ export function DealPanel({
     if (r.status !== "success") throw new Error("Transaction reverted");
     setTx(r.transactionHash);
     if (kind === "fund") rememberFunding(ghost!, r.from, r.transactionHash);
-    // if this deposit completed the deal, tell the server so both sides get a receipt link
+    // Report every deposit: the server checks on-chain whether this transaction settled the deal and records
+    // it only if so, so both sides get the receipt link. (No local "is it settled yet?" read that could lag.)
     if (rfqId && (kind === "buy" || kind === "sell" || kind === "ghost")) {
-      const after = await dealState(escrow, dealId).catch(() => null);
-      if (after?.status === "settled") api.reportSettled(rfqId, r.transactionHash).then(() => setReceiptTx(r.transactionHash), () => setReceiptTx(r.transactionHash));
+      api.reportSettled(rfqId, r.transactionHash).then(
+        () => setReceiptTx(r.transactionHash),
+        () => {},
+      );
     }
   });
 

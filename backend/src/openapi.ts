@@ -200,6 +200,16 @@ export const openapi = {
         responses: { 200: ok("Deals", { type: "object" }), 401: err("Wrong or missing manage token"), 404: err("Not found") },
       },
     },
+    "/deals/{dealId}/state": {
+      get: {
+        summary: "A deal's state on the escrow, read on-chain by the server: status (0 none, 1 open, 2 settled, 3 refunded) and which sides have deposited",
+        parameters: [
+          { name: "dealId", in: "path", required: true, schema: { type: "string", pattern: "^0x[0-9a-fA-F]{64}$" } },
+          { name: "escrow", in: "query", required: false, schema: address, description: "The deal's escrow (the current one or the legacy one); defaults to the current one" },
+        ],
+        responses: { 200: ok("Deal state", { type: "object" }), 400: err("Bad id or unknown escrow"), 502: err("Chain read failed") },
+      },
+    },
     "/receipts/{tx}": {
       get: {
         summary: "Public receipt of a settled deal, rebuilt from its settlement transaction: terms, fee split, block and time, plus vsDex (the block against a DEX market order of the same size at settlement, when known)",

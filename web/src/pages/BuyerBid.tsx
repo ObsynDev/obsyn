@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAccount } from "wagmi";
 import { formatUnits, getAddress, isAddress, toHex, zeroAddress, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { api, ApiError, type DealInfo, type Fills, type Rfq, type SealedQuote, type ServerConfig } from "../lib/api.ts";
@@ -129,6 +130,12 @@ export function BuyerBid({ id }: { id: string }) {
     [answers, checks],
   );
 
+  // the wallet that deposits after accepting: the buyer on a bid, the seller on a listing (unless ghost mode)
+  const { address: walletAddr, isConnected: walletOn } = useAccount();
+  const needsWallet = side === "buy" || !ghost;
+  const connect = useAction(async () => {
+    await connectWallet();
+  });
   const accept = useAction(async (a: Answer) => {
     if (!rfq) return;
     if (!checks[a.q.id]?.verified) {
@@ -306,6 +313,25 @@ export function BuyerBid({ id }: { id: string }) {
             </div>
           )}
 
+          {answers.length > 0 && needsWallet && (
+            <div className="accept-who">
+              {walletOn ? (
+                <p className="muted small">
+                  Accepting as <span className="mono">{short(walletAddr!)}</span>: this wallet {side === "buy" ? "pays" : "delivers the tokens"} when you deposit. To use
+                  another one, switch accounts in your wallet first.
+                </p>
+              ) : (
+                <>
+                  <p className="warn-text small">Connect the wallet that will {side === "buy" ? "pay" : "deliver the tokens"} before accepting. The deal is written for that wallet.</p>
+                  <button className="btn primary sm" disabled={connect.busy} onClick={() => connect.run()}>
+                    Connect wallet
+                  </button>
+                  <Err msg={connect.error} />
+                </>
+              )}
+            </div>
+          )}
+
           <div className="offers">
             {ranked.map((a, i) => (
               <div key={a.q.id} className={i === 0 && checks[a.q.id]?.verified ? "offer best" : "offer"}>
@@ -346,7 +372,7 @@ export function BuyerBid({ id }: { id: string }) {
                     )}
                   </div>
                 </div>
-                <button className="btn primary sm" disabled={accept.busy} onClick={() => accept.run(a)}>
+                <button className="btn primary sm" disabled={accept.busy || (needsWallet && !walletOn)} title={needsWallet && !walletOn ? "Connect your wallet first" : undefined} onClick={() => accept.run(a)}>
                   Accept
                 </button>
               </div>

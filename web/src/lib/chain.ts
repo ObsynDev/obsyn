@@ -7,6 +7,7 @@ import {
   custom,
   defineChain,
   erc20Abi,
+  fallback,
   getAddress,
   http,
   parseAbi,
@@ -68,13 +69,20 @@ export function chainFor(cfg: ServerConfig): Chain {
 
 let reader: PublicClient | null = null;
 
-/** Reads go through the wallet when there is one (it already has a working RPC), else the public RPC. */
+/** Public Robinhood Chain RPCs tried after the server's, so one blocked or failing provider doesn't break the page. */
+const BACKUP_RPCS = ["https://robinhood-rpc.publicnode.com", "https://4663.rpc.thirdweb.com"];
+
+/**
+ * Reads always go to Robinhood Chain over HTTP, never through the visitor's wallet: a wallet sitting on
+ * another network would read the wrong chain ("returned no data"). Several RPCs, tried in turn.
+ */
 export async function publicClient(): Promise<PublicClient> {
   if (reader) return reader;
   const cfg = await api.config();
+  const urls = [cfg.rpcUrl, ...(cfg.chainId === 4663 ? BACKUP_RPCS.filter((u) => u !== cfg.rpcUrl) : [])];
   reader = createPublicClient({
     chain: chainFor(cfg),
-    transport: injected() ? custom(injected()!) : http(cfg.rpcUrl),
+    transport: urls.length > 1 ? fallback(urls.map((u) => http(u, { timeout: 10_000 }))) : http(cfg.rpcUrl),
   }) as PublicClient;
   return reader;
 }
@@ -126,10 +134,17 @@ export function tokenInfo(address: Address): Promise<TokenInfo> {
 
 export type DealState = { status: "none" | "open" | "settled" | "refunded"; buyerFunded: boolean; sellerFunded: boolean };
 
+/** A deal's state: read by our server first (works whatever network the wallet is on), else straight from the chain. */
 export async function dealState(escrow: Address, id: Hex): Promise<DealState> {
-  const c = await publicClient();
-  const [s, buyerFunded, sellerFunded] = await c.readContract({ address: escrow, abi: OtcEscrowAbi, functionName: "deals", args: [id] });
-  return { status: (["none", "open", "settled", "refunded"] as const)[s] ?? "none", buyerFunded, sellerFunded };
+  const toState = (s: number, buyerFunded: boolean, sellerFunded: boolean): DealState => ({ status: (["none", "open", "settled", "refunded"] as const)[s] ?? "none", buyerFunded, sellerFunded });
+  try {
+    const r = await api.dealState(escrow, id);
+    return toState(r.status, r.buyerFunded, r.sellerFunded);
+  } catch {
+    const c = await publicClient();
+    const [s, buyerFunded, sellerFunded] = await c.readContract({ address: escrow, abi: OtcEscrowAbi, functionName: "deals", args: [id] });
+    return toState(s, buyerFunded, sellerFunded);
+  }
 }
 
 async function ensureAllowance(wallet: Awaited<ReturnType<typeof connectWallet>>["wallet"], token: Address, spender: Address, amount: bigint) {

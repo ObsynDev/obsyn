@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { encodeAbiParameters, encodeEventTopics, encodeFunctionData, parseAbi, type Hex } from "viem";
+import { encodeAbiParameters, encodeEventTopics, encodeFunctionData, getAddress, parseAbi, type Hex } from "viem";
 import { createApp } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
 import { blockscoutScheduled, type ControlReport } from "../src/control.ts";
@@ -69,5 +69,34 @@ describe("GET /control", () => {
   it("says when it can't read the chain, and when it isn't configured", async () => {
     assert.equal((await mk(async () => Promise.reject(new Error("rpc down"))).request("/control")).status, 502);
     assert.equal((await mk().request("/control")).status, 503);
+  });
+});
+
+describe("GET /deals/{id}/state", () => {
+  const relayer: Relayer = { info: () => ({ enabled: false, address: null, problem: null, minFee: { eth: "1", usdg: "1" } }), relayDeposit: async () => Promise.reject(new Error("unused")) };
+  const V2 = getAddress("0x00000000000000000000000000000000000000E2");
+  const V1 = getAddress("0x00000000000000000000000000000000000000E1");
+  const ID = `0x${"ab".repeat(32)}`;
+  const reads: string[] = [];
+  const app = createApp({
+    cfg: loadConfig({ ESCROW_ADDRESS: V2, ESCROW_LEGACY_ADDRESS: V1 }),
+    db: openDb(":memory:"),
+    relayer,
+    readPrice: async () => Promise.reject(new Error("n/a")),
+    readDeal: async (escrow, id) => (reads.push(`${escrow}:${id}`), { status: 1, buyerFunded: true, sellerFunded: false }),
+    now: () => 1_800_000_000,
+  });
+
+  it("reads a deal on the current escrow, or on the legacy one when asked", async () => {
+    const a = (await (await app.request(`/deals/${ID}/state`)).json()) as any;
+    assert.deepEqual({ s: a.status, b: a.buyerFunded, e: a.escrow }, { s: 1, b: true, e: V2 });
+    const b = (await (await app.request(`/deals/${ID}/state?escrow=${V1.toLowerCase()}`)).json()) as any;
+    assert.equal(b.escrow, V1);
+    assert.deepEqual(reads, [`${V2}:${ID}`, `${V1}:${ID}`]);
+  });
+
+  it("refuses other contracts and bad ids", async () => {
+    assert.equal((await app.request(`/deals/${ID}/state?escrow=0x0000000000000000000000000000000000000bad`)).status, 400);
+    assert.equal((await app.request(`/deals/nope/state`)).status, 400);
   });
 });
