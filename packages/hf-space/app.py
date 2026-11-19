@@ -72,14 +72,14 @@ def _impact(size_usd: float, liquidity_usd: float | None) -> dict:
 # ─────────────────────────── tools (each one is an MCP tool) ───────────────────────────
 
 
-def list_open_blocks(token: str = "") -> list[dict]:
+def list_open_blocks(token: str = "all") -> list[dict]:
     """List open OTC blocks on Obsyn (Robinhood Chain): buy bids and sell listings for stock tokens and other ERC-20s.
 
     Prices are sealed (encrypted to the poster), so each block shows its side, size, pay token,
     number of sealed answers and time left, plus the public link to answer it.
 
     Args:
-        token: Optional filter: a listed symbol such as NVDA, TSLA or OBSYN, or a 0x token address. Empty for all.
+        token: Optional filter: a listed symbol such as NVDA, TSLA or OBSYN, or a 0x token address. "all" (the default) or empty for every block.
 
     Returns:
         One entry per open block: side ("buy" = someone wants to buy, "sell" = someone is selling), token,
@@ -88,6 +88,8 @@ def list_open_blocks(token: str = "") -> list[dict]:
     rows = _get("/rfqs", ttl=15.0)
     syms = {m["address"].lower(): m["symbol"] for m in _markets()}
     want = (token or "").strip().lstrip("$").lower()
+    if want in ("all", "*", "any"):
+        want = ""
     now = time.time()
     out = []
     for r in rows:
@@ -235,7 +237,7 @@ these read-only tools. Nothing here holds a key or moves funds. To trade, see *H
 with gr.Blocks(title="Obsyn OTC · MCP") as demo:
     gr.Markdown(INTRO)
     with gr.Tab("Open blocks"):
-        t1 = gr.Textbox(label="Token (optional)", placeholder="NVDA, TSLA, OBSYN or 0x…")
+        t1 = gr.Textbox(label="Token (optional)", value="all", placeholder="all, NVDA, TSLA, OBSYN or 0x…")
         b1 = gr.Button("List open blocks")
         o1 = gr.JSON()
         b1.click(list_open_blocks, t1, o1)
