@@ -47,7 +47,16 @@ const rpcQueue = rpcScheduled(cfg.chainId === 4663 ? logNodes : [publicClient], 
 const scheduledReader = firstScheduled(blockscoutScheduled(process.env.EXPLORER_API ?? "https://robinhoodchain.blockscout.com"), rpcQueue);
 // keep the scan caught up with the chain even when nobody is looking (about one RPC call per tick)
 if (cfg.chainId === 4663) {
-  const tick = () => rpcQueue(TIMELOCK).catch(() => {});
+  let lastWarn = 0;
+  const tick = () =>
+    rpcQueue(TIMELOCK).catch((e: Error) => {
+      // say why the queue can't be read, at most every 10 minutes
+      if (Date.now() - lastWarn > 600_000) {
+        lastWarn = Date.now();
+        const msg = (e?.message ?? String(e)).split(/\r?\n/)[0].slice(0, 300);
+        console.warn(`timelock queue scan: ${msg}`);
+      }
+    });
   tick();
   setInterval(tick, 30_000).unref();
 }
