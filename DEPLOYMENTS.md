@@ -58,7 +58,7 @@ $OBSYN graduated from its Pons curve to Uniswap v4, so the vault buys through `V
 | USDG leg (v3) | WETH / USDG 0.01% [`0x52e65B17fB6E5BA00Ed806f37Afcd2DaA50271Ca`](https://robinhoodchain.blockscout.com/address/0x52e65B17fB6E5BA00Ed806f37Afcd2DaA50271Ca), official Uniswap v3 factory |
 | `weth` | [`0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73`](https://robinhoodchain.blockscout.com/address/0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73) |
 
-Queued in the vault on 2026-11-17 20:18:24 UTC in [`0xd8a83043…`](https://robinhoodchain.blockscout.com/tx/0xd8a83043d507ea7441d62d1169ab7933985303ab53269d4c49e114804e19a397). The vault's public 2-day wait ends **2026-11-19 20:18:24 UTC**; only then can the owner switch it on with `applyAdapter`. Verified on Sourcify (exact match): [V4BurnAdapter](https://repo.sourcify.dev/4663/0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67).
+Queued in the vault on 2026-11-17 20:18:24 UTC in [`0xd8a83043…`](https://robinhoodchain.blockscout.com/tx/0xd8a83043d507ea7441d62d1169ab7933985303ab53269d4c49e114804e19a397). The vault's public 2-day wait ended 2026-11-19 20:18:24 UTC. **Switched on** by the Safe with `applyAdapter` on 2026-11-20 01:15 UTC in [`0xd996f41c…`](https://robinhoodchain.blockscout.com/tx/0xd996f41c32db56eecba65218597cd93df1f924e4255ed746914ef0ff2208378b) (`AdapterSet`); `adapter()` now returns this address. Verified on Sourcify (exact match): [V4BurnAdapter](https://repo.sourcify.dev/4663/0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67).
 
 ### Timelock in front of the fee vault (ObsynTimelock)
 

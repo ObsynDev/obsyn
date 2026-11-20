@@ -104,7 +104,7 @@ const PAGES: Record<string, Page> = {
 <h2>Privacy</h2><p>Answers are encrypted in the sender's browser to a key that lives only in your private link. The server stores ciphertext it cannot read, so nobody can front-run your size.</p>
 <h2>How it works</h2><ol><li>Post a sealed bid or listing and keep the private link.</li><li>Counterparties answer with sealed prices.</li><li>Pick one and both sides deposit into the contract.</li><li>The contract swaps both legs in one transaction, or refunds after the deadline.</li></ol>
 <h2>Agents</h2><p>An MCP server and a JavaScript SDK let AI agents post, answer and settle blocks through the same API.</p>
-<h2>$OBSYN</h2><p>Settlement fees fund buy-and-burn of $OBSYN, and holders get 0.5% off fees. $OBSYN graduated from its Pons curve to Uniswap v4; the fee vault's new Uniswap v4 burn route was queued behind the vault's public 2-day timelock and can be switched on from Thursday, November 19, 2026, 3:18 PM ET (20:18 UTC).</p>
+<h2>$OBSYN</h2><p>Settlement fees fund buy-and-burn of $OBSYN, and holders get 0.5% off fees. $OBSYN graduated from its Pons curve to Uniswap v4; the fee vault buys and burns through a Uniswap v4 route, switched on November 20, 2026 after a public 2-day wait.</p>
 ${faqHtml}`,
   },
   "/otc": {

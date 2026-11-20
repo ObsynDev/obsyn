@@ -4,6 +4,7 @@ Notable changes to what users and integrators see. Dates are UTC.
 
 ## 2026-11-20
 
+- **Uniswap v4 burn route is live:** the Safe switched on `V4BurnAdapter` (`applyAdapter`, [`0xd996f41c…`](https://robinhoodchain.blockscout.com/tx/0xd996f41c32db56eecba65218597cd93df1f924e4255ed746914ef0ff2208378b)) after its public 2-day wait. Desk fees in the vault now buy $OBSYN on its Uniswap v4 pool and send it to the burn address; burns are triggered by the Safe. The homepage route banner shows LIVE (the vault keeps `pendingAdapter` set to the same address after applying, which the banner now accounts for).
 - **Hosted read-only MCP on Hugging Face** ([devobsyntrade/obsyn-otc](https://huggingface.co/spaces/devobsyntrade/obsyn-otc)): six tools (open blocks, market and price-impact check, slippage table, desk stats, who controls what, how to trade) at `https://devobsyntrade-obsyn-otc.hf.space/gradio_api/mcp/`, nothing to install. Holds no keys and can't trade. Every tool checked over MCP against the live desk.
 
 ## 2026-11-19

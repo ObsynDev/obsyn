@@ -41,7 +41,8 @@ export function BurnRoute() {
   }, []);
 
   const adapter = (route?.pending !== ZERO && route?.pending) || (route?.active !== ZERO && route?.active) || ROUTE.adapter;
-  const live = !!route && route.active !== ZERO && route.active.toLowerCase() === adapter.toLowerCase() && route.pending === ZERO;
+  // applyAdapter leaves pendingAdapter set to the same address with eta 0, so "live" only needs the active route
+  const live = !!route && route.active !== ZERO && route.active.toLowerCase() === adapter.toLowerCase() && (route.pending === ZERO || route.pending.toLowerCase() === route.active.toLowerCase() || route.pendingEta === 0);
   const eta = route && route.pendingEta > 0 ? route.pendingEta : ROUTE.eta;
   const left = Math.max(0, eta - now);
   const state: "live" | "ready" | "waiting" = live ? "live" : left === 0 ? "ready" : "waiting";
@@ -120,7 +121,7 @@ export function BurnRoute() {
       <ul className="brt-facts">
         <li>The route has no owner and no settings. Only the vault can use it, and it holds nothing between burns.</li>
         <li>Bought ${T} goes straight to 0x…dEaD. Every burn must hit a minimum, checked twice.</li>
-        <li>Until it's on, fees simply collect in the vault. Nobody can withdraw them.</li>
+        <li>{live ? "Nobody can withdraw the fees: the vault can only buy and burn." : "Until it's on, fees simply collect in the vault. Nobody can withdraw them."}</li>
       </ul>
 
       <div className="brt-links mono">

@@ -50,7 +50,7 @@ const PHASES: { n: string; title: string; blurb: string; items: Item[] }[] = [
     title: "Small: polish the desk",
     blurb: "Quick wins that make deals faster and easier to trust.",
     items: [
-      { t: "Uniswap v4 burn route", d: "$OBSYN graduated, so the vault buys through its Uniswap v4 pool: an adapter, live 2 days after it is queued.", s: "next", size: "S", doc: "token" },
+      { t: "Uniswap v4 burn route", d: "$OBSYN graduated, so the vault buys through its Uniswap v4 pool. Queued in public for 2 days, switched on 2026-11-20.", s: "live", size: "S", doc: "token" },
       { t: "Notifications", d: "Telegram and email alerts when an answer arrives or the other side deposits.", s: "next", size: "S" },
     ],
   },

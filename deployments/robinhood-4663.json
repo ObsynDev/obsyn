@@ -66,6 +66,8 @@
       "deployTx": "0x257f50cd59b664902016f360630649e13bf1d49b9f7053421dd3edaf7c95050c",
       "block": 116852320,
       "deployedAt": "2026-11-17T20:18:14Z",
+      "appliedTx": "0xd996f41c32db56eecba65218597cd93df1f924e4255ed746914ef0ff2208378b",
+      "appliedAt": "2026-11-20T01:15:00Z",
       "constructor": {
         "poolManager": "0x8366a39CC670B4001A1121B8F6A443A643e40951",
         "vault": "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221",
