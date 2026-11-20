@@ -95,6 +95,9 @@
       "deployTx": "0x4a6afb1cd21ad817eb372e6a05d342baf20af9ed63020164913f6a6aa7104953",
       "block": 117489403,
       "deployedAt": "2026-11-18",
+      "vaultHandoverTx": "0x04e025ca8385182ba597f16106a18147bffcf0a4984ab23b042b4de72de6ee8d",
+      "vaultHandoverAt": "2026-11-20T01:23:06Z",
+      "minDelayAfterHandover": 259200,
       "constructor": {
         "minDelay": 0,
         "proposers": [

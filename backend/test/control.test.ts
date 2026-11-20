@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { encodeAbiParameters, encodeEventTopics, encodeFunctionData, getAddress, parseAbi, type Hex } from "viem";
 import { createApp } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
-import { blockscoutScheduled, type ControlReport } from "../src/control.ts";
+import { blockscoutScheduled, firstScheduled, memoryScanStore, rpcScheduled, type ControlReport } from "../src/control.ts";
 import { openDb } from "../src/db.ts";
 import type { Relayer } from "../src/relayer.ts";
 
@@ -44,6 +44,46 @@ describe("timelock queue from the explorer", () => {
         ["0xbbbb", VAULT, "0x463e0edc"],
       ],
     );
+  });
+});
+
+describe("timelock queue from RPC logs", () => {
+  const log = (id: string, start: bigint) => ({ args: { id: `0x${id.repeat(32)}`, target: VAULT, data: "0x463e0edc" }, blockNumber: start });
+  it("scans in chunks from the deploy block, then only new blocks", async () => {
+    let head = 2_500_000n;
+    const calls: [bigint, bigint][] = [];
+    const node = {
+      getBlockNumber: async () => head,
+      getLogs: async ({ fromBlock, toBlock }: any) => (calls.push([fromBlock, toBlock]), fromBlock <= 1_200_000n && 1_200_000n <= toBlock ? [log("aa", 1_200_000n)] : fromBlock > 2_500_000n ? [log("bb", 2_600_000n)] : []),
+    };
+    const read = rpcScheduled([node as any], 1_000_000n, { span: 1_000_000n });
+    assert.deepEqual((await read(TL as any)).map((x) => x.id.slice(0, 4)), ["0xaa"]);
+    assert.deepEqual(calls, [[1_000_000n, 1_999_999n], [2_000_000n, 2_500_000n]]);
+    head = 2_600_000n;
+    assert.deepEqual((await read(TL as any)).map((x) => x.id.slice(0, 4)), ["0xaa", "0xbb"]);
+    assert.deepEqual(calls.at(-1), [2_500_001n, 2_600_000n], "only the new blocks");
+  });
+  it("reads at most maxChunks ranges per call, reports 'still indexing', and resumes from the store", async () => {
+    const node = { getBlockNumber: async () => 5_000n, getLogs: async ({ fromBlock, toBlock }: any) => (fromBlock <= 3_000n && 3_000n <= toBlock ? [log("dd", 3_000n)] : []) };
+    const store = memoryScanStore();
+    const read = rpcScheduled([node as any], 1n, { span: 1_000n, maxChunks: 2, store });
+    await assert.rejects(read(TL as any), /still indexing/);
+    assert.equal(store.get(TL.toLowerCase())?.scanned, "2000");
+    await assert.rejects(read(TL as any), /still indexing/);
+    const again = rpcScheduled([node as any], 1n, { span: 1_000n, maxChunks: 2, store }); // e.g. after a restart
+    assert.deepEqual((await again(TL as any)).map((x) => x.id.slice(0, 4)), ["0xdd"]);
+    assert.equal(store.get(TL.toLowerCase())?.scanned, "5000");
+  });
+
+  it("falls back to the next node, and from the explorer to RPC", async () => {
+    const bad = { getBlockNumber: async () => Promise.reject(new Error("down")), getLogs: async () => [] };
+    const good = { getBlockNumber: async () => 10n, getLogs: async () => [log("cc", 5n)] };
+    const rpc = rpcScheduled([bad as any, good as any], 1n);
+    const explorer = blockscoutScheduled("https://x", async () => {
+      throw new SyntaxError("Unexpected token '<'"); // a bot-check page instead of JSON
+    });
+    const got = await firstScheduled(explorer, rpc)(TL as any);
+    assert.equal(got[0].id.slice(0, 4), "0xcc");
   });
 });
 

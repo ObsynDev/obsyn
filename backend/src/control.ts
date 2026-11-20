@@ -167,11 +167,88 @@ export async function readControl(d: ControlDeps): Promise<ControlReport> {
  * CallScheduled events of a timelock from Blockscout's API (no log-range limits). Topic0 is
  * keccak256("CallScheduled(bytes32,uint256,address,uint256,bytes,bytes32,uint256)").
  */
+type Scheduled = { id: Hex; target: Address; data: Hex };
+type LogsClient = Pick<PublicClient, "getBlockNumber" | "getLogs">;
+
+/** Where an incremental log scan got to, so a restart doesn't rescan from the start. */
+export interface ScanStore {
+  get(key: string): { scanned: string; found: Scheduled[] } | null;
+  set(key: string, v: { scanned: string; found: Scheduled[] }): void;
+}
+export const memoryScanStore = (): ScanStore => {
+  const m = new Map<string, { scanned: string; found: Scheduled[] }>();
+  return { get: (k) => m.get(k) ?? null, set: (k, v) => void m.set(k, v) };
+};
+
+/**
+ * CallScheduled events read straight from RPC nodes (no explorer needed), from `fromBlock` onward, in
+ * small block ranges (public nodes cap eth_getLogs at about 1,000 blocks). Incremental: each call only
+ * reads blocks not yet scanned, at most `maxChunks` ranges; until it has caught up with the chain head
+ * it throws, so the caller reports the queue as unknown instead of showing a partial one.
+ */
+export function rpcScheduled(nodes: LogsClient[], fromBlock: bigint, opts: { span?: bigint; maxChunks?: number; store?: ScanStore } = {}) {
+  const span = opts.span ?? 1_000n;
+  const maxChunks = opts.maxChunks ?? 50;
+  const store = opts.store ?? memoryScanStore();
+  const running = new Map<string, Promise<Scheduled[]>>();
+  const scan = async (tl: Address): Promise<Scheduled[]> => {
+    const key = tl.toLowerCase();
+    let lastErr: unknown = new Error("no RPC node");
+    for (const c of nodes) {
+      try {
+        const head = await c.getBlockNumber();
+        const saved = store.get(key);
+        let from = saved ? BigInt(saved.scanned) + 1n : fromBlock;
+        const got = [...(saved?.found ?? [])];
+        for (let i = 0; from <= head; i++) {
+          if (i >= maxChunks) throw new Error(`still indexing the timelock queue (block ${from} of ${head})`);
+          const to = from + span - 1n < head ? from + span - 1n : head;
+          const logs = await c.getLogs({ address: tl, event: SCHEDULED_ABI[0], fromBlock: from, toBlock: to });
+          for (const l of logs) if (l.args.id && l.args.target && l.args.data) got.push({ id: l.args.id, target: getAddress(l.args.target), data: l.args.data });
+          store.set(key, { scanned: to.toString(), found: got });
+          from = to + 1n;
+        }
+        return got;
+      } catch (e) {
+        lastErr = e;
+        if (e instanceof Error && e.message.startsWith("still indexing")) throw e;
+      }
+    }
+    throw lastErr;
+  };
+  // one scan at a time: a page view and the background catch-up never read the same ranges twice
+  return (tl: Address): Promise<Scheduled[]> => {
+    const k = tl.toLowerCase();
+    let p = running.get(k);
+    if (!p) {
+      p = scan(tl).finally(() => running.delete(k));
+      running.set(k, p);
+    }
+    return p;
+  };
+}
+
+/** The first reader that answers (e.g. the explorer, then RPC logs). */
+export function firstScheduled(...readers: ((tl: Address) => Promise<Scheduled[]>)[]) {
+  return async (tl: Address): Promise<Scheduled[]> => {
+    let lastErr: unknown = new Error("no reader");
+    for (const r of readers) {
+      try {
+        return await r(tl);
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr;
+  };
+}
+
 export function blockscoutScheduled(explorerApi: string, fetchJson: (url: string) => Promise<unknown> = (u) => fetch(u).then((r) => r.json())) {
   const TOPIC = "0x4cf4410cc57040e44862ef0f45f3dd5a5e02db8eb8add648d4b0e236f1d07dca";
   return async (tl: Address) => {
     const out: { id: Hex; target: Address; data: Hex }[] = [];
     let url: string | null = `${explorerApi}/api/v2/addresses/${tl}/logs`;
+    // (a bot-check page instead of JSON throws in fetchJson, so the caller falls back to RPC logs)
     for (let page = 0; url && page < 10; page++) {
       const j = (await fetchJson(url)) as { items?: { topics?: (string | null)[]; data?: string }[]; next_page_params?: Record<string, string> | null };
       for (const it of j.items ?? []) {

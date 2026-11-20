@@ -10,8 +10,9 @@ import { createRelayer } from "./relayer.ts";
 import { createSite } from "./site.ts";
 import { chainStats } from "./stats.ts";
 import { OtcEscrowAbi } from "./abi/OtcEscrow.ts";
-import { blockscoutScheduled, readControl } from "./control.ts";
-import { getAddress } from "viem";
+import { blockscoutScheduled, firstScheduled, readControl, rpcScheduled, type ScanStore } from "./control.ts";
+import { createPublicClient, getAddress, http } from "viem";
+import { robinhoodChain } from "./chain.ts";
 
 try {
   process.loadEnvFile();
@@ -21,9 +22,39 @@ try {
 
 const cfg = loadConfig();
 const { publicClient } = clients(cfg);
+
+const db = openDb(cfg.dbPath);
+
+/**
+ * Timelock queue: the explorer's log API, else CallScheduled logs read from RPC nodes in 1,000-block ranges,
+ * with the scan position kept in the database. The scan starts at the vault handover (block 118670637):
+ * only the Safe can schedule, and none of its earlier transactions (nonces 0-4) touched the timelock.
+ */
+const TIMELOCK = getAddress(process.env.TIMELOCK_ADDRESS ?? "0x49c6f104b0BdD7353e68d70951f6E22fc1e3Cd16");
+const TIMELOCK_SCAN_FROM = BigInt(process.env.TIMELOCK_SCAN_FROM ?? "118670000");
+db.exec("CREATE TABLE IF NOT EXISTS scan_state (key TEXT PRIMARY KEY, json TEXT NOT NULL)");
+const scanGet = db.prepare("SELECT json FROM scan_state WHERE key = ?");
+const scanPut = db.prepare("INSERT INTO scan_state (key, json) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET json = excluded.json");
+const scanStore: ScanStore = {
+  get: (k) => {
+    const row = scanGet.get(`timelock:${k}`) as { json: string } | undefined;
+    return row ? JSON.parse(row.json) : null;
+  },
+  set: (k, v) => void scanPut.run(`timelock:${k}`, JSON.stringify(v)),
+};
+const logNodes = [...new Set(["https://4663.rpc.thirdweb.com", cfg.rpcUrl])].map((u) => createPublicClient({ chain: robinhoodChain(cfg), transport: http(u, { timeout: 20_000 }) }));
+const rpcQueue = rpcScheduled(cfg.chainId === 4663 ? logNodes : [publicClient], TIMELOCK_SCAN_FROM, { store: scanStore });
+const scheduledReader = firstScheduled(blockscoutScheduled(process.env.EXPLORER_API ?? "https://robinhoodchain.blockscout.com"), rpcQueue);
+// keep the scan caught up with the chain even when nobody is looking (about one RPC call per tick)
+if (cfg.chainId === 4663) {
+  const tick = () => rpcQueue(TIMELOCK).catch(() => {});
+  tick();
+  setInterval(tick, 30_000).unref();
+}
+
 const api = createApp({
   cfg,
-  db: openDb(cfg.dbPath),
+  db,
   relayer: createRelayer(cfg),
   readPrice: (token, src) => readPrice(publicClient, token, src),
   readToken: (token) => readTokenInfo(publicClient, token),
@@ -43,7 +74,7 @@ const api = createApp({
       teamSigners: (process.env.TEAM_SIGNERS ?? "0x533452c0e3C3455D33d551964F14D352597b21e1,0xD3b32872b311c29A0DBBbbbc76fE5871Cb0b994A,0x9743307CebE092eea55756A2526EeB24Ddd4bA86")
         .split(",")
         .map((a) => getAddress(a.trim())),
-      scheduledIds: blockscoutScheduled(process.env.EXPLORER_API ?? "https://robinhoodchain.blockscout.com"),
+      scheduledIds: scheduledReader,
       now: () => Math.floor(Date.now() / 1000),
     }),
   statsChain: cfg.escrow ? chainStats(publicClient, cfg.escrow, cfg.platformToken?.address ?? null, cfg.escrowLegacy ?? null) : undefined,

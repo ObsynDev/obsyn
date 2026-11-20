@@ -1070,7 +1070,7 @@ cast storage ${ESCROW} 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a7178
             </p>
             <h3 className="dx-h3">The escrow's one dependency</h3>
             <p className="dx-p">
-              The escrow has no admin key, but it does talk to one other contract: the fee vault, owned by a 2-of-3 multisig. It asks the
+              The escrow has no admin key, but it does talk to one other contract: the fee vault, owned by a 3-day timelock that only the team's 2-of-3 multisig can propose to. It asks the
               vault whether the 0.5% holder discount applies (a read capped at 30,000 gas; if it fails, the normal fee applies) and sends
               it the fee (if an ETH transfer failed, the fee is credited instead and settlement continues). That's all. The vault can't
               block a deposit, a settlement or a refund, and can't touch user funds. Details in{" "}
