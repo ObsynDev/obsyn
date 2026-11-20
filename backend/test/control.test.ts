@@ -75,8 +75,18 @@ describe("timelock queue from RPC logs", () => {
     assert.equal(store.get(TL.toLowerCase())?.scanned, "5000");
   });
 
+  it("gives up on a hung node after callMs and asks the next one", async () => {
+    const hung = { getBlockNumber: () => new Promise<bigint>(() => {}), getLogs: () => new Promise<never>(() => {}) };
+    const good = { getBlockNumber: async () => 10n, getLogs: async () => [log("ee", 5n)] };
+    const t0 = Date.now();
+    const got = await rpcScheduled([hung as any, good as any], 1n, { callMs: 50 })(TL as any);
+    assert.equal(got[0].id.slice(0, 4), "0xee");
+    assert.ok(Date.now() - t0 < 1000, "didn't wait on the hung node");
+    await assert.rejects(rpcScheduled([hung as any], 1n, { callMs: 50 })(TL as any), /failed on every node/);
+  });
+
   it("falls back to the next node, and from the explorer to RPC", async () => {
-    const bad = { getBlockNumber: async () => Promise.reject(new Error("down")), getLogs: async () => [] };
+    const bad = { getBlockNumber: async () => Promise.reject(new Error("down")), getLogs: async () => Promise.reject(new Error("down")) };
     const good = { getBlockNumber: async () => 10n, getLogs: async () => [log("cc", 5n)] };
     const rpc = rpcScheduled([bad as any, good as any], 1n);
     const explorer = blockscoutScheduled("https://x", async () => {

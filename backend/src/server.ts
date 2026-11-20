@@ -42,8 +42,8 @@ const scanStore: ScanStore = {
   },
   set: (k, v) => void scanPut.run(`timelock:${k}`, JSON.stringify(v)),
 };
-const logNodes = [...new Set(["https://4663.rpc.thirdweb.com", cfg.rpcUrl])].map((u) => createPublicClient({ chain: robinhoodChain(cfg), transport: http(u, { timeout: 20_000 }) }));
-const rpcQueue = rpcScheduled(cfg.chainId === 4663 ? logNodes : [publicClient], TIMELOCK_SCAN_FROM, { store: scanStore });
+const logNodes = [...new Set([cfg.rpcUrl, "https://4663.rpc.thirdweb.com"])].map((u) => createPublicClient({ chain: robinhoodChain(cfg), transport: http(u, { timeout: 8_000, retryCount: 0 }) }));
+const rpcQueue = rpcScheduled(cfg.chainId === 4663 ? logNodes : [publicClient], TIMELOCK_SCAN_FROM, { store: scanStore, span: 500n });
 const scheduledReader = firstScheduled(blockscoutScheduled(process.env.EXPLORER_API ?? "https://robinhoodchain.blockscout.com"), rpcQueue);
 // keep the scan caught up with the chain even when nobody is looking (about one RPC call per tick)
 if (cfg.chainId === 4663) {

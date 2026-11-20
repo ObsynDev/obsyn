@@ -194,35 +194,41 @@ export const memoryScanStore = (): ScanStore => {
  * reads blocks not yet scanned, at most `maxChunks` ranges; until it has caught up with the chain head
  * it throws, so the caller reports the queue as unknown instead of showing a partial one.
  */
-export function rpcScheduled(nodes: LogsClient[], fromBlock: bigint, opts: { span?: bigint; maxChunks?: number; store?: ScanStore } = {}) {
+export function rpcScheduled(nodes: LogsClient[], fromBlock: bigint, opts: { span?: bigint; maxChunks?: number; store?: ScanStore; callMs?: number; budgetMs?: number } = {}) {
   const span = opts.span ?? 1_000n;
   const maxChunks = opts.maxChunks ?? 50;
   const store = opts.store ?? memoryScanStore();
   const running = new Map<string, Promise<Scheduled[]>>();
   const scan = async (tl: Address): Promise<Scheduled[]> => {
     const key = tl.toLowerCase();
-    let lastErr: unknown = new Error("no RPC node");
-    for (const c of nodes) {
-      try {
-        const head = await c.getBlockNumber();
-        const saved = store.get(key);
-        let from = saved ? BigInt(saved.scanned) + 1n : fromBlock;
-        const got = [...(saved?.found ?? [])];
-        for (let i = 0; from <= head; i++) {
-          if (i >= maxChunks) throw new Error(`still indexing the timelock queue (block ${from} of ${head})`);
-          const to = from + span - 1n < head ? from + span - 1n : head;
-          const logs = await c.getLogs({ address: tl, event: SCHEDULED_ABI[0], fromBlock: from, toBlock: to });
-          for (const l of logs) if (l.args.id && l.args.target && l.args.data) got.push({ id: l.args.id, target: getAddress(l.args.target), data: l.args.data });
-          store.set(key, { scanned: to.toString(), found: got });
-          from = to + 1n;
+    const deadline = Date.now() + (opts.budgetMs ?? 60_000);
+    // each call is bounded; on failure the same call goes to the next node, so one slow node can't stall the scan
+    const ask = async <T>(what: string, f: (c: LogsClient) => Promise<T>): Promise<T> => {
+      const errs: string[] = [];
+      for (const c of nodes) {
+        try {
+          return await withTimeout(f(c), opts.callMs ?? 8_000);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          errs.push(msg.split(/\r?\n/)[0].slice(0, 120));
         }
-        return got;
-      } catch (e) {
-        lastErr = e;
-        if (e instanceof Error && e.message.startsWith("still indexing")) throw e;
       }
+      throw new Error(`${what} failed on every node: ${errs.join(" | ")}`);
+    };
+    const head = await ask("eth_blockNumber", (c) => c.getBlockNumber());
+    const saved = store.get(key);
+    let from = saved ? BigInt(saved.scanned) + 1n : fromBlock;
+    const got = [...(saved?.found ?? [])];
+    for (let i = 0; from <= head; i++) {
+      if (i >= maxChunks || Date.now() > deadline) throw new Error(`still indexing the timelock queue (block ${from} of ${head})`);
+      const to = from + span - 1n < head ? from + span - 1n : head;
+      const a = from;
+      const logs = await ask(`eth_getLogs ${a}-${to}`, (c) => c.getLogs({ address: tl, event: SCHEDULED_ABI[0], fromBlock: a, toBlock: to }));
+      for (const l of logs) if (l.args.id && l.args.target && l.args.data) got.push({ id: l.args.id, target: getAddress(l.args.target), data: l.args.data });
+      store.set(key, { scanned: to.toString(), found: got });
+      from = to + 1n;
     }
-    throw lastErr;
+    return got;
   };
   // one scan at a time: a page view and the background catch-up never read the same ranges twice
   return (tl: Address): Promise<Scheduled[]> => {
