@@ -11,6 +11,7 @@ Everything Obsyn runs on-chain, with the transaction that created it. Machine-re
 | `ObsynTimelock` (OpenZeppelin TimelockController v5.1.0; owns the fee vault since 2026-11-20) | [`0x49c6f104b0BdD7353e68d70951f6E22fc1e3Cd16`](https://robinhoodchain.blockscout.com/address/0x49c6f104b0BdD7353e68d70951f6E22fc1e3Cd16) | 2026-11-18, block 117489403 | [`0x4a6afb1c…`](https://robinhoodchain.blockscout.com/tx/0x4a6afb1cd21ad817eb372e6a05d342baf20af9ed63020164913f6a6aa7104953) |
 | `BuyBurnVault` | [`0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221`](https://robinhoodchain.blockscout.com/address/0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221) | 2026-11-16 08:52:30 UTC, block 115638297 | [`0x96e61067…`](https://robinhoodchain.blockscout.com/tx/0x96e61067b39a05b18e6e0c6542ecc69174e256e3e6355049e11235fd5cab5133) |
 | `V4BurnAdapter` (the vault's buy route since $OBSYN graduated) | [`0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67`](https://robinhoodchain.blockscout.com/address/0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67) | 2026-11-17 20:18:14 UTC, block 116852320 | [`0x257f50cd…`](https://robinhoodchain.blockscout.com/tx/0x257f50cd59b664902016f360630649e13bf1d49b9f7053421dd3edaf7c95050c) |
+| `BurnKeeper` (automatic burns; becomes the vault keeper through the timelock) | [`0x6AC7f66EdE946634D82deA689c6335ED3ACC593b`](https://robinhoodchain.blockscout.com/address/0x6AC7f66EdE946634D82deA689c6335ED3ACC593b) | 2026-11-20 03:14:29 UTC, block 118735919 | [`0x065fd75c…`](https://robinhoodchain.blockscout.com/tx/0x065fd75cfe61b7e45ef8b0851bfb67c80f1c386d1400e4e3e2000ff047e624e8) |
 
 Compiler: solc 0.8.24, optimizer on (10,000 runs), EVM `cancun`. Built from `contracts/src` in this repository.
 
@@ -60,6 +61,22 @@ $OBSYN graduated from its Pons curve to Uniswap v4, so the vault buys through `V
 | `weth` | [`0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73`](https://robinhoodchain.blockscout.com/address/0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73) |
 
 Queued in the vault on 2026-11-17 20:18:24 UTC in [`0xd8a83043…`](https://robinhoodchain.blockscout.com/tx/0xd8a83043d507ea7441d62d1169ab7933985303ab53269d4c49e114804e19a397). The vault's public 2-day wait ended 2026-11-19 20:18:24 UTC. **Switched on** by the Safe with `applyAdapter` on 2026-11-20 01:15 UTC in [`0xd996f41c…`](https://robinhoodchain.blockscout.com/tx/0xd996f41c32db56eecba65218597cd93df1f924e4255ed746914ef0ff2208378b) (`AdapterSet`); `adapter()` now returns this address. Verified on Sourcify (exact match): [V4BurnAdapter](https://repo.sourcify.dev/4663/0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67).
+
+### Automatic burns (BurnKeeper)
+
+[`0x6AC7f66EdE946634D82deA689c6335ED3ACC593b`](https://robinhoodchain.blockscout.com/address/0x6AC7f66EdE946634D82deA689c6335ED3ACC593b) (Sourcify exact match) is the keeper that lets burns run on their own through the live V4 route. Anyone can call `snapshot()`, `burnEth()` and `burnUsdg()`; the Obsyn server does every few minutes, and its key only pays gas. The contract bounds every burn:
+
+| Rule | Value |
+|---|---|
+| Price snapshot must be at least / at most | 10 minutes / 2 hours old (replaceable only when stale or out of band) |
+| Pool price at burn time | within ±3% of the snapshot |
+| Tokens received | at least the snapshot price minus 3% (band) and 5% (pool fees and price impact), enforced by the route and the vault |
+| USDG leg | only while the WETH/USDG spot is within 50 ticks (~0.5%) of its 10-minute TWAP |
+| Per burn | at most 0.01 ETH or 20 USDG; nothing below 0.0001 ETH or 0.5 USDG |
+| Between burns | 30 minutes |
+| Route | only while the vault's route is `V4BurnAdapter`; it stops if the route changes |
+
+No owner, no settings. Status: **deployed; `setKeeper(BurnKeeper)` goes through the timelock (3 days), then the server executes it.** Until then the Safe stays the keeper.
 
 ### Timelock in front of the fee vault (ObsynTimelock)
 

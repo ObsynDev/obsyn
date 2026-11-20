@@ -5,6 +5,7 @@ import { explorerAddr } from "../lib/chain.ts";
 import { Copy, short, useNow } from "../lib/ui.tsx";
 
 const ADAPTER_NAMES: Record<string, string> = { "0xf20c97aedfad8de050e7e3ee797fa0434a16ab67": "V4BurnAdapter (Uniswap v4)" };
+const KEEPER_NAMES: Record<string, string> = { "0x6ac7f66ede946634d82dea689c6335ed3acc593b": "BurnKeeper: automatic burns, bounded on-chain" };
 
 function Addr({ a }: { a: string }) {
   return (
@@ -99,7 +100,7 @@ export function ControlPanel() {
 
         <div className="ctl-card">
           <span className="ctl-k mono">KEEPER (RUNS BURNS)</span>
-          <b>{v.keeperKind === "safe" && r.safe ? `The team Safe, ${r.safe.threshold} of ${r.safe.signers.length}` : `A ${v.keeperKind}`}</b>
+          <b>{v.keeperKind === "safe" && r.safe ? `The team Safe, ${r.safe.threshold} of ${r.safe.signers.length}` : (KEEPER_NAMES[v.keeper.toLowerCase()] ?? `A ${v.keeperKind}`)}</b>
           <p>Burns need the Safe's signatures, and every burn must send at least its minimum to the burn address or it reverts.</p>
           <Addr a={v.keeper} />
         </div>

@@ -64,6 +64,15 @@ const SETTINGS = {
     ["BURN_TOKEN_FEE_BPS()", "0xdb9ca7f5", asUint],
     ["MAX_FEE_BPS()", "0xd55be8c6", asUint],
   ],
+  BurnKeeper: [
+    ["vault()", "0xfbfa77cf", asAddr],
+    ["route() V4 burn route", "0xd96661ef", asAddr],
+    ["bandBps()", "0xe163ef68", asUint],
+    ["feeAllowanceBps()", "0x26ecb947", asUint],
+    ["maxEthPerBurn() wei", "0xfcf30f13", asUint],
+    ["maxUsdgPerBurn() base units", "0x55a396e0", asUint],
+    ["cooldown() seconds", "0x787a08a6", asUint],
+  ],
   ObsynTimelock: [
     ["getMinDelay() seconds", "0xf27a0c92", asUint],
   ],

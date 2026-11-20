@@ -108,7 +108,33 @@
         ],
         "admin": "0x0000000000000000000000000000000000000000"
       },
-      "note": "OpenZeppelin TimelockController v5.1.0. Not the vault owner yet: the Safe hands the vault over in one batch after the V4 route is switched on, which also sets the delay to 3 days."
+      "note": "OpenZeppelin TimelockController v5.1.0. Owns the fee vault since 2026-11-20 (vaultHandoverTx), delay 3 days."
+    },
+    {
+      "name": "BurnKeeper",
+      "address": "0x6AC7f66EdE946634D82deA689c6335ED3ACC593b",
+      "deployTx": "0x065fd75cfe61b7e45ef8b0851bfb67c80f1c386d1400e4e3e2000ff047e624e8",
+      "block": 118735919,
+      "deployedAt": "2026-11-20T03:14:29Z",
+      "constructor": {
+        "vault": "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221",
+        "route": "0xF20C97AeDfaD8dE050E7e3eE797Fa0434A16AB67",
+        "stateView": "0xF3334192D15450CdD385c8B70e03f9A6bD9E673b",
+        "tokenPoolId": "0x9fe79f5726a87aa2758f14ba929e6fe4277a7718d6862aa039d61974c0542355",
+        "usdgPool": "0x52e65B17fB6E5BA00Ed806f37Afcd2DaA50271Ca",
+        "minSnapshotAge": 600,
+        "maxSnapshotAge": 7200,
+        "bandBps": 300,
+        "feeAllowanceBps": 500,
+        "maxEthPerBurn": "10000000000000000",
+        "maxUsdgPerBurn": "20000000",
+        "minEth": "100000000000000",
+        "minUsdg": "500000",
+        "cooldown": 1800,
+        "twapWindow": 600,
+        "maxTwapTickDeviation": 50
+      },
+      "note": "Automatic, permissionless burns through the V4 route. Becomes the vault keeper through the timelock (setKeeper, 3 days); the Obsyn server snapshots, burns and executes that install."
     }
   ],
   "offchain": {
