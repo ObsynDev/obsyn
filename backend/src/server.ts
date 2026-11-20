@@ -13,6 +13,7 @@ import { OtcEscrowAbi } from "./abi/OtcEscrow.ts";
 import { blockscoutScheduled, firstScheduled, readControl, rpcScheduled, type ScanStore } from "./control.ts";
 import { createPublicClient, getAddress, http } from "viem";
 import { robinhoodChain } from "./chain.ts";
+import { autoBurnStep } from "./autoburn.ts";
 
 try {
   process.loadEnvFile();
@@ -21,7 +22,7 @@ try {
 }
 
 const cfg = loadConfig();
-const { publicClient } = clients(cfg);
+const { publicClient, walletClient } = clients(cfg);
 
 const db = openDb(cfg.dbPath);
 
@@ -59,6 +60,35 @@ if (cfg.chainId === 4663) {
     });
   tick();
   setInterval(tick, 30_000).unref();
+}
+
+/**
+ * Automatic burns through the BurnKeeper contract (once it is the vault's keeper). Every 5 minutes:
+ * take a price snapshot when one is needed, then burn once it has aged. The relayer key only pays gas.
+ */
+const BURN_KEEPER = process.env.BURN_KEEPER_ADDRESS ? getAddress(process.env.BURN_KEEPER_ADDRESS) : null;
+const FEE_VAULT = getAddress(process.env.FEE_VAULT_ADDRESS ?? "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221");
+if (BURN_KEEPER && walletClient) {
+  let last = "";
+  let busy = false;
+  const step = async () => {
+    if (busy) return;
+    busy = true;
+    try {
+      const r = await autoBurnStep(publicClient, walletClient, BURN_KEEPER, FEE_VAULT, TIMELOCK);
+      // log every action, and a waiting reason only when it changes
+      if (!r.startsWith("wait") || r !== last) console.log(`auto-burn ${r}`);
+      last = r;
+    } catch (e) {
+      const msg = (e as Error).message ?? String(e);
+      console.warn(`auto-burn: ${msg.split(/\r?\n/)[0].slice(0, 300)}`);
+      last = "";
+    } finally {
+      busy = false;
+    }
+  };
+  setTimeout(step, 20_000).unref();
+  setInterval(step, 300_000).unref();
 }
 
 const api = createApp({
