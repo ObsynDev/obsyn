@@ -72,6 +72,8 @@ export interface ControlDeps {
   teamSigners: Address[];
   /** CallScheduled ids of a timelock (e.g. from the explorer's logs); queued changes are checked on-chain */
   scheduledIds?: (timelock: Address) => Promise<{ id: Hex; target: Address; data: Hex }[]>;
+  /** how long a page view waits for the timelock queue (default 8 s) */
+  queueBudgetMs?: number;
   now: () => number;
 }
 
@@ -121,7 +123,8 @@ export async function readControl(d: ControlDeps): Promise<ControlReport> {
     let queuedKnown = false;
     if (d.scheduledIds) {
       try {
-        const scheduled = await d.scheduledIds(owner);
+        // a time budget: a slow explorer or RPC scan reports the queue as unknown instead of hanging the page
+        const scheduled = await withTimeout(d.scheduledIds(owner), d.queueBudgetMs ?? 8_000);
         const seen = new Set<string>();
         for (const s of scheduled) {
           if (seen.has(s.id)) continue;
@@ -168,6 +171,11 @@ export async function readControl(d: ControlDeps): Promise<ControlReport> {
  * keccak256("CallScheduled(bytes32,uint256,address,uint256,bytes,bytes32,uint256)").
  */
 type Scheduled = { id: Hex; target: Address; data: Hex };
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let t: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([p, new Promise<T>((_, rej) => (t = setTimeout(() => rej(new Error(`timed out after ${ms} ms`)), ms)))]).finally(() => clearTimeout(t));
+}
 type LogsClient = Pick<PublicClient, "getBlockNumber" | "getLogs">;
 
 /** Where an incremental log scan got to, so a restart doesn't rescan from the start. */
@@ -243,7 +251,7 @@ export function firstScheduled(...readers: ((tl: Address) => Promise<Scheduled[]
   };
 }
 
-export function blockscoutScheduled(explorerApi: string, fetchJson: (url: string) => Promise<unknown> = (u) => fetch(u).then((r) => r.json())) {
+export function blockscoutScheduled(explorerApi: string, fetchJson: (url: string) => Promise<unknown> = (u) => fetch(u, { signal: AbortSignal.timeout(6_000) }).then((r) => r.json())) {
   const TOPIC = "0x4cf4410cc57040e44862ef0f45f3dd5a5e02db8eb8add648d4b0e236f1d07dca";
   return async (tl: Address) => {
     const out: { id: Hex; target: Address; data: Hex }[] = [];

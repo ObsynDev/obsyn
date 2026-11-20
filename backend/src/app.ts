@@ -773,7 +773,12 @@ export function createApp(deps: Deps) {
   app.get("/control", async (c) => {
     if (!deps.controlReader) return c.json({ error: "not configured" }, 503);
     if (!control || now() - control.at >= 30) {
-      const p = deps.controlReader();
+      // never let a stuck chain read hang every visitor: give up after 25 s and try again on the next request
+      let t: ReturnType<typeof setTimeout> | undefined;
+      const p = Promise.race([
+        deps.controlReader(),
+        new Promise<never>((_, rej) => (t = setTimeout(() => rej(new Error("reading the chain timed out")), 25_000))),
+      ]).finally(() => clearTimeout(t));
       control = { at: now(), p };
       p.catch(() => (control = null));
     }
