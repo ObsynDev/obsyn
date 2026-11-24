@@ -14,7 +14,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@hono/node-server": "^2.1.8",
+    "@hono/node-server": "^2.1.11",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@resvg/resvg-js": "^2.6.2",
     "hono": "^4.13.18",
