@@ -16,7 +16,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "tweetnacl": "^1.0.3",
-    "viem": "^2.57.19",
+    "viem": "^2.58.4",
     "wagmi": "^2.19.5"
   },
   "devDependencies": {
