@@ -4,7 +4,7 @@ import { useAccount } from "wagmi";
 import { api, makerMessage, type Maker } from "../lib/api.ts";
 import { connectWallet } from "../lib/chain.ts";
 import { MARKETS } from "../lib/tokens.ts";
-import { Copy, Err, short, useAction } from "../lib/ui.tsx";
+import { Copy, Err, Link, short, useAction } from "../lib/ui.tsx";
 
 const MCP_VERSION = "0.4.0";
 const PKG = `https://github.com/ObsynDev/obsyn/releases/download/mcp-v${MCP_VERSION}/obsyn-mcp-${MCP_VERSION}.tgz`;
@@ -108,6 +108,14 @@ export function Makers() {
         A maker answers blocks: "I'll sell NVDA at 1.5% over the DEX price, up to 50 tokens". The poster gets a whole block with no slippage, you
         earn the spread. Anyone can do it, with no sign-up and no permission: the autopilot runs on your own machine with your own wallet, answers
         matching bids and listings with sealed, signed prices, and deposits by itself when an answer is accepted.
+      </p>
+
+      <p className="muted small">
+        Step-by-step guide: <Link to="/docs#makers">in the docs</Link> or{" "}
+        <a href="https://github.com/ObsynDev/obsyn/blob/main/MAKERS.md" target="_blank" rel="noreferrer">
+          MAKERS.md on GitHub
+        </a>
+        .
       </p>
 
       <section className="mk-points">

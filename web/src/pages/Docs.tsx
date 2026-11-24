@@ -20,6 +20,47 @@ type Doc = {
 
 const DOCS: Doc[] = [
   {
+    id: "maker-program",
+    title: "Makers: anyone can make markets",
+    status: "Live",
+    half: "trade",
+    page: { to: "/makers", label: "Become a maker" },
+    what: "Anyone can answer blocks by rules with the autopilot, from their own wallet, with no sign-up: quote both sides of a token at a spread around the live DEX price, and the autopilot deposits by itself when an answer is accepted (obsyn-mcp 0.4.0).",
+    how: [
+      "A rule with \"side\": \"both\" and a spreadPct sells that far above the DEX price and buys that far below it, each side with its own cap per deal and in total.",
+      "Answers in play are written to disk, so a restart still deposits on answers accepted while the autopilot was down.",
+      "Optional listing: a maker signs a message with its wallet (no gas, unlist any time) to show a name and a track record on /makers. Each deal in the record is checked against the escrow on-chain.",
+      "Posters see a Maker badge only on answers whose signature checks out for a listed wallet, so the badge can't be copied.",
+      "No rewards and no volume incentives: makers earn the spread, nothing else.",
+    ],
+    impact: [
+      { who: "Traders", text: "Faster answers on more tokens, from wallets with a visible record of finishing their deals." },
+      { who: "Makers", text: "A spread on blocks that would pay heavy slippage on a DEX, with keys that never leave their machine." },
+      { who: BRAND.name, text: "Liquidity that doesn't depend on the team, and fewer deals that stall after acceptance." },
+    ],
+    risks: "A maker's quotes follow the DEX price; a stale or thin pool can mean a bad price, so the autopilot skips tokens without a reference price and refuses rules that sell far under or buy far over the market. A listing shows a record, not a guarantee.",
+  },
+  {
+    id: "auto-burn",
+    title: "Automatic burns behind a 3-day timelock",
+    status: "Live",
+    half: "both",
+    page: { to: "/security#control", label: "Live control panel" },
+    what: `Fees in the vault now buy $${PLATFORM_TOKEN.symbol} and burn it on their own, and every change to the vault waits 3 days in public first.`,
+    how: [
+      "The vault's owner is ObsynTimelock (OpenZeppelin TimelockController) since 20 Nov 2026: the team Safe can only propose and cancel, and any owner action (burn route, keeper, ownership) waits 3 days before anyone can execute it.",
+      `The vault's keeper is BurnKeeper since 23 Nov 2026. Anyone can trigger a burn; the contract prices it from a snapshot of the pool at least 10 minutes old, refuses if the price moved more than 3% since, requires at least the snapshot price minus 8% in tokens, caps each burn at 0.01 ETH or 20 USDG, and waits 30 minutes between burns.`,
+      "Our server takes the snapshots and triggers the burns every few minutes. Its key only pays gas: it can't change what a burn pays.",
+      "The live control panel shows the owner, keeper, burn route and every queued change with its countdown.",
+    ],
+    impact: [
+      { who: "Holders", text: "Every fee turns into a burn without anyone pressing a button, at a price the contract checks." },
+      { who: "Traders", text: "Nothing changes for deposits: the escrow has no admin and the vault never touches user funds." },
+      { who: BRAND.name, text: "Burns no longer depend on two people signing, and nobody on the team can quietly change the vault." },
+    ],
+    risks: "A burn can still be sandwiched within the band (bounded to about 8% of one capped burn). If the pool's price swings more than 3% in 10 minutes, burns wait for a fresh snapshot. The team Safe's signers are all team-held today; the timelock makes every change public 3 days ahead.",
+  },
+  {
     id: "smarter-agent",
     title: "A smarter agent: market checks and offer reviews",
     status: "Live",
@@ -86,12 +127,12 @@ const DOCS: Doc[] = [
     status: "Live",
     half: "both",
     page: { to: "/docs#permissions", label: "See the signers" },
-    what: "The fee vault's owner and keeper are a 2-of-3 Safe multisig. No single person can change how fees are spent, swap the buy route or run a burn.",
+    what: "The fee vault's owner and keeper moved to a 2-of-3 Safe multisig on 18 Nov 2026. Since 20 Nov the owner is a 3-day timelock the Safe proposes to, and since 23 Nov burns run through BurnKeeper (see Automatic burns).",
     how: [
       "Owner and keeper moved from a single wallet to the Safe on 18 Nov 2026, in public on-chain transactions (setKeeper, then the two-step transferOwnership / acceptOwnership).",
-      "Every route change, keeper change, handover and burn needs two of the three signers. A route change also still waits 2 days in public.",
+      "Any proposal to change the vault needs two of the three signers, then waits 3 days in public in the timelock.",
       "None of the signers is the relayer's server key, so a server breach can't reach the vault.",
-      "Anyone can check it: the vault's owner() and keeper() return the Safe, and the Safe's getThreshold() returns 2.",
+      "Anyone can check it: the vault's owner() returns the timelock, keeper() returns BurnKeeper, and the Safe's getThreshold() returns 2.",
     ],
     impact: [
       { who: "Holders", text: "The buy-and-burn can't be steered by one person." },
@@ -188,7 +229,7 @@ const DOCS: Doc[] = [
       "Live: $OBSYN launched on Pons and graduated from the bonding curve; it now trades on Uniswap v4 (OBSYN/ETH).",
       "After graduation the vault buys through a Uniswap v4 route (V4BurnAdapter). It was queued on 2026-11-17, waited 2 days in public, and was switched on by the Safe on 2026-11-20.",
       "Live: the fee vault was pointed at $OBSYN once (setPlatformToken). That switch can never be changed.",
-      "A keeper spends accumulated fees on the token and burns it, with a minimum-out check on every buy.",
+      "BurnKeeper spends accumulated fees on the token and burns it automatically, priced from an aged snapshot with a minimum-out check on every buy.",
       "Wallets holding the threshold amount get 0.5% off the fee, read on-chain at settlement.",
     ],
     impact: [
@@ -375,6 +416,7 @@ const SECTIONS = [
   ["markets", "Markets and prices"],
   ["fees", `Fees and $${PLATFORM_TOKEN.symbol}`],
   ["agents", "For agents: MCP, SDK, API"],
+  ["makers", "Become a maker"],
   ["privacy", "Privacy model"],
   ["contracts", "Contracts and how to verify"],
   ["admin", "Why admin keys: 0"],
@@ -387,11 +429,13 @@ const SECTIONS = [
   ["faq", "FAQ"],
 ] as const;
 
-const LAST_UPDATED = "18 Nov 2026";
+const LAST_UPDATED = "24 Nov 2026";
 const GITHUB = BRAND.github;
 const EXPLORER = "https://robinhoodchain.blockscout.com";
-/** Owner and keeper of the fee vault since 18 Nov 2026 (see DEPLOYMENTS.md). */
+/** The team Safe: proposes to the vault's timelock (see DEPLOYMENTS.md). */
 const VAULT_SAFE = "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E";
+const VAULT_TIMELOCK = "0x49c6f104b0BdD7353e68d70951f6E22fc1e3Cd16";
+const BURN_KEEPER = "0x6AC7f66EdE946634D82deA689c6335ED3ACC593b";
 /** Settlement contract since 18 Nov 2026 (OtcEscrowV2: also takes $OBSYN, burns that fee). */
 const ESCROW = "0xa10193De64556AF16390FB6E07BBb7C2522F21C8";
 /** The first escrow; deals accepted before the switch settle or refund there. */
@@ -402,7 +446,9 @@ const ADDRESSES: [string, string, string][] = [
   ["OtcEscrowV2 (settlement)", ESCROW, `Holds both sides of a deal and swaps them in one transaction. Takes ETH, USDG or $${PLATFORM_TOKEN.symbol}. No owner, admin key, pause or upgrade.`],
   ["OtcEscrow v1 (earlier deals)", ESCROW_V1, "The first escrow, same rules without $OBSYN payments. Deals accepted before 18 Nov 2026 settle or refund here; their pages point to it."],
   ["BuyBurnVault (fees)", "0x2afdacda8B3D45F82c42e43Ae9D9651f218b4221", `Receives the protocol fee. It can't send funds anywhere except a buy that burns $${PLATFORM_TOKEN.symbol}.`],
-  ["Vault owner and keeper", "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E", "A 2-of-3 Safe multisig: every action needs two of three signers. Its powers are listed under Who can do what."],
+  ["Vault owner: ObsynTimelock", "0x49c6f104b0BdD7353e68d70951f6E22fc1e3Cd16", "OpenZeppelin TimelockController. Every change to the vault waits 3 days in public; only the team Safe can propose or cancel, anyone can execute once it's due."],
+  ["Vault keeper: BurnKeeper", "0x6AC7f66EdE946634D82deA689c6335ED3ACC593b", "Runs the burns automatically within limits fixed in the contract (aged price snapshot, ±3% band, cap per burn, cooldown). No owner."],
+  ["Team Safe", "0x48d8970b6498dFA99CA47F117c4d0AA5A445833E", "A 2-of-3 multisig. Proposes changes to the timelock; can't change the vault directly."],
   ["Relayer", "0x81D583e77A74571a6fD7b6EE16ECeba9CfE3a2DD", "Pays gas for ghost-mode deposits. Can only submit a deposit the seller signed for that deal and that relayer."],
   ["USDG (payment token)", "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", "Global Dollar on Robinhood Chain. Not ours; fixed in the escrow at deploy."],
 ];
@@ -419,9 +465,10 @@ const PERMISSIONS: [string, string][] = [
   ["Pause, upgrade or change the escrow", "Nobody: no owner, no admin key"],
   ["Raise the fee above 2.5%", "Nobody: capped in the contract"],
   ["Withdraw fees from the vault", `Nobody. The keeper can only spend them on a buy that burns $${PLATFORM_TOKEN.symbol}`],
+  ["Run a burn", "Anyone, through BurnKeeper, within the price limits in that contract (our server does it every few minutes)"],
   [`Set the $${PLATFORM_TOKEN.symbol} token in the vault`, "The vault owner, once, then never again"],
-  ["Change the swap route used for buy-and-burn", "The vault owner, after a public 2-day delay"],
-  ["Change the keeper, hand over the vault", "The vault owner (ownership moves in two steps)"],
+  ["Change the swap route used for buy-and-burn", "The vault owner (the timelock): proposed by the team Safe, 3 days in public, then the vault's own 2-day delay"],
+  ["Change the keeper, hand over the vault", "The vault owner (the timelock): proposed by the team Safe, 3 days in public"],
 ];
 
 const WORST: [string, string][] = [
@@ -845,6 +892,73 @@ GET  ${origin}/api/openapi.json         the full spec`}</Code>
             </Link>
           </Sect>
 
+          <Sect id="makers" n={num("makers")} title="Become a maker">
+            <p className="dx-p">
+              A maker answers other people's blocks by rules: which tokens, which side, a spread against the live DEX price, and caps. The
+              autopilot does it from your own computer with your own wallet, and deposits by itself when an answer is accepted. Anyone can
+              do it; there is no sign-up and nothing to apply for.
+            </p>
+            <h3 className="dx-h3">What you need</h3>
+            <ul className="dx-list">
+              <li>A computer or server that stays on while you make markets.</li>
+              <li>Node.js 20 or newer.</li>
+              <li>
+                A wallet just for this, holding only what you're willing to trade: the tokens you'd sell, the USDG, ETH or $
+                {PLATFORM_TOKEN.symbol} you'd buy with, and a little ETH on Robinhood Chain for gas.
+              </li>
+            </ul>
+            <ol className="dx-steps">
+              <li>
+                <b>Build your rules.</b> On <Link to="/makers">Become a maker</Link>, pick a token and what it's paid in, choose Both sides
+                and a spread (1.5% sells 1.5% above the DEX price and buys 1.5% below it), set the most per deal and in total, and download
+                rules.json. Leave Live off.
+              </li>
+              <li>
+                <b>Run a dry run.</b> It prints what it would answer and sends nothing:
+                <Code>{`OBSYN_PRIVATE_KEY=0x… npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz autopilot rules.json`}</Code>
+                On Windows PowerShell: <span className="mono">{'$env:OBSYN_PRIVATE_KEY="0x…"; npx -y … autopilot rules.json'}</span>
+              </li>
+              <li>
+                <b>Check the prices.</b> Lines like <span className="mono">[dry run] would offer 0.5 for 79.90 USDG (+1.5% vs market)</span>{" "}
+                show what you'd quote. Change the rules until they look right.
+              </li>
+              <li>
+                <b>Go live.</b> Set <span className="mono">"live": true</span> in rules.json and start it again. It answers matching blocks
+                with sealed, signed prices, deposits when an answer is accepted (as a seller, only after the buyer has paid), and stops at
+                your caps. Stop it with Ctrl+C; answers still in play are kept in <span className="mono">~/.obsyn/autopilot.json</span> and
+                picked up on the next start.
+              </li>
+              <li>
+                <b>List yourself (optional).</b> On <Link to="/makers">the makers page</Link>, connect the maker wallet, choose a desk name
+                and sign (no gas), or run <span className="mono">obsyn-mcp maker list "Your desk name"</span>. Posters then see a Maker
+                badge on your answers and your record of deals accepted and settled, checked on-chain. Unlist any time.
+              </li>
+            </ol>
+            <h3 className="dx-h3">A rules file</h3>
+            <Code>{`{
+  "live": false,
+  "intervalSec": 30,
+  "maxOpenAnswers": 5,
+  "rules": [
+    { "side": "both", "token": "NVDA", "payWith": "USDG", "maxPerDeal": "5", "maxTotal": "50", "spreadPct": 1.5, "minPriceUsd": 100, "maxPriceUsd": 250 }
+  ]
+}`}</Code>
+            <p className="dx-p">
+              Tokens by symbol or 0x address. <span className="mono">side</span> can also be <span className="mono">"sell"</span> or{" "}
+              <span className="mono">"buy"</span> with a <span className="mono">priceVsMarketPct</span> (+2 = 2% above the DEX price).
+              The autopilot never answers without a reference price, checks your balance before every answer, and refuses rules that
+              sell more than 20% under or buy more than 20% over the market. An AI agent can draft and dry-run rules with the
+              otc_autopilot_preview tool.
+            </p>
+            <p className="dx-note">
+              Makers earn the spread; there are no rewards from {BRAND.name}. Your key never leaves your machine. Full guide on GitHub:{" "}
+              <a href={`${GITHUB}/blob/main/MAKERS.md`} target="_blank" rel="noreferrer">
+                MAKERS.md
+              </a>
+              .
+            </p>
+          </Sect>
+
           <Sect id="privacy" n={num("privacy")} title="Privacy model">
             <p className="dx-p">Private, not anonymous. Here is exactly who sees what:</p>
             <table className="dx-table">
@@ -1030,36 +1144,56 @@ cast storage ${ESCROW} 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a7178
               </tbody>
             </table>
             <p className="dx-note">
-              "Nobody" includes us. The vault owner is a 2-of-3 multisig, and its powers only touch fees already in the vault, never
-              your deposits.
+              "Nobody" includes us. The vault owner is a 3-day timelock that only the team's 2-of-3 multisig can propose to, and its powers
+              only touch fees already in the vault, never your deposits.
             </p>
-            <h3 className="dx-h3">The fee vault's multisig</h3>
+            <h3 className="dx-h3">Who controls the fee vault</h3>
             <p className="dx-p">
-              The fee vault's owner and its keeper are the same{" "}
+              The vault's owner is a{" "}
+              <a href={`${EXPLORER}/address/${VAULT_TIMELOCK}`} target="_blank" rel="noreferrer">
+                3-day timelock
+              </a>
+              . Only the team{" "}
               <a href={`https://app.safe.global/home?safe=robinhood:${VAULT_SAFE}`} target="_blank" rel="noreferrer">
                 Safe multisig
+              </a>{" "}
+              (two of three signers) can propose a change, and every change waits 3 days in public before anyone can execute it: the buy
+              route, the keeper, a handover. The keeper is{" "}
+              <a href={`${EXPLORER}/address/${BURN_KEEPER}`} target="_blank" rel="noreferrer">
+                BurnKeeper
               </a>
-              . Any action needs two of its three signers: changing the buy route (which also waits 2 days in public), changing the keeper,
-              handing the vault over, and running a burn. None of the signers is the relayer's server key, so a server breach can't
-              touch the vault.
+              , which lets anyone trigger a burn and bounds what each one pays. The live state and any queued change are on{" "}
+              <Link to="/security#control">the control panel</Link>.
             </p>
             <table className="dx-table mono">
               <tbody>
                 <tr>
-                  <td>Safe (owner and keeper)</td>
+                  <td>Owner (timelock, 3 days)</td>
+                  <td>
+                    <a href={`${EXPLORER}/address/${VAULT_TIMELOCK}`} target="_blank" rel="noreferrer">
+                      {VAULT_TIMELOCK}
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Keeper (BurnKeeper)</td>
+                  <td>
+                    <a href={`${EXPLORER}/address/${BURN_KEEPER}`} target="_blank" rel="noreferrer">
+                      {BURN_KEEPER}
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Proposer (Safe, 2 of 3)</td>
                   <td>
                     <a href={`${EXPLORER}/address/${VAULT_SAFE}`} target="_blank" rel="noreferrer">
                       {VAULT_SAFE}
                     </a>
                   </td>
                 </tr>
-                <tr>
-                  <td>Threshold</td>
-                  <td>2 of 3 signers</td>
-                </tr>
                 {SAFE_SIGNERS.map((a, i) => (
                   <tr key={a}>
-                    <td>Signer {i + 1}</td>
+                    <td>Safe signer {i + 1}</td>
                     <td>
                       <a href={`${EXPLORER}/address/${a}`} target="_blank" rel="noreferrer">
                         {a}
@@ -1070,9 +1204,10 @@ cast storage ${ESCROW} 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a7178
               </tbody>
             </table>
             <p className="dx-note">
-              Check it yourself: the vault's <span className="mono">owner()</span> and <span className="mono">keeper()</span> both return the
-              Safe, and the Safe's <span className="mono">getThreshold()</span> returns 2. Until 18 Nov 2026 a single wallet held both
-              roles; the handover is public on-chain.
+              Check it yourself: the vault's <span className="mono">owner()</span> returns the timelock, <span className="mono">keeper()</span>{" "}
+              returns BurnKeeper, the timelock's <span className="mono">getMinDelay()</span> returns 259200 (3 days) and the Safe's{" "}
+              <span className="mono">getThreshold()</span> returns 2. The signers are all held by the team today. History: a single wallet
+              until 18 Nov 2026, the Safe until 20 Nov, the timelock since; BurnKeeper since 23 Nov.
             </p>
             <h3 className="dx-h3">The escrow's one dependency</h3>
             <p className="dx-p">

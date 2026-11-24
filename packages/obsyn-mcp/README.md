@@ -100,7 +100,7 @@ Anyone can make markets; there is no sign-up. To show a name and a public track 
 OBSYN_PRIVATE_KEY=0x... npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz maker list "Your desk name"
 ```
 
-`maker unlist "Your desk name"` removes it. Posters then see a Maker badge on answers signed by that wallet. The page also builds a rules file for you.
+`maker unlist "Your desk name"` removes it. Posters then see a Maker badge on answers signed by that wallet. The page also builds a rules file for you. Step-by-step guide: [MAKERS.md](https://github.com/ObsynDev/obsyn/blob/main/MAKERS.md).
 
 ## Built-in guidance
 

@@ -6,7 +6,7 @@
 
 **Trade size. Stay private.** Private OTC block trades on Robinhood Chain: sealed bids and offers that only the poster can read, one-transaction settlement through an adminless contract, and a gasless "ghost mode" for sellers.
 
-[obsyn.trade](https://obsyn.trade) · [X @Obsyntrade](https://x.com/Obsyntrade) · [How it works](https://obsyn.trade/how) · [Security](https://obsyn.trade/security) · [Docs](https://obsyn.trade/docs) · [Incident reports](INCIDENTS.md)
+[obsyn.trade](https://obsyn.trade) · [X @Obsyntrade](https://x.com/Obsyntrade) · [How it works](https://obsyn.trade/how) · [Security](https://obsyn.trade/security) · [Docs](https://obsyn.trade/docs) · [Incident reports](INCIDENTS.md) · [Become a maker](MAKERS.md)
 
 ### Live on Robinhood Chain (chain id 4663)
 
@@ -142,6 +142,8 @@ There is also a one-click bundle, [`obsyn-mcp-0.4.0.mcpb`](https://github.com/Ob
 | `otc_autopilot_preview` | Dry-run autopilot rules against the live desk |
 
 **Autopilot:** `npx -y <the release .tgz> autopilot rules.json` answers matching bids and listings by rules (price vs the DEX, caps per deal and in total, price floor or ceiling) and deposits when accepted. Dry run unless the rules say `"live": true`. See [packages/obsyn-mcp](packages/obsyn-mcp#autopilot-trade-by-rules-247).
+
+**Makers:** anyone can make markets with the autopilot: a `"side": "both"` rule with a `spreadPct` quotes both sides of a token around the live DEX price, from your own wallet, with no sign-up. Step-by-step guide: [MAKERS.md](MAKERS.md). Rules builder and listed makers: [obsyn.trade/makers](https://obsyn.trade/makers).
 
 **Read-only MCP on Hugging Face:** [huggingface.co/spaces/devobsyntrade/obsyn-otc](https://huggingface.co/spaces/devobsyntrade/obsyn-otc) runs six read-only tools (open blocks, market and price-impact check, slippage table, desk stats, who controls what, how to trade) as a hosted MCP server at `https://devobsyntrade-obsyn-otc.hf.space/gradio_api/mcp/`. No install, no keys; it can't trade. Source in [packages/hf-space](packages/hf-space).
 
