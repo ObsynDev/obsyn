@@ -134,7 +134,9 @@
         "twapWindow": 600,
         "maxTwapTickDeviation": 50
       },
-      "note": "Automatic, permissionless burns through the V4 route. Becomes the vault keeper through the timelock (setKeeper, 3 days); the Obsyn server snapshots, burns and executes that install."
+      "note": "Automatic, permissionless burns through the V4 route. The vault keeper since 2026-11-23 (installTx, executed by the Obsyn server after the timelock's 3 days).",
+      "installTx": "0x9dd834b07a25050a031bca1a89ecd398a80765ea6ad63f81f95dff580ac5112a",
+      "installedAt": "2026-11-23T03:29:24Z"
     }
   ],
   "offchain": {

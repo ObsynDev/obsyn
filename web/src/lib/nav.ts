@@ -11,6 +11,7 @@ export const NAV: NavGroup[] = [
       { to: "/trade", label: "Trade any token", hint: "Paste a contract: price, balance, open blocks" },
       { to: "/mine", label: "My blocks", hint: "Your bids, offers and deals in this browser" },
       { to: "/slippage", label: "Slippage calculator", hint: "What your size costs on a DEX" },
+      { to: "/makers", label: "Become a maker", hint: "Answer blocks by rules with the autopilot" },
     ],
   },
   { label: "Markets", to: "/markets", hint: "Stock tokens, ETFs and $OBSYN with live prices" },

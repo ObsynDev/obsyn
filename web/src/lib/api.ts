@@ -63,6 +63,18 @@ export type TermsJson = Record<
   string
 >;
 
+/** GET /makers: listed makers and their track record, checked on-chain */
+export interface Maker {
+  address: Address;
+  name: string;
+  listedAt: number;
+  stats: { accepted: number; settled: number; open: number; unsettled: number; settleRate: number | null };
+}
+
+/** The exact text a maker signs to list or unlist (the server builds the same). */
+export const makerMessage = (action: "list" | "unlist", address: Address, name: string, issuedAt: number) =>
+  `Obsyn maker\nAction: ${action}\nName: ${name}\nWallet: ${address}\nIssued: ${issuedAt}`;
+
 /** GET /activity: public desk events for the live notifications (never prices or addresses) */
 export interface ActivityEvent {
   id: number;
@@ -291,6 +303,9 @@ export const api = {
   control: () => req<ControlReport>("GET", "/control"),
   dealState: (escrow: string, id: string) => req<{ status: number; buyerFunded: boolean; sellerFunded: boolean }>("GET", `/deals/${id}/state?escrow=${escrow}`),
   stats: () => req<DeskStats>("GET", "/stats"),
+  makers: () => req<Maker[]>("GET", "/makers"),
+  setMaker: (body: { action: "list" | "unlist"; address: Address; name: string; issuedAt: number; signature: Hex }) =>
+    req<{ address: Address; name: string; listed: boolean }>("POST", "/makers", body),
   activity: (after: number | null) => req<{ cursor: number; events: ActivityEvent[] }>("GET", after === null ? "/activity" : `/activity?after=${after}`),
   referrals: (address: string) => req<ReferralSummary>("GET", `/referrals/${address}`),
   reportSettled: (rfqId: string, txHash: string) => req<{ ok: true; txHash: Hex }>("POST", `/rfqs/${rfqId}/settled`, { txHash }),

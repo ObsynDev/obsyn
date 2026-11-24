@@ -18,10 +18,11 @@ import { foundry } from "viem/chains";
 import { createApp } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
 import { openDb } from "../src/db.ts";
-import { Autopilot, validateConfig, type AutopilotConfig, type MarketQuote } from "../src/sdk/autopilot.ts";
+import { Autopilot, expandRules, validateConfig, type AutopilotConfig, type Ledger, type LedgerData, type MarketQuote } from "../src/sdk/autopilot.ts";
 import { OtcAgent } from "../src/sdk/client.ts";
 import { FileStore } from "../src/sdk/file-store.ts";
 import { createRelayer } from "../src/relayer.ts";
+import { readReceipt } from "../src/receipt.ts";
 
 describe("autopilot config", () => {
   const ok: AutopilotConfig = { rules: [{ side: "sell", token: "0x1111111111111111111111111111111111111111", maxTotal: "100", maxPerDeal: "50", priceVsMarketPct: 5 }] };
@@ -38,7 +39,26 @@ describe("autopilot config", () => {
     assert.match(validateConfig({ ...ok, intervalSec: 1 }).join(" "), /at least 10/);
     assert.deepEqual(validateConfig({ rules: [] }), ["rules must be a non-empty list"]);
   });
+
+  it("checks two-sided maker rules and splits them into a sell above and a buy below the market", () => {
+    const both = { side: "both" as const, token: ok.rules[0].token, maxTotal: "100", maxPerDeal: "50", spreadPct: 1.5, minPriceUsd: 10, maxPriceUsd: 20 };
+    assert.deepEqual(validateConfig({ rules: [both] }), []);
+    assert.match(validateConfig({ rules: [{ ...both, spreadPct: 0 }] }).join(" "), /spreadPct must be a number above 0/);
+    assert.match(validateConfig({ rules: [{ ...both, spreadPct: 25 }] }).join(" "), /at most 20/);
+    assert.match(validateConfig({ rules: [{ ...both, priceVsMarketPct: 2 }] }).join(" "), /takes spreadPct, not priceVsMarketPct/);
+    assert.match(validateConfig({ rules: [{ ...ok.rules[0], spreadPct: 1 }] }).join(" "), /spreadPct is for "both" rules/);
+    assert.match(validateConfig({ rules: [{ ...ok.rules[0], maxPriceUsd: 5 }] }).join(" "), /maxPriceUsd is for buy rules/);
+    const [sell, buy] = expandRules([both]);
+    assert.deepEqual(sell, { side: "sell", token: both.token, maxTotal: "100", maxPerDeal: "50", priceVsMarketPct: 1.5, minPriceUsd: 10 });
+    assert.deepEqual(buy, { side: "buy", token: both.token, maxTotal: "100", maxPerDeal: "50", priceVsMarketPct: -1.5, maxPriceUsd: 20 });
+  });
 });
+
+/** A ledger kept in memory, shared between two autopilot instances to stand in for a restart. */
+function memLedger(): Ledger & { data: LedgerData | null } {
+  const l = { data: null as LedgerData | null, load: () => (l.data ? (JSON.parse(JSON.stringify(l.data)) as LedgerData) : null), save: (d: LedgerData) => void (l.data = JSON.parse(JSON.stringify(d))) };
+  return l;
+}
 
 const OUT = new URL("../../contracts/out/", import.meta.url);
 const PORT = 8544; // each e2e file runs in parallel with its own anvil: relayer 8546, mcp 8547
@@ -63,8 +83,9 @@ const artifact = (file: string, name: string) => {
 const bal = (t: Address, who: Address) => pc.readContract({ address: t, abi: erc20Abi, functionName: "balanceOf", args: [who] });
 const agent = (key: Hex) => new OtcAgent({ apiUrl, privateKey: key, store: new FileStore(join(mkdtempSync(join(tmpdir(), "ap-")), "state.json")) });
 
-function pilot(a: OtcAgent, cfg: AutopilotConfig, quote: () => Promise<MarketQuote>) {
+function pilot(a: OtcAgent, cfg: AutopilotConfig, quote: () => Promise<MarketQuote>, ledger?: Ledger) {
   return new Autopilot(a, cfg, {
+    ledger,
     api: (path) => a.get(path),
     quote,
     balanceOf: (asset, who) => a.balanceOf(asset, who),
@@ -105,7 +126,7 @@ describe("autopilot on a real escrow", { skip: !canRun && "anvil or forge build 
       await pc.waitForTransactionReceipt({ hash: await deployer.writeContract({ address: t, abi: mock, functionName: "mint", args: [to, amt] }) });
     }
     const cfg = loadConfig({ CHAIN_ID: String(foundry.id), RPC_URL: RPC, ESCROW_ADDRESS: escrow, USDG_ADDRESS: usdg });
-    const app = createApp({ cfg, db: openDb(":memory:"), relayer: createRelayer(cfg), readPrice: async () => Promise.reject(new Error("n/a")) });
+    const app = createApp({ cfg, db: openDb(":memory:"), relayer: createRelayer(cfg), readPrice: async () => Promise.reject(new Error("n/a")), readReceipt: (tx) => readReceipt(pc as any, escrow, tx) });
     await new Promise<void>((resolve) => {
       http_ = serve({ fetch: app.fetch, port: 0 }, (info: AddressInfo) => {
         apiUrl = `http://127.0.0.1:${info.port}`;
@@ -151,12 +172,71 @@ describe("autopilot on a real escrow", { skip: !canRun && "anvil or forge build 
     const t3 = await ap.tick();
     assert.ok(t3.actions.some((a) => /settled/.test(a)), JSON.stringify(t3));
     assert.deepEqual(t3.totals[0], { rule: 1, side: "sell", token: stock, done: "100", pending: "0", left: "50" });
+    // the autopilot's settling deposit was reported, so the deal has its public receipt and shows in the feed
+    const feed = (await (await fetch(`${apiUrl}/activity?after=0`)).json()) as { events: { kind: string; rfqId: string; tx: string | null }[] };
+    const settled = feed.events.find((e) => e.kind === "settled" && e.rfqId === bid.bidId);
+    assert.ok(settled?.tx, JSON.stringify(feed.events));
+    assert.equal(((await (await fetch(`${apiUrl}/receipts/${settled!.tx}`)).json()) as { txHash: string }).txHash.toLowerCase(), settled!.tx);
 
     // a second 100-token block is over what's left (50) and isn't partial: skipped, nothing sent
     const bid2 = await buyer.createBid({ token: stock, amount: "100", payWith: "USDG", replyMinutes: 60 });
     const t4 = await ap.tick();
     assert.ok(t4.skipped.some((s) => s.includes(bid2.bidId) && /over this rule's limit/.test(s)), JSON.stringify(t4));
     assert.equal(((await buyer.getOffers(bid2.bidId)) as any[]).length, 0);
+  });
+
+  it("survives a restart: an answer accepted while it was down still gets its deposit", async () => {
+    const buyer = agent(KEYS.buyer);
+    const seller = agent(KEYS.seller); // its state store (offer secrets) is a file, like the CLI's
+    const quote = async () => ({ usd: 200, ethUsd: 3000 });
+    const rules: AutopilotConfig = { live: true, rules: [{ side: "sell", token: stock, payWith: "USDG", maxTotal: "20", maxPerDeal: "20", priceVsMarketPct: 5 }] };
+    const ledger = memLedger();
+
+    const bid = await buyer.createBid({ token: stock, amount: "20", payWith: "USDG", replyMinutes: 60 });
+    const first = pilot(seller, rules, quote, ledger);
+    const t1 = await first.tick();
+    assert.ok(t1.actions.some((a) => a.startsWith("sent offer 20")), JSON.stringify(t1));
+    assert.equal(ledger.data?.answers.length, 1, "the answer is in the ledger as soon as it is sent");
+
+    // the autopilot is gone; meanwhile the buyer accepts and pays
+    const offers = (await buyer.getOffers(bid.bidId)) as any[];
+    await buyer.acceptOffer({ bidId: bid.bidId, offerId: offers[0].offerId, fundingMinutes: 60 });
+    await buyer.deposit({ bidId: bid.bidId });
+    const buyerStock0 = await bal(stock, privateKeyToAccount(KEYS.buyer).address);
+
+    // a fresh autopilot with the same ledger picks it up, deposits, and the deal settles
+    const second = pilot(seller, rules, quote, ledger);
+    const t2 = await second.tick();
+    assert.ok(t2.actions.some((a) => /^deposited as seller/.test(a)), JSON.stringify(t2));
+    assert.equal((await bal(stock, privateKeyToAccount(KEYS.buyer).address)) - buyerStock0, 20n * 10n ** 18n);
+    const t3 = await second.tick();
+    assert.ok(t3.actions.some((a) => /settled/.test(a)), JSON.stringify(t3));
+    assert.deepEqual(t3.totals[0], { rule: 1, side: "sell", token: stock, done: "20", pending: "0", left: "0" });
+    assert.equal(ledger.data?.answers.length, 0, "finished answers leave the ledger");
+    assert.equal(ledger.data?.done[`sell:${stock.toLowerCase()}:USDG`], (20n * 10n ** 18n).toString(), "the settled total is kept");
+
+    // and a third start still knows the cap is used up
+    const third = pilot(seller, rules, quote, ledger);
+    await buyer.createBid({ token: stock, amount: "5", payWith: "USDG", replyMinutes: 60 });
+    const t4 = await third.tick();
+    assert.ok(!t4.actions.some((a) => a.startsWith("sent")), JSON.stringify(t4));
+  });
+
+  it("quotes both sides as a maker: sells above and buys below the market", async () => {
+    const poster = agent(KEYS.buyer);
+    const maker = agent(KEYS.seller);
+    const quote = async () => ({ usd: 200, ethUsd: 3000 });
+    const bid = await poster.createBid({ token: stock, amount: "3", payWith: "USDG", replyMinutes: 60 });
+    const listing = await poster.createListing({ token: stock, amount: "4", payWith: "USDG", replyMinutes: 60 });
+    const ap = pilot(maker, { live: true, maxOpenAnswers: 10, rules: [{ side: "both", token: stock, payWith: "USDG", maxTotal: "10", maxPerDeal: "5", spreadPct: 2 }] }, quote);
+    const t = await ap.tick();
+    assert.ok(t.actions.some((a) => a.startsWith("sent offer 3 for 612.000000 USDG (+2% vs market)") && a.includes(bid.bidId)), JSON.stringify(t));
+    assert.ok(t.actions.some((a) => a.startsWith("sent bid 4 for 784.000000 USDG (-2% vs market)") && a.includes(listing.bidId)), JSON.stringify(t));
+    const [o] = (await poster.getOffers(bid.bidId)) as any[];
+    const [b] = (await poster.getOffers(listing.bidId)) as any[];
+    assert.equal(o.totalPrice, "612");
+    assert.equal(b.totalPrice, "784");
+    assert.equal(o.verified && b.verified, true, "both answers are signed by the maker's wallet");
   });
 
   it("does nothing in a dry run, without a reference price, or under its floor", async () => {

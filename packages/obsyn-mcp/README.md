@@ -13,20 +13,20 @@ Most clients take a config like this:
   "mcpServers": {
     "obsyn": {
       "command": "npx",
-      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz"],
+      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz"],
       "env": { "OBSYN_PRIVATE_KEY": "0x..." }
     }
   }
 }
 ```
 
-Or run it directly: `npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz` (it speaks MCP over stdio). Needs Node 20 or newer.
+Or run it directly: `npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz` (it speaks MCP over stdio). Needs Node 20 or newer.
 
 The file is published as a GitHub release of the open-source repo; every release lists its SHA-256 so you can check what you run.
 
 ### One-click bundle
 
-[`obsyn-mcp-0.3.0.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.mcpb) is the same server as an MCPB bundle: open it with an MCP client that supports bundles and it installs with a form for the optional settings below. Listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=trade.obsyn) as `trade.obsyn/mcp`.
+[`obsyn-mcp-0.4.0.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.mcpb) is the same server as an MCPB bundle: open it with an MCP client that supports bundles and it installs with a form for the optional settings below. Listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=trade.obsyn) as `trade.obsyn/mcp`.
 
 ## Settings (environment variables)
 
@@ -62,7 +62,7 @@ The file is published as a GitHub release of the open-source repo; every release
 Write the rules once and let the agent answer matching bids and listings on its own, with your key, on your machine:
 
 ```bash
-OBSYN_PRIVATE_KEY=0x... npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz autopilot rules.json
+OBSYN_PRIVATE_KEY=0x... npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz autopilot rules.json
 ```
 
 ```json
@@ -82,7 +82,25 @@ Each tick it reads the open postings, sends a sealed, signed answer to the ones 
 - **No price, no answer.** Without a reference price for the token it skips. It checks the wallet holds what it would hand over before every answer, and refuses rules that sell more than 20% under or buy more than 20% over market.
 - **It never posts or accepts** on your behalf; it only answers and deposits.
 
-An AI agent can draft the rules and check them first with the `otc_autopilot_preview` tool. Full example: [`examples/autopilot.rules.json`](examples/autopilot.rules.json). Stop with Ctrl+C.
+- **It finishes its deals.** Answers in play and settled totals are kept in `~/.obsyn/autopilot.json` (or `OBSYN_AUTOPILOT_STATE`), so after a restart it still deposits on answers accepted while it was down, and its caps still hold.
+
+An AI agent can draft the rules and check them first with the `otc_autopilot_preview` tool. Full example: [`examples/autopilot.rules.json`](examples/autopilot.rules.json). Tokens can be given by listed symbol (`"NVDA"`) or address. Stop with Ctrl+C.
+
+## Make markets
+
+A maker quotes both sides of a token. One rule does it: `"side": "both"` with a `spreadPct` sells that much above the DEX price and buys that much below it, each side with its own `maxPerDeal` and `maxTotal`:
+
+```json
+{ "live": false, "rules": [{ "side": "both", "token": "NVDA", "payWith": "USDG", "maxPerDeal": "5", "maxTotal": "50", "spreadPct": 1.5, "minPriceUsd": 100, "maxPriceUsd": 250 }] }
+```
+
+Anyone can make markets; there is no sign-up. To show a name and a public track record (deals accepted and settled, checked on-chain) on [obsyn.trade/makers](https://obsyn.trade/makers), list the wallet with a signed message, no gas:
+
+```bash
+OBSYN_PRIVATE_KEY=0x... npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz maker list "Your desk name"
+```
+
+`maker unlist "Your desk name"` removes it. Posters then see a Maker badge on answers signed by that wallet. The page also builds a rules file for you.
 
 ## Built-in guidance
 

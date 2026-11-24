@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import { formatUnits, getAddress, isAddress, toHex, zeroAddress, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { api, ApiError, type DealInfo, type Fills, type Rfq, type SealedQuote, type ServerConfig } from "../lib/api.ts";
+import { api, ApiError, type DealInfo, type Fills, type Maker, type Rfq, type SealedQuote, type ServerConfig } from "../lib/api.ts";
 import { balanceOfAsset, connectWallet, ghostSupported, NO_GHOST, termsFromJson, termsToJson, tokenInfo, verifyAnswerSig, type Terms, type TokenInfo } from "../lib/chain.ts";
 import { ghostPayable, NO_GHOST_PAY } from "../lib/pay.ts";
 import { answerMessage, fromUrl, hashParams, keysFromSecret, sideOf, unseal, type BuyerBid as BuyerBidMsg, type Offer } from "../lib/sealed.ts";
@@ -101,6 +101,12 @@ export function BuyerBid({ id }: { id: string }) {
     };
     return out.sort((a, b) => (side === "buy" ? cmp(a, b) : cmp(b, a)));
   }, [quotes.data, secret, rfq, side]);
+
+  // Listed makers, to badge answers signed by one (the badge needs the signature check below to pass)
+  const [makers, setMakers] = useState<Map<string, Maker>>(new Map());
+  useEffect(() => {
+    api.makers().then((list) => setMakers(new Map(list.map((m) => [m.address.toLowerCase(), m]))), () => {});
+  }, []);
 
   // Per answer: signed by the wallet it names? Does that wallet hold enough right now?
   const [checks, setChecks] = useState<Record<string, { verified: boolean; hasFunds: boolean | null }>>({});
@@ -367,6 +373,18 @@ export function BuyerBid({ id }: { id: string }) {
                     ) : (
                       <>
                         <Pill tone={checks[a.q.id].verified ? "ok" : "warn"}>{checks[a.q.id].verified ? "signed by this wallet" : "unverified"}</Pill>
+                        {checks[a.q.id].verified && !a.ghost && makers.get(a.from.toLowerCase()) && (() => {
+                          const m = makers.get(a.from.toLowerCase())!;
+                          const finished = m.stats.settled + m.stats.unsettled;
+                          return (
+                            <span title={`Listed maker "${m.name}": ${m.stats.accepted} deals accepted, ${m.stats.settled} settled, ${m.stats.unsettled} didn't settle (checked on-chain).`}>
+                              <Pill tone="info">
+                                Maker · {m.name}
+                                {finished > 0 ? ` · ${m.stats.settled}/${finished} settled` : " · new"}
+                              </Pill>
+                            </span>
+                          );
+                        })()}
                         {checks[a.q.id].hasFunds === true && <Pill tone="ok">{side === "buy" ? "holds the tokens" : "has the funds"}</Pill>}
                         {checks[a.q.id].hasFunds === false && <Pill tone="warn">{side === "buy" ? "doesn't hold the tokens" : "not enough funds"}</Pill>}
                         {checks[a.q.id].hasFunds === null && a.ghost && <Pill tone="muted">funded after accept</Pill>}

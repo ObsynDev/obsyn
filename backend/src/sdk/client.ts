@@ -25,6 +25,7 @@ import {
   type PublicClient,
 } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { makerMessage } from "../makers.ts";
 import { OtcEscrowAbi } from "../abi/OtcEscrow.ts";
 import { dealId as computeDealId, termsFromJson, termsToJson, type Terms } from "../terms.ts";
 
@@ -171,6 +172,15 @@ const permitAbi = parseAbi([
   "function eip712Domain() view returns (bytes1, string name, string version, uint256 chainId, address verifyingContract, bytes32, uint256[])",
 ]);
 
+/** The last transaction hash a deposit sent, if it sent any (wallet transactions, or a relayed ghost deposit). */
+function lastTxHash(r: unknown): Hex | null {
+  const o = r as { signed?: boolean; transactions?: unknown[]; steps?: string[] };
+  const fromSteps = o.steps?.map((s) => /relayed deposit: (0x[0-9a-fA-F]{64})/.exec(s)?.[1]).filter(Boolean).at(-1);
+  if (fromSteps) return fromSteps as Hex;
+  const last = o.signed ? o.transactions?.at(-1) : undefined;
+  return typeof last === "string" && /^0x[0-9a-fA-F]{64}$/.test(last) ? (last as Hex) : null;
+}
+
 export class OtcAgent {
   private opts: AgentOptions;
   private cfg: ServerConfig | null = null;
@@ -195,11 +205,21 @@ export class OtcAgent {
   }
 
   private async api<T>(method: string, path: string, body?: unknown, token?: string): Promise<T> {
-    const res = await this.fetch(this.opts.apiUrl.replace(/\/$/, "") + path, {
-      method,
-      headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
+    const send = () =>
+      this.fetch(this.opts.apiUrl.replace(/\/$/, "") + path, {
+        method,
+        headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+    let res = await send();
+    // Rate limited: the server refused before doing anything, so waiting and resending is safe. It says how long
+    // to wait (Retry-After); a busy maker answering many blocks waits instead of failing. At most 3 tries, ~70 s.
+    for (let i = 0; res.status === 429 && i < 3; i++) {
+      const wait = Math.min(65, Math.max(1, Number(res.headers.get("retry-after")) || 5 * 2 ** i));
+      await res.body?.cancel().catch(() => {});
+      await new Promise((r) => setTimeout(r, wait * 1000));
+      res = await send();
+    }
     const json = (await res.json().catch(() => ({}))) as any;
     if (!res.ok) {
       const extra = json.problems ? `: ${json.problems.join("; ")}` : json.issues ? `: ${json.issues.map((i: any) => i.message).join("; ")}` : "";
@@ -684,6 +704,16 @@ export class OtcAgent {
   }
 
   async deposit(ref: { bidId?: string; offerId?: string }) {
+    const r = await this.depositInner(ref);
+    // Report the transaction: the server checks on-chain whether it settled the deal and only then records
+    // it, which gives the deal its public receipt (and counts it in stats). Harmless when it didn't settle.
+    const rfqId = ref.bidId ?? (ref.offerId ? this.offer(ref.offerId).rfqId : undefined);
+    const last = lastTxHash(r);
+    if (rfqId && last) await this.api("POST", `/rfqs/${rfqId}/settled`, { txHash: last }).catch(() => {});
+    return r;
+  }
+
+  private async depositInner(ref: { bidId?: string; offerId?: string }) {
     const d = await this.deal(ref);
     if (!("dealId" in d) || !d.dealId) throw new Error(`The offer is ${d.pending}; nothing to deposit yet.`);
     const escrow = d.escrow ?? (await this.escrow());
@@ -989,6 +1019,15 @@ export class OtcAgent {
   // ─────────────────────────── for the autopilot ───────────────────────────
 
   /** A read-only GET on the Obsyn API. */
+  /** List (or unlist) this agent's wallet as a maker on the desk, with a signed message: no gas, no account. */
+  async maker(action: "list" | "unlist", name: string) {
+    if (!this.opts.privateKey) throw new Error("Listing as a maker needs the wallet key (OBSYN_PRIVATE_KEY).");
+    const acct = privateKeyToAccount(this.opts.privateKey);
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const signature = await acct.signMessage({ message: makerMessage(action, acct.address, name, issuedAt) });
+    return this.api<{ address: Address; name: string; listed: boolean }>("POST", "/makers", { action, address: acct.address, name, issuedAt, signature });
+  }
+
   get<T>(path: string): Promise<T> {
     return this.api<T>("GET", path);
   }

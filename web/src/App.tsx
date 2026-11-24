@@ -23,9 +23,10 @@ import { Docs } from "./pages/Docs.tsx";
 import { Refer } from "./pages/Refer.tsx";
 import { Stats } from "./pages/Stats.tsx";
 import { Slippage } from "./pages/Slippage.tsx";
+import { Makers } from "./pages/Makers.tsx";
 
 /** Marketing pages get the site header; everything else is the app. */
-const SITE_PAGES = new Set(["/", "/markets", "/how", "/developers", "/security", "/roadmap", "/docs", "/stats", "/refer", "/slippage"]);
+const SITE_PAGES = new Set(["/", "/markets", "/how", "/developers", "/security", "/roadmap", "/docs", "/stats", "/refer", "/slippage", "/makers"]);
 
 function route(path: string) {
   let m: RegExpExecArray | null;
@@ -62,6 +63,8 @@ function route(path: string) {
       return <Refer />;
     case "/slippage":
       return <Slippage />;
+    case "/makers":
+      return <Makers />;
   }
   return (
     <div className="narrow">
@@ -155,7 +158,7 @@ export function App() {
   const path = usePath();
   const site = SITE_PAGES.has(path);
   useEffect(() => {
-    document.title = path === "/" ? `${BRAND.name} · ${BRAND.description}` : path === "/app" ? `${BRAND.name} · Terminal` : path === "/otc" ? `${BRAND.name} · OTC desk` : path === "/trade" ? `${BRAND.name} · Trade` : path === "/stats" ? `${BRAND.name} · Stats` : path === "/refer" ? `${BRAND.name} · Referrals` : path === "/slippage" ? `${BRAND.name} · Slippage calculator` : BRAND.name;
+    document.title = path === "/" ? `${BRAND.name} · ${BRAND.description}` : path === "/app" ? `${BRAND.name} · Terminal` : path === "/otc" ? `${BRAND.name} · OTC desk` : path === "/trade" ? `${BRAND.name} · Trade` : path === "/stats" ? `${BRAND.name} · Stats` : path === "/refer" ? `${BRAND.name} · Referrals` : path === "/slippage" ? `${BRAND.name} · Slippage calculator` : path === "/makers" ? `${BRAND.name} · Makers` : BRAND.name;
   }, [path]);
   const nav = NAV_ITEMS;
   // the phone menu: closes on navigation and Escape
@@ -277,6 +280,7 @@ export function App() {
           <h4>PRODUCT</h4>
           <Link to="/markets">Markets</Link>
           <Link to="/slippage">Slippage calculator</Link>
+          <Link to="/makers">Become a maker</Link>
           <Link to="/app">Desk</Link>
           <Link to="/app?new=buy">Post a bid</Link>
           <Link to="/app?new=sell">Sell privately</Link>

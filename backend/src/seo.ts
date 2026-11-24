@@ -151,6 +151,11 @@ ${faqHtml}`,
     description: "What a block of NVDA, TSLA, AAPL or $OBSYN costs as a DEX market order on Robinhood Chain: price impact and dollar cost for every listed market, from each token's deepest pool.",
     body: `<h1>The cost of size, on-chain</h1><p>Pick a size and see what the same order costs as a market order on Robinhood Chain's DEX pools, for every market Obsyn lists: the pool price, its liquidity, the estimated price impact and the dollar cost. On the Obsyn OTC desk the same size trades at one price both sides agree, settled in one transaction through an escrow with no admin key.</p><p>Estimate from each token's deepest pool, constant-product model; reference only, not a quote.</p>`,
   },
+  "/makers": {
+    title: "Become a maker · Obsyn",
+    description: "Make markets on Obsyn: answer OTC blocks on Robinhood Chain by rules with the autopilot, from your own wallet. No sign-up; keys stay on your machine.",
+    body: `<h1>Make markets on Obsyn. Keep your keys.</h1><p>A maker answers blocks by rules: which tokens, which side, a spread against the live DEX price, caps per deal and in total. The autopilot runs on your own machine with your own wallet, answers matching bids and listings with sealed, signed prices, and deposits by itself when an answer is accepted. Anyone can do it; listing your wallet by a signed message adds a name and a public, on-chain checked track record. Listed makers: <a href="/api/makers">/api/makers</a>.</p>`,
+  },
   "/stats": {
     title: "Stats · Obsyn",
     description: "Obsyn desk stats: settled OTC volume, deals, fees and the $OBSYN buy-and-burn on Robinhood Chain, checked against the escrow contract.",
@@ -170,7 +175,7 @@ ${faqHtml}`,
   "/developers": {
     title: "Developers · Obsyn",
     description: "Give an AI agent the desk: an MCP server, a one-import JavaScript SDK and a plain HTTP API with no accounts.",
-    body: `<h1>Developers</h1><h2>Give an AI agent the desk</h2><p>An MCP server with 15 tools to post, answer and settle blocks. Install it with one command: <code>npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz</code> (GitHub release, SHA-256 listed there).</p><h2>One import, both sides</h2><p>A JavaScript SDK served at /api/sdk/obsyn.mjs.</p><h2>Plain HTTP, no accounts</h2><p>An OpenAPI-described REST API.</p><h2>Treat answers as hostile input</h2><p>Agents should validate every sealed answer before acting on it.</p>`,
+    body: `<h1>Developers</h1><h2>Give an AI agent the desk</h2><p>An MCP server with 15 tools to post, answer and settle blocks. Install it with one command: <code>npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz</code> (GitHub release, SHA-256 listed there).</p><h2>One import, both sides</h2><p>A JavaScript SDK served at /api/sdk/obsyn.mjs.</p><h2>Plain HTTP, no accounts</h2><p>An OpenAPI-described REST API.</p><h2>Treat answers as hostile input</h2><p>Agents should validate every sealed answer before acting on it.</p>`,
   },
 };
 

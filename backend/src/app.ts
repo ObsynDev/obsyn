@@ -19,6 +19,7 @@ import { dealId, termsToJson, TermsSchema } from "./terms.ts";
 import { openVsDexStore, vsDex } from "./vsdex.ts";
 import type { ControlReport } from "./control.ts";
 import { openActivity } from "./activity.ts";
+import { answeredDeals, makerStats, MakerError, openMakers, type MakerStats } from "./makers.ts";
 
 export interface Deps {
   cfg: Config;
@@ -97,6 +98,8 @@ export function createApp(deps: Deps) {
     c.req.header("x-real-ip")?.trim() || c.req.header("x-forwarded-for")?.split(",").pop()?.trim() || "local";
   const hits = new Map<string, { n: number; reset: number }>();
   let lastPrune = 0;
+  /** Seconds until a client's window resets (sent as Retry-After so well-behaved clients wait, not hammer). */
+  const retryAfter = (key: string) => String(Math.max(1, (hits.get(key)?.reset ?? now() + 1) - now()));
   const limited = (key: string, max: number) => {
     const t = now();
     if (t - lastPrune > 60) {
@@ -113,9 +116,9 @@ export function createApp(deps: Deps) {
   };
   app.use("*", async (c, next) => {
     const ip = clientIp(c);
-    if (c.req.method === "POST" && limited(`w:${ip}`, 60)) return c.json({ error: "rate limited" }, 429);
+    if (c.req.method === "POST" && limited(`w:${ip}`, 60)) return c.json({ error: "rate limited" }, 429, { "retry-after": retryAfter(`w:${ip}`) });
     if (c.req.method === "GET" && /^\/(api\/)?(token|price|stats|referrals)/.test(c.req.path) && limited(`r:${ip}`, 120)) {
-      return c.json({ error: "rate limited" }, 429);
+      return c.json({ error: "rate limited" }, 429, { "retry-after": retryAfter(`r:${ip}`) });
     }
     await next();
   });
@@ -146,6 +149,8 @@ export function createApp(deps: Deps) {
   };
   /** public desk activity for the site's live notifications (no prices, no addresses) */
   const activity = openActivity(db);
+  /** makers who chose to be listed, with a track record checked on-chain */
+  const makers = openMakers(db);
 
   const pub = (r: RfqRow) => {
     const f = fillsOf(r);
@@ -800,6 +805,55 @@ export function createApp(deps: Deps) {
     const cursor = a !== undefined && /^\d{1,15}$/.test(a) ? Number(a) : null;
     c.header("cache-control", "no-store");
     return c.json(activity.since(cursor));
+  });
+
+  // ── makers ──
+  const finalStatus = new Map<string, number>(); // settled (2) and refunded (3) never change
+  const readStatus = async (escrow: string | null, dealId: string) => {
+    const hit = finalStatus.get(dealId);
+    if (hit !== undefined) return hit;
+    const e = (escrow ?? cfg.escrow) as Address | null;
+    if (!e || !deps.readDeal) throw new Error("can't read the escrow");
+    const s = (await deps.readDeal(e, dealId as Hex)).status;
+    if (s === 2 || s === 3) finalStatus.set(dealId, s);
+    return s;
+  };
+  let makerCache: { at: number; p: Promise<{ address: Address; name: string; listedAt: number; stats: MakerStats }[]> } | null = null;
+  const makerList = () => {
+    if (!makerCache || now() - makerCache.at >= 60) {
+      const p = (async () => {
+        const list = makers.listed();
+        const stats = await makerStats(list.map((m) => m.address), answeredDeals(db), readStatus, now());
+        return list.map((m) => ({ ...m, stats: stats.get(m.address.toLowerCase())! }));
+      })();
+      makerCache = { at: now(), p };
+      p.catch(() => (makerCache = null));
+    }
+    return makerCache.p;
+  };
+
+  /** Listed makers and their track record (deals accepted, settled, open, unsettled), checked on-chain. */
+  app.get("/makers", async (c) => {
+    try {
+      c.header("cache-control", "public, max-age=30");
+      return c.json(await makerList());
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 502);
+    }
+  });
+
+  /** List or unlist yourself as a maker with a message signed by the wallet (see makerMessage). */
+  app.post("/makers", async (c) => {
+    const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+    if (!body) return c.json({ error: "send JSON: action, address, name, issuedAt, signature" }, 400);
+    try {
+      const r = await makers.apply({ action: body.action, address: body.address, name: body.name, issuedAt: body.issuedAt, signature: body.signature }, now());
+      makerCache = null;
+      return c.json(r);
+    } catch (e) {
+      if (e instanceof MakerError) return c.json({ error: e.message }, 400);
+      throw e;
+    }
   });
 
   app.get("/stats", async (c) => {

@@ -3,7 +3,7 @@
   "name": "trade.obsyn/mcp",
   "title": "Obsyn OTC",
   "description": "Private OTC block trades on Robinhood Chain: sealed bids, encrypted offers, one-tx settlement.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "websiteUrl": "https://obsyn.trade/developers",
   "repository": {
     "url": "https://github.com/ObsynDev/obsyn",
@@ -13,9 +13,9 @@
   "packages": [
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.mcpb",
-      "version": "0.3.0",
-      "fileSha256": "afe1949db06df1505f0b869f5dbaed1db0f7c71e194b81a1ddc7dcc572b5eaab",
+      "identifier": "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.mcpb",
+      "version": "0.4.0",
+      "fileSha256": "36819fd02eb4c037ea1bd6c87625384d7fa48dcd4fafdc56d95bfae2002a4d4d",
       "transport": {
         "type": "stdio"
       },

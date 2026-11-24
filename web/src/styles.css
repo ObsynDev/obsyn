@@ -6432,3 +6432,88 @@ html, body { overflow-x: clip; }
     animation: none;
   }
 }
+
+/* ═════════════ makers ═════════════ */
+.makers h2 {
+  margin-top: 36px;
+}
+.mk-points {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 24px 0 8px;
+}
+.mk-points .card b {
+  display: block;
+  margin-bottom: 6px;
+}
+.mk-points .card p {
+  margin: 0;
+}
+.mk-form,
+.mk-run,
+.mk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mk-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+.mk-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.mk-row input,
+.mk-row select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  color: var(--text);
+  font: 14px var(--mono);
+}
+.mk-live {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.mk-live input {
+  margin-top: 3px;
+}
+.mk-problems {
+  margin: 0;
+  padding-left: 18px;
+}
+.mk-json {
+  margin: 0;
+  padding: 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12.5px;
+  overflow-x: auto;
+  max-height: 340px;
+}
+.mk-acts {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mk-table td,
+.mk-table th {
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .mk-points {
+    grid-template-columns: 1fr;
+  }
+}

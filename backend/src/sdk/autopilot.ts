@@ -14,8 +14,11 @@ import { formatUnits, getAddress, isAddress, parseUnits, zeroAddress, type Addre
 import type { OtcAgent } from "./client.ts";
 
 export interface AutopilotRule {
-  /** sell: answer buy bids with offers. buy: answer sell listings with bids. */
-  side: "sell" | "buy";
+  /**
+   * sell: answer buy bids with offers. buy: answer sell listings with bids.
+   * both: a maker quote on both sides of one token, `spreadPct` above the market when selling and below it when buying.
+   */
+  side: "sell" | "buy" | "both";
   /** Token contract on Robinhood Chain, or a listed symbol like "NVDA" (resolved when the autopilot starts). */
   token: string;
   /** Which payment to accept (sell) or pay with (buy). Default: any. OBSYN only where the server accepts it. */
@@ -24,8 +27,10 @@ export interface AutopilotRule {
   maxTotal: string;
   /** Most tokens per deal, whole tokens. */
   maxPerDeal: string;
-  /** Price against the token's DEX price: +5 = 5% above, -3 = 3% below. */
-  priceVsMarketPct: number;
+  /** Price against the token's DEX price: +5 = 5% above, -3 = 3% below. (sell and buy rules) */
+  priceVsMarketPct?: number;
+  /** both rules: sell this many % above the market and buy this many % below it (0 < spread ≤ 20). */
+  spreadPct?: number;
   /** Never sell below / never buy above this USD price per token. */
   minPriceUsd?: number;
   maxPriceUsd?: number;
@@ -63,7 +68,7 @@ type Posting = {
   filledAmount?: string | null;
 };
 
-type Answer = { rule: number; rfqId: string; amount: bigint; state: "waiting" | "accepted" | "settled" | "dropped" };
+type Answer = { key: string; rfqId: string; amount: bigint; state: "waiting" | "accepted" | "settled" | "dropped" };
 
 export interface TickReport {
   live: boolean;
@@ -72,7 +77,39 @@ export interface TickReport {
   totals: { rule: number; side: "sell" | "buy"; token: string; done: string; pending: string; left: string }[];
 }
 
-const RULE_KEYS = new Set(["side", "token", "payWith", "maxTotal", "maxPerDeal", "priceVsMarketPct", "minPriceUsd", "maxPriceUsd", "payoutAddress"]);
+const RULE_KEYS = new Set(["side", "token", "payWith", "maxTotal", "maxPerDeal", "priceVsMarketPct", "spreadPct", "minPriceUsd", "maxPriceUsd", "payoutAddress"]);
+
+/** A one-sided rule, as the autopilot runs it (a `both` rule becomes one sell and one buy rule). */
+type SidedRule = AutopilotRule & { side: "sell" | "buy"; priceVsMarketPct: number };
+
+/** Turn `both` rules into a sell rule above the market and a buy rule below it, each with the same caps. */
+export function expandRules(rules: AutopilotRule[]): SidedRule[] {
+  const out: SidedRule[] = [];
+  for (const r of rules) {
+    if (r.side !== "both") {
+      out.push(r as SidedRule);
+      continue;
+    }
+    const { spreadPct, side: _side, minPriceUsd, maxPriceUsd, payoutAddress, ...common } = r;
+    const s = Number(spreadPct);
+    out.push({ ...common, side: "sell", priceVsMarketPct: s, ...(minPriceUsd !== undefined ? { minPriceUsd } : {}), ...(payoutAddress ? { payoutAddress } : {}) });
+    out.push({ ...common, side: "buy", priceVsMarketPct: -s, ...(maxPriceUsd !== undefined ? { maxPriceUsd } : {}) });
+  }
+  return out;
+}
+
+/** Caps and settled totals are tracked per side, token and payment, so they survive edits to the rule list. */
+const ruleKey = (r: SidedRule) => `${r.side}:${String(r.token).toLowerCase()}:${r.payWith ?? "any"}`;
+
+/** What the autopilot must remember across restarts: answers still in play (it owes a deposit once accepted) and what settled. */
+export interface LedgerData {
+  answers: { offerId: string; key: string; rfqId: string; amount: string; state: Answer["state"] }[];
+  done: Record<string, string>;
+}
+export interface Ledger {
+  load(): LedgerData | null;
+  save(d: LedgerData): void;
+}
 
 /** Check a config before anything runs. Returns the problems, empty when it's fine. */
 export function validateConfig(c: unknown): string[] {
@@ -85,16 +122,24 @@ export function validateConfig(c: unknown): string[] {
   (cfg.rules ?? []).forEach((r, i) => {
     const at = `rule ${i + 1}`;
     for (const k of Object.keys(r ?? {})) if (!RULE_KEYS.has(k)) out.push(`${at}: unknown field "${k}"`);
-    if (r?.side !== "sell" && r?.side !== "buy") out.push(`${at}: side must be "sell" or "buy"`);
+    if (r?.side !== "sell" && r?.side !== "buy" && r?.side !== "both") out.push(`${at}: side must be "sell", "buy" or "both"`);
     if (!isAddress(String(r?.token))) out.push(`${at}: token must be a contract address`);
     if (r?.payWith && !["ETH", "USDG", "OBSYN", "any"].includes(r.payWith)) out.push(`${at}: payWith must be ETH, USDG, OBSYN or any`);
     for (const k of ["maxTotal", "maxPerDeal"] as const) if (!/^\d+(\.\d+)?$/.test(String(r?.[k])) || Number(r?.[k]) <= 0) out.push(`${at}: ${k} must be a positive number of tokens`);
     if (Number(r?.maxPerDeal) > Number(r?.maxTotal)) out.push(`${at}: maxPerDeal can't exceed maxTotal`);
-    if (typeof r?.priceVsMarketPct !== "number" || !Number.isFinite(r.priceVsMarketPct) || Math.abs(r.priceVsMarketPct) > 50) out.push(`${at}: priceVsMarketPct must be a number between -50 and 50`);
-    if (r?.side === "sell" && r.priceVsMarketPct < -20) out.push(`${at}: selling more than 20% under market looks like a mistake`);
-    if (r?.side === "buy" && r.priceVsMarketPct > 20) out.push(`${at}: buying more than 20% over market looks like a mistake`);
+    if (r?.side === "both") {
+      if (r.priceVsMarketPct !== undefined) out.push(`${at}: a "both" rule takes spreadPct, not priceVsMarketPct`);
+      if (typeof r.spreadPct !== "number" || !Number.isFinite(r.spreadPct) || r.spreadPct <= 0 || r.spreadPct > 20) out.push(`${at}: spreadPct must be a number above 0 and at most 20`);
+    } else {
+      if (r?.spreadPct !== undefined) out.push(`${at}: spreadPct is for "both" rules`);
+      if (typeof r?.priceVsMarketPct !== "number" || !Number.isFinite(r.priceVsMarketPct) || Math.abs(r.priceVsMarketPct) > 50) out.push(`${at}: priceVsMarketPct must be a number between -50 and 50`);
+      else if (r.side === "sell" && r.priceVsMarketPct < -20) out.push(`${at}: selling more than 20% under market looks like a mistake`);
+      else if (r.side === "buy" && r.priceVsMarketPct > 20) out.push(`${at}: buying more than 20% over market looks like a mistake`);
+    }
     if (r?.payoutAddress && !isAddress(r.payoutAddress)) out.push(`${at}: payoutAddress must be an address`);
     if (r?.payoutAddress && r.side === "buy") out.push(`${at}: payoutAddress is for sell rules`);
+    if (r?.minPriceUsd !== undefined && r.side === "buy") out.push(`${at}: minPriceUsd is for sell rules (use maxPriceUsd)`);
+    if (r?.maxPriceUsd !== undefined && r.side === "sell") out.push(`${at}: maxPriceUsd is for buy rules (use minPriceUsd)`);
   });
   return out;
 }
@@ -109,14 +154,17 @@ export interface AutopilotDeps {
   burnToken?: Address | null;
   now?: () => number;
   log?: (line: string) => void;
+  /** Where answers in play and settled totals are kept, so a restart still deposits on accepted answers. Default: memory only. */
+  ledger?: Ledger;
 }
 
 export class Autopilot {
   private answers = new Map<string, Answer>();
   private decCache = new Map<string, number>();
-  private done = new Map<number, bigint>();
+  private done = new Map<string, bigint>();
   private agent: OtcAgent;
   private cfg: AutopilotConfig;
+  private rules: SidedRule[];
   private deps: AutopilotDeps;
 
   constructor(agent: OtcAgent, cfg: AutopilotConfig, deps: AutopilotDeps) {
@@ -124,7 +172,23 @@ export class Autopilot {
     if (problems.length) throw new Error("Autopilot config: " + problems.join("; "));
     this.agent = agent;
     this.cfg = cfg;
+    this.rules = expandRules(cfg.rules);
     this.deps = deps;
+    const saved = deps.ledger?.load();
+    if (saved) {
+      for (const a of saved.answers ?? []) this.answers.set(a.offerId, { key: a.key, rfqId: a.rfqId, amount: BigInt(a.amount), state: a.state });
+      for (const [k, v] of Object.entries(saved.done ?? {})) this.done.set(k, BigInt(v));
+    }
+  }
+
+  /** Write the ledger (answers still in play, and settled totals). Finished answers are dropped from it. */
+  private persist() {
+    if (!this.deps.ledger) return;
+    const answers: LedgerData["answers"] = [];
+    for (const [offerId, a] of this.answers) if (a.state === "waiting" || a.state === "accepted") answers.push({ offerId, key: a.key, rfqId: a.rfqId, amount: a.amount.toString(), state: a.state });
+    const done: Record<string, string> = {};
+    for (const [k, v] of this.done) done[k] = v.toString();
+    this.deps.ledger.save({ answers, done });
   }
 
   get live() {
@@ -142,10 +206,10 @@ export class Autopilot {
   }
 
   /** Tokens committed under a rule: settled plus answers still in play. */
-  private committed(rule: number) {
+  private committed(key: string) {
     let pending = 0n;
-    for (const a of this.answers.values()) if (a.rule === rule && (a.state === "waiting" || a.state === "accepted")) pending += a.amount;
-    return { done: this.done.get(rule) ?? 0n, pending };
+    for (const a of this.answers.values()) if (a.key === key && (a.state === "waiting" || a.state === "accepted")) pending += a.amount;
+    return { done: this.done.get(key) ?? 0n, pending };
   }
 
   async tick(): Promise<TickReport> {
@@ -166,7 +230,7 @@ export class Autopilot {
         if (!("dealId" in s) || !s.dealId) continue;
         if (s.status === "settled") {
           a.state = "settled";
-          this.done.set(a.rule, (this.done.get(a.rule) ?? 0n) + a.amount);
+          this.done.set(a.key, (this.done.get(a.key) ?? 0n) + a.amount);
           report.actions.push(`deal ${s.dealId.slice(0, 10)}… settled`);
           continue;
         }
@@ -182,9 +246,16 @@ export class Autopilot {
         const r = await this.agent.deposit({ offerId });
         report.actions.push(`deposited as ${s.role} on deal ${s.dealId.slice(0, 10)}…: ${JSON.stringify(r).slice(0, 120)}`);
       } catch (e) {
-        report.skipped.push(`answer ${offerId}: ${(e as Error).message}`);
+        const msg = (e as Error).message;
+        if (/wasn't sent by this agent/.test(msg)) {
+          // the ledger names an answer this wallet's state store doesn't know (another key or state file): stop tracking it
+          a.state = "dropped";
+          report.actions.push(`answer ${offerId} isn't in this agent's state store (another wallet or state file?); no longer tracked`);
+        } else report.skipped.push(`answer ${offerId}: ${msg}`);
       }
     }
+
+    this.persist();
 
     // 2. answer new postings that match a rule
     const open = [...this.answers.values()].filter((a) => a.state === "waiting").length;
@@ -193,11 +264,12 @@ export class Autopilot {
     const now = this.deps.now?.() ?? Math.floor(Date.now() / 1000);
     const answered = new Set([...this.answers.values()].map((a) => a.rfqId));
 
-    for (let i = 0; i < this.cfg.rules.length; i++) {
-      const r = this.cfg.rules[i];
+    for (let i = 0; i < this.rules.length; i++) {
+      const r = this.rules[i];
+      const key = ruleKey(r);
       const token = getAddress(r.token);
       const want = r.side === "sell" ? "buy" : "sell"; // we answer the opposite side
-      const { done, pending } = this.committed(i);
+      const { done, pending } = this.committed(key);
       const maxTotal = await this.units(token, r.maxTotal);
       const maxPer = await this.units(token, r.maxPerDeal);
       let left = maxTotal - done - pending;
@@ -284,7 +356,8 @@ export class Autopilot {
           amount: formatUnits(amount, decimals),
           payoutAddress: r.side === "sell" ? r.payoutAddress : undefined,
         });
-        this.answers.set(res.offerId, { rule: i, rfqId: p.id, amount, state: "waiting" });
+        this.answers.set(res.offerId, { key, rfqId: p.id, amount, state: "waiting" });
+        this.persist(); // right away: a crash before the end of the tick must not forget an answer we owe a deposit on
         answered.add(p.id);
         left -= amount;
         room--;
@@ -292,8 +365,8 @@ export class Autopilot {
       }
     }
 
-    this.cfg.rules.forEach((r, i) => {
-      const { done, pending } = this.committed(i);
+    this.rules.forEach((r, i) => {
+      const { done, pending } = this.committed(ruleKey(r));
       const dec = this.decCache.get(getAddress(r.token).toLowerCase());
       const f = (v: bigint) => (dec === undefined ? v.toString() : formatUnits(v, dec));
       report.totals.push({ rule: i + 1, side: r.side, token: r.token, done: f(done), pending: f(pending), left: (Number(r.maxTotal) - Number(f(done)) - Number(f(pending))).toString() });
@@ -305,7 +378,7 @@ export class Autopilot {
   /** Run until `stop()` (or the process ends), one tick every intervalSec. */
   async run(signal?: { stopped: boolean }) {
     const every = Math.max(10, this.cfg.intervalSec ?? 30) * 1000;
-    this.log(`autopilot ${this.live ? "LIVE" : "dry run"}: ${this.cfg.rules.length} rule(s), every ${every / 1000}s`);
+    this.log(`autopilot ${this.live ? "LIVE" : "dry run"}: ${this.rules.length} rule(s), every ${every / 1000}s${this.answers.size ? `, ${this.answers.size} answer(s) in play from the ledger` : ""}`);
     while (!signal?.stopped) {
       try {
         await this.tick();
@@ -319,7 +392,7 @@ export class Autopilot {
 }
 
 /** An autopilot wired to the Obsyn API and chain through `agent`. Prices come from each token's deepest DEX pool. */
-export async function createAutopilot(agent: OtcAgent, cfg: AutopilotConfig, log?: (line: string) => void) {
+export async function createAutopilot(agent: OtcAgent, cfg: AutopilotConfig, log?: (line: string) => void, ledger?: Ledger) {
   // rules may name tokens by symbol ("NVDA", "$OBSYN"); the autopilot works on addresses
   cfg = { ...cfg, rules: await Promise.all(cfg.rules.map(async (r) => ({ ...r, token: await agent.resolveToken(String(r.token)) }))) };
   const server = await agent.config();
@@ -334,5 +407,6 @@ export async function createAutopilot(agent: OtcAgent, cfg: AutopilotConfig, log
     usdg: server.usdg,
     burnToken: server.payTokens?.find((p) => p.symbol === "OBSYN")?.address ?? null,
     log,
+    ledger,
   });
 }

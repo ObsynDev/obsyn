@@ -32,6 +32,7 @@ describe("hardening", () => {
   it("rate-limits writes by the proxy-added address, so a spoofed first X-Forwarded-For entry doesn't help", async () => {
     const app = setup();
     let last = 0;
+    let retry: string | null = null;
     for (let i = 0; i < 61; i++) {
       const res = await app.request("/rfqs", {
         method: "POST",
@@ -39,8 +40,10 @@ describe("hardening", () => {
         body: "{}",
       });
       last = res.status;
+      retry = res.headers.get("retry-after");
     }
     assert.equal(last, 429);
+    assert.ok(Number(retry) >= 1 && Number(retry) <= 60, `says when to retry (${retry})`);
     // a different real client is unaffected
     const other = await app.request("/rfqs", { method: "POST", headers: { "content-type": "application/json", "x-real-ip": "198.51.100.9" }, body: "{}" });
     assert.notEqual(other.status, 429);

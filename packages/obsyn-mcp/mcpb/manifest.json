@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "obsyn-mcp",
   "display_name": "Obsyn OTC",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Private OTC block trades on Robinhood Chain: sealed bids and listings, encrypted offers, one-transaction settlement through an adminless contract.",
   "long_description": "Gives an AI agent the Obsyn desk. Post a bid or a sell listing, read the sealed answers (decrypted on this machine, never on the server), accept one, and settle both sides in one transaction through an escrow with no owner, admin key, pause or upgrade. Partial fills and a gasless ghost mode for sellers are supported. Answers are signed by the wallet they name; forged or unsigned ones are refused unless you allow them.",
   "author": {

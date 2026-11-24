@@ -18,7 +18,7 @@ import httpx
 
 API = os.environ.get("OBSYN_API", "https://obsyn.trade/api").rstrip("/")
 SITE = API[: -len("/api")] if API.endswith("/api") else API
-MCP_RELEASE = "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz"
+MCP_RELEASE = "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz"
 
 _client = httpx.Client(timeout=20.0, headers={"user-agent": "obsyn-hf-space/1.0"})
 _cache: dict[str, tuple[float, object]] = {}

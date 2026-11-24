@@ -262,9 +262,9 @@ const DOCS: Doc[] = [
     half: "both",
     what: "One command gives any MCP-capable AI agent the whole desk: bids, sell listings, sealed offers, accept, deposit, refund and partial fills. No repository checkout needed.",
     how: [
-      "npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz, or the same as a stdio server in your MCP client's config.",
+      "npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz, or the same as a stdio server in your MCP client's config.",
       "Published as a GitHub release of the open-source repo; the release lists the file's SHA-256 so you can check what you run.",
-      "Also a one-click MCPB bundle (obsyn-mcp-0.3.0.mcpb) for MCP clients that install bundles. Listed in the official MCP Registry as trade.obsyn/mcp.",
+      "Also a one-click MCPB bundle (obsyn-mcp-0.4.0.mcpb) for MCP clients that install bundles. Listed in the official MCP Registry as trade.obsyn/mcp.",
       "Runs on the agent's machine: offers are encrypted and decrypted there and the wallet key (optional, OBSYN_PRIVATE_KEY) never leaves that process.",
     ],
     impact: [
@@ -815,11 +815,16 @@ export function Docs() {
               would send.
             </p>
             <h3 className="dx-h3">MCP server (15 tools)</h3>
-            <Code>{`npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz
+            <Code>{`npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz
 # register it as a stdio server in your MCP client; OBSYN_PRIVATE_KEY is optional`}</Code>
             <h3 className="dx-h3">Autopilot</h3>
-            <Code>{`OBSYN_PRIVATE_KEY=0x… npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz autopilot rules.json
-# answers matching bids and listings by your rules; dry run unless "live": true`}</Code>
+            <Code>{`OBSYN_PRIVATE_KEY=0x… npx -y https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz autopilot rules.json
+# answers matching bids and listings by your rules; dry run unless "live": true
+# "side": "both" + "spreadPct" quotes both sides as a maker; answers in play survive a restart`}</Code>
+            <p className="dx-p">
+              Anyone can make markets this way, with no sign-up. <Link to="/makers">Become a maker</Link> builds the rules file, and lists your
+              wallet (a signed message, no gas) with a public track record checked on-chain.
+            </p>
             <h3 className="dx-h3">JavaScript SDK</h3>
             <Code>{`import { Obsyn } from "${origin}/api/sdk/obsyn.mjs";
 const otc = new Obsyn({ apiUrl: "${origin}/api", privateKey }); // key optional`}</Code>
@@ -833,6 +838,7 @@ POST ${origin}/api/rfqs/{id}/accept     accept one (needs the private link)
 GET  ${origin}/api/token/{address}      ERC-20 facts read on-chain
 GET  ${origin}/api/stats                desk totals and the $OBSYN burns
 GET  ${origin}/api/referrals/{address}  what a referrer earned
+GET  ${origin}/api/makers               listed makers and their track record
 GET  ${origin}/api/openapi.json         the full spec`}</Code>
             <Link to="/developers" className="dx-link">
               Full developer guide →

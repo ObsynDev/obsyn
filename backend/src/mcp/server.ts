@@ -36,7 +36,7 @@ Rules:
 - A block's price is private to the two sides: don't publish the sealed prices you read.`;
 
 export function createMcpServer(agent: OtcAgent) {
-  const server = new McpServer({ name: "obsyn", version: "0.3.0" }, { instructions: INSTRUCTIONS });
+  const server = new McpServer({ name: "obsyn", version: "0.4.0" }, { instructions: INSTRUCTIONS });
 
   server.registerTool(
     "otc_info",
@@ -231,12 +231,13 @@ export function createMcpServer(agent: OtcAgent) {
   );
 
   const rule = z.object({
-    side: z.enum(["sell", "buy"]).describe("sell: answer buy bids with offers. buy: answer sell listings with bids"),
+    side: z.enum(["sell", "buy", "both"]).describe("sell: answer buy bids with offers. buy: answer sell listings with bids. both: a maker quoting both sides (use spreadPct)"),
     token: z.string().describe("Listed symbol (NVDA, TSLA, OBSYN…) or a 0x address"),
     payWith: z.enum(["ETH", "USDG", "OBSYN", "any"]).optional(),
     maxTotal: z.string().describe("Most tokens over the whole run, whole units"),
     maxPerDeal: z.string().describe("Most tokens per deal, whole units"),
-    priceVsMarketPct: z.number().describe("Price against the token's DEX price: +5 = 5% above, -3 = 3% below"),
+    priceVsMarketPct: z.number().optional().describe("sell/buy rules: price against the token's DEX price, +5 = 5% above, -3 = 3% below"),
+    spreadPct: z.number().optional().describe("both rules: sell this % above the market and buy this % below it"),
     minPriceUsd: z.number().optional().describe("Sell rules: never below this USD price per token"),
     maxPriceUsd: z.number().optional().describe("Buy rules: never above this USD price per token"),
     payoutAddress: z.string().optional().describe("Sell rules: where payments go (default: the agent's wallet)"),

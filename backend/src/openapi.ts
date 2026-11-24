@@ -200,6 +200,17 @@ export const openapi = {
         responses: { 200: ok("Deals", { type: "object" }), 401: err("Wrong or missing manage token"), 404: err("Not found") },
       },
     },
+    "/makers": {
+      get: {
+        summary: "Listed makers (wallets that answer blocks and chose to be listed) with their track record: deals accepted, settled, open, and past their deadline without settling, each checked on-chain",
+        responses: { 200: ok("Makers", { type: "array" }) },
+      },
+      post: {
+        summary: "List or unlist your wallet as a maker with a signed message: personal_sign of `Obsyn maker\nAction: {list|unlist}\nName: {name}\nWallet: {checksummed address}\nIssued: {unix seconds}`, issued within the last 10 minutes and newer than your last one",
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["action", "address", "name", "issuedAt", "signature"], properties: { action: { type: "string", enum: ["list", "unlist"] }, address, name: { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9 ._-]{1,23}$" }, issuedAt: { type: "integer" }, signature: { type: "string" } } } } } },
+        responses: { 200: ok("Listed or unlisted", { type: "object" }), 400: err("Bad, expired, reused or mismatched signature, or the name is taken") },
+      },
+    },
     "/activity": {
       get: {
         summary: "Live desk activity (a block posted, a sealed answer sent, a deal accepted, a deal settled), public facts only: side, token, size, settlement tx. Never prices or addresses. Without `after`, returns only the current cursor",

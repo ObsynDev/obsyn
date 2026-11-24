@@ -31,7 +31,7 @@ export function Developers() {
   "mcpServers": {
     "${BRAND.name.toLowerCase()}": {
       "command": "npx",
-      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz"],
+      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz"],
       "env": { "OBSYN_PRIVATE_KEY": "0x..." }
     }
   }

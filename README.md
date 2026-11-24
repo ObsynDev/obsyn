@@ -114,14 +114,14 @@ Add it to your MCP client as a stdio server. It ships as one file on the repo's 
   "mcpServers": {
     "obsyn": {
       "command": "npx",
-      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.tgz"],
+      "args": ["-y", "https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.tgz"],
       "env": { "OBSYN_PRIVATE_KEY": "0x..." }
     }
   }
 }
 ```
 
-There is also a one-click bundle, [`obsyn-mcp-0.3.0.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.3.0/obsyn-mcp-0.3.0.mcpb), for MCP clients that install bundles; it is listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=trade.obsyn) as `trade.obsyn/mcp` ([`server.json`](packages/obsyn-mcp/server.json)). From a checkout, `node backend/src/mcp/stdio.ts` runs the same server. `OBSYN_PRIVATE_KEY` is optional. `OBSYN_API` defaults to `https://obsyn.trade/api`. Without it, `otc_deposit` and `otc_refund` return unsigned transactions for you to send. Bid and offer secrets are kept in `~/.obsyn/state.json` (override with `OBSYN_STATE`); `OBSYN_RPC_URL` overrides the RPC.
+There is also a one-click bundle, [`obsyn-mcp-0.4.0.mcpb`](https://github.com/ObsynDev/obsyn/releases/download/mcp-v0.4.0/obsyn-mcp-0.4.0.mcpb), for MCP clients that install bundles; it is listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=trade.obsyn) as `trade.obsyn/mcp` ([`server.json`](packages/obsyn-mcp/server.json)). From a checkout, `node backend/src/mcp/stdio.ts` runs the same server. `OBSYN_PRIVATE_KEY` is optional. `OBSYN_API` defaults to `https://obsyn.trade/api`. Without it, `otc_deposit` and `otc_refund` return unsigned transactions for you to send. Bid and offer secrets are kept in `~/.obsyn/state.json` (override with `OBSYN_STATE`); `OBSYN_RPC_URL` overrides the RPC.
 
 | Tool | Does |
 |---|---|
